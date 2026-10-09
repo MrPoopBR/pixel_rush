@@ -1,0 +1,15 @@
+# Build outputs and caches
+.buildozer/
+bin/
+.gradle/
+__pycache__/
+*.py[cod]
+*.log
+
+# Signing materials — NEVER COMMIT THESE
+*.jks
+*.keystore
+*.pem
+*.p12
+*.pfx
+local.properties

@@ -1,0 +1,270 @@
+name: Build Pixel Rush Android AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: 'Optional note for this build'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-android-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Signing secrets are used only for a manual build of the trusted main branch.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Free runner disk space and inspect capacity
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: Restore Android and build caches
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.buildozer/android/platform/android-sdk
+            ~/.buildozer/android/platform/android-ndk-r28c
+            ~/.buildozer/android/platform/apache-ant-1.9.4
+            ~/.buildozer/android/platform/python-for-android
+            ~/.buildozer/android/packages
+            .buildozer/android/platform/build-arm64-v8a
+            .buildozer/android/platform/build-arm64-v8a_armeabi-v7a
+            ~/.gradle/caches
+            ~/.cache/pip
+          key: ${{ runner.os }}-pixelrush-android-${{ hashFiles('buildozer.spec', 'p4a-recipes/**') }}
+          restore-keys: |
+            ${{ runner.os }}-pixelrush-android-
+
+      - name: Install system build dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git zip unzip curl wget ca-certificates software-properties-common \
+            build-essential autoconf automake libtool pkg-config zlib1g-dev \
+            libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev \
+            libssl-dev libltdl-dev gettext autopoint ccache python3-pip python3-venv
+          sudo add-apt-repository -y ppa:deadsnakes/ppa
+          sudo apt-get update
+          sudo apt-get install -y python3.14 python3.14-venv python3.14-dev
+          if ! command -v rustc >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Install Buildozer in an isolated environment
+        shell: bash
+        run: |
+          set -euxo pipefail
+          VENV_DIR="$RUNNER_TEMP/pixelrush-build-venv"
+          python3.14 -m venv --system-site-packages "$VENV_DIR"
+          "$VENV_DIR/bin/python" -m pip install --upgrade pip wheel setuptools
+          "$VENV_DIR/bin/python" -m pip install \
+            'Cython==0.29.34' legacy-cgi \
+            'git+https://github.com/kivy/buildozer.git'
+          {
+            echo "VENV_DIR=$VENV_DIR"
+            echo "VIRTUAL_ENV=$VENV_DIR"
+          } >> "$GITHUB_ENV"
+          echo "$VENV_DIR/bin" >> "$GITHUB_PATH"
+          echo "MAKEFLAGS=-j4" >> "$GITHUB_ENV"
+          echo "CMAKE_BUILD_PARALLEL_LEVEL=4" >> "$GITHUB_ENV"
+          "$VENV_DIR/bin/buildozer" --version
+
+      - name: Validate app config and protected signing secrets
+        shell: bash
+        env:
+          PIXELRUSH_KEYSTORE_B64: ${{ secrets.PIXELRUSH_KEYSTORE_B64 }}
+          PIXELRUSH_KEYSTORE_PASS: ${{ secrets.PIXELRUSH_KEYSTORE_PASS }}
+          PIXELRUSH_KEY_PASS: ${{ secrets.PIXELRUSH_KEY_PASS }}
+          PIXELRUSH_KEY_ALIAS: ${{ secrets.PIXELRUSH_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "For safety, signed builds may only run from main."
+            exit 1
+          fi
+          for n in PIXELRUSH_KEYSTORE_B64 PIXELRUSH_KEYSTORE_PASS PIXELRUSH_KEY_PASS PIXELRUSH_KEY_ALIAS; do
+            if [[ -z "${!n:-}" ]]; then
+              echo "Missing repository secret: $n"
+              exit 1
+            fi
+          done
+          KEY_PATH="$GITHUB_WORKSPACE/pixelrush-upload-key.jks"
+          printf '%s' "$PIXELRUSH_KEYSTORE_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          PIXELRUSH_STORE_PASS="$PIXELRUSH_KEYSTORE_PASS" keytool -list \
+            -keystore "$KEY_PATH" -storepass:env PIXELRUSH_STORE_PASS \
+            -alias "$PIXELRUSH_KEY_ALIAS" >/dev/null
+          {
+            echo "P4A_RELEASE_KEYSTORE=$KEY_PATH"
+            echo "P4A_RELEASE_KEYALIAS=$PIXELRUSH_KEY_ALIAS"
+            echo "P4A_RELEASE_KEYSTORE_PASSWD=$PIXELRUSH_KEYSTORE_PASS"
+            echo "P4A_RELEASE_KEYALIAS_PASSWD=$PIXELRUSH_KEY_PASS"
+          } >> "$GITHUB_ENV"
+          echo "Signing keystore validated; secrets were not printed."
+
+      - name: Verify build configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          spec = Path('buildozer.spec').read_text(encoding='utf-8')
+          expected = {
+              'android.api': '36',
+              'android.minapi': '26',
+              'android.ndk_api': '26',
+              'android.ndk': '28c',
+              'android.archs': 'arm64-v8a',
+          }
+          for key, value in expected.items():
+              match = re.search(rf'(?mi)^\s*{re.escape(key)}\s*=\s*(.*?)\s*$', spec)
+              if not match or match.group(1) != value:
+                  raise SystemExit(f'Configuration mismatch: {key}: expected {value}')
+          if 'python3==3.12.12,hostpython3==3.12.12,pygame-ce' not in spec:
+              raise SystemExit('Python and hostpython requirements must match at 3.12.12.')
+          if not Path('main.py').is_file():
+              raise SystemExit('main.py is missing.')
+          if not Path('p4a-recipes/pygame-ce/__init__.py').is_file():
+              raise SystemExit('Local pygame-ce recipe is missing.')
+          print('Build configuration OK.')
+          PY
+
+      - name: Build signed Android App Bundle
+        shell: bash
+        env:
+          PIXELRUSH_KEYSTORE_PASS: ${{ secrets.PIXELRUSH_KEYSTORE_PASS }}
+          PIXELRUSH_KEY_PASS: ${{ secrets.PIXELRUSH_KEY_PASS }}
+          PIXELRUSH_KEY_ALIAS: ${{ secrets.PIXELRUSH_KEY_ALIAS }}
+        run: |
+          set -uo pipefail
+          python3 - <<'PY'
+          import os, re, subprocess, sys, threading, queue, time
+          from pathlib import Path
+
+          buildozer = Path(os.environ['VENV_DIR']) / 'bin' / 'buildozer'
+          log_path = Path('build-release.log')
+          secrets = [
+              os.environ.get('P4A_RELEASE_KEYSTORE_PASSWD', ''),
+              os.environ.get('P4A_RELEASE_KEYALIAS_PASSWD', ''),
+              os.environ.get('PIXELRUSH_KEYSTORE_PASS', ''),
+              os.environ.get('PIXELRUSH_KEY_PASS', ''),
+          ]
+          secrets = sorted({s for s in secrets if s}, key=len, reverse=True)
+          env_patterns = [
+              re.compile(r'(?i)(P4A_RELEASE_KEYSTORE_PASSWD\s*=\s*).*$'),
+              re.compile(r'(?i)(P4A_RELEASE_KEYALIAS_PASSWD\s*=\s*).*$'),
+          ]
+          def redact(line):
+              for pattern in env_patterns:
+                  line = pattern.sub(r"\1<REDACTED>", line)
+              for secret in secrets:
+                  line = line.replace(secret, '<REDACTED>')
+              return line
+
+          env = os.environ.copy()
+          env['VIRTUAL_ENV'] = env['VENV_DIR']
+          env['JAVA_HOME'] = os.environ.get('JAVA_HOME', '/usr/lib/jvm/temurin-17-jdk-amd64')
+          env['MAKEFLAGS'] = '-j4'
+          env['CMAKE_BUILD_PARALLEL_LEVEL'] = '4'
+          cmd = [str(buildozer), '-v', 'android', 'release']
+          print('Starting Pixel Rush release build (ARM64, API 36, min/NDK API 26).', flush=True)
+          print('Log is redacted before both console output and file writing.', flush=True)
+          start = time.monotonic()
+          proc = subprocess.Popen(
+              cmd, cwd='.', env=env, stdin=subprocess.DEVNULL,
+              stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+              text=True, bufsize=1, errors='replace'
+          )
+          q = queue.Queue()
+          def reader():
+              try:
+                  for line in proc.stdout:
+                      q.put(line)
+              finally:
+                  q.put(None)
+          threading.Thread(target=reader, daemon=True).start()
+          finished = False
+          with log_path.open('w', encoding='utf-8', errors='replace') as log:
+              while not finished:
+                  try:
+                      raw = q.get(timeout=30)
+                  except queue.Empty:
+                      elapsed = int((time.monotonic() - start) / 60)
+                      print(f'[heartbeat] Build still running; elapsed {elapsed} min.', flush=True)
+                      continue
+                  if raw is None:
+                      finished = True
+                      continue
+                  safe = redact(raw)
+                  log.write(safe)
+                  log.flush()
+                  if (re.search(r'(?i)(error:|fatal error|exception|failed|failure|downloading|extracting|compiling|building|gradle|build successful|creating dist|recipe build order|aab)', safe)
+                      or int((time.monotonic() - start)) % 240 < 1):
+                      print(safe, end='', flush=True)
+          rc = proc.wait()
+          elapsed = (time.monotonic() - start) / 60
+          print(f'Build process exited after {elapsed:.1f} minutes with code {rc}.', flush=True)
+          if rc != 0:
+              sys.exit(rc)
+
+          candidates = sorted(Path('bin').glob('*.aab'), key=lambda p: p.stat().st_mtime, reverse=True)
+          if not candidates:
+              print('Build succeeded but no .aab was found in bin/.', flush=True)
+              sys.exit(2)
+          aab = candidates[0]
+          verify = subprocess.run(['jarsigner', '-verify', str(aab)], capture_output=True, text=True)
+          if verify.returncode != 0:
+              print('jarsigner verification failed:', flush=True)
+              print(redact(verify.stdout[-3000:]), flush=True)
+              print(redact(verify.stderr[-3000:]), flush=True)
+              sys.exit(3)
+          print(f'Signed AAB verified: {aab} ({aab.stat().st_size:,} bytes).', flush=True)
+          PY
+
+      - name: Upload signed AAB
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pixel-rush-android-aab
+          path: bin/*.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload sanitized build log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pixel-rush-build-log
+          path: build-release.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Remove signing key from runner workspace
+        if: always()
+        shell: bash
+        run: rm -f "$GITHUB_WORKSPACE/pixelrush-upload-key.jks"
