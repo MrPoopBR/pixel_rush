@@ -33,8 +33,14 @@ class PygameCeRecipe(CompiledComponentsPythonRecipe):
                     ' -I' + join(self.ctx.bootstrap.build_dir, 'jni', 'SDL', 'include') +
                     ' -L' + join(self.ctx.bootstrap.build_dir, 'libs', str(arch)) +
                     ' -L' + png_lib_dir + ' -L' + jpeg_lib_dir + ' -L' + arch.ndk_lib_dir_versioned),
-                sdl_ttf_includes='-I' + join(self.ctx.bootstrap.build_dir, 'jni', 'SDL2_ttf'),
-                sdl_image_includes='-I' + join(self.ctx.bootstrap.build_dir, 'jni', 'SDL2_image'),
+                sdl_ttf_includes=(
+    '-I' + join(self.ctx.bootstrap.build_dir, 'jni', 'SDL2_ttf')
+    + ' -I' + join(self.ctx.bootstrap.build_dir, 'jni', 'SDL2_ttf', 'include')
+),
+sdl_image_includes=(
+    '-I' + join(self.ctx.bootstrap.build_dir, 'jni', 'SDL2_image')
+    + ' -I' + join(self.ctx.bootstrap.build_dir, 'jni', 'SDL2_image', 'include')
+),
                 sdl_mixer_includes=sdl_mixer_includes,
                 jpeg_includes='-I' + jpeg_inc_dir,
                 png_includes='-I' + png_inc_dir,
