@@ -1,7 +1,7 @@
 [app]
 title = PIXEL RUSH
-package.name = runner
-package.domain = com.pixelrush
+package.name = bigheadmobile_pixelrush
+package.domain = com
 source.dir = .
 source.include_exts = py,json
 source.exclude_dirs = .git,.buildozer,bin,p4a-recipes,__pycache__
