@@ -55,7 +55,15 @@ jobs:
           key: ${{ runner.os }}-pixelrush-android-${{ hashFiles('buildozer.spec', 'p4a-recipes/**') }}
           restore-keys: |
             ${{ runner.os }}-pixelrush-android-
-
+            
+      - name: Clear previous Android native build outputs for Python 3.10 test
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf "$HOME/.buildozer/android/platform/build-arm64-v8a"
+          rm -rf "$HOME/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a"
+          rm -rf "$GITHUB_WORKSPACE/.buildozer/android/platform/build-arm64-v8a"
+          rm -rf "$GITHUB_WORKSPACE/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a"
       - name: Install system build dependencies
         shell: bash
         run: |
