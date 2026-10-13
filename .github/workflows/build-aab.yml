@@ -153,10 +153,13 @@ jobs:
               match = re.search(rf'(?mi)^\s*{re.escape(key)}\s*=\s*(.*?)\s*$', spec)
               if not match or match.group(1) != value:
                   raise SystemExit(f'Configuration mismatch: {key}: expected {value}')
-                    if 'python3==3.10.12,hostpython3==3.10.12,pygame-ce' not in spec:
+          
+          if 'python3==3.10.12,hostpython3==3.10.12,pygame-ce' not in spec:
               raise SystemExit('For this diagnostic build, Python and hostpython requirements must match at 3.10.12.')
+          
           if not Path('main.py').is_file():
               raise SystemExit('main.py is missing.')
+          
           if not Path('p4a-recipes/pygame-ce/__init__.py').is_file():
               raise SystemExit('Local pygame-ce recipe is missing.')
           print('Build configuration OK.')
