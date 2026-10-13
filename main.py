@@ -20,13 +20,14 @@ def init_audio():
 init_audio()
 
 # Versão do Jogo
-VERSAO = "v3.2.0"
+VERSAO = "v3.2.2"
 
 # Configuração da Tela na Vertical (Portrait - 450x800)
 LARGURA_VIRTUAL = 450
 ALTURA_VIRTUAL = 800
 
-tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SCALED)
+# CORREÇÃO APLICADA AQUI: Passando a resolução lógica correta para o SCALED funcionar
+tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.FULLSCREEN | pygame.SCALED)
 display_surface = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
 
 pygame.display.set_caption(f"Corrida Infinita 2D - {VERSAO}")
@@ -1302,12 +1303,10 @@ def gerar_missoes_rodada():
 
 # --- GERADOR DE PADRÕES EXPANDIDO DE MOEDAS (32 FORMATOS) ---
 def gerar_padrao_moedas(x_base, y_base, formato, todos_sprites, moedas, pool_manager):
-    # Limites rigorosos para não nascer no chão nem acima do pulo máximo
-    y_limite_chao = ALTURA_VIRTUAL - 95   # Pelo menos 25px acima do chão (730 - 25 = 705)
-    y_limite_topo = ALTURA_VIRTUAL - 260  # Pulo máximo longo do jogador (540)
+    y_limite_chao = ALTURA_VIRTUAL - 95
+    y_limite_topo = ALTURA_VIRTUAL - 260
     offsets = []
 
-    # 1. FORMATOS PEQUENOS (POUCAS MOEDAS: 1 a 4)
     if formato == "MOEDA_UNICA":
         offsets = [(0, 0)]
     elif formato == "PAR_HORIZONTAL":
@@ -1324,8 +1323,6 @@ def gerar_padrao_moedas(x_base, y_base, formato, todos_sprites, moedas, pool_man
         offsets = [(0, -44), (25, -22), (50, 0)]
     elif formato == "SMILEY":
         offsets = [(0, -30), (30, -30), (15, 0)]
-
-    # 2. FORMATOS TRADICIONAIS / MÉDIOS (5 a 10 MOEDAS)
     elif formato == "LINHA":
         for i in range(random.choice([4, 5, 6])): offsets.append((i * 28, 0))
     elif formato == "V":
@@ -1364,8 +1361,6 @@ def gerar_padrao_moedas(x_base, y_base, formato, todos_sprites, moedas, pool_man
         offsets = [(0, 0), (28, -28), (56, 0), (28, 0)]
     elif formato == "ZIGZAG":
         offsets = [(0, 0), (25, -30), (50, 0), (75, -30), (100, 0)]
-
-    # 3. FORMATOS GIGANTES (MUITAS MOEDAS: 12 a 25+ MOEDAS)
     elif formato == "MEGACRUZ":
         for i in range(-3, 4):
             offsets.append((i * 26, 0))
@@ -1402,7 +1397,6 @@ def gerar_padrao_moedas(x_base, y_base, formato, todos_sprites, moedas, pool_man
             offsets.append((i * 25, i * 25))
             offsets.append((i * 25, -i * 25))
 
-    # Ajusta o y_base do grupo para que TODO o padrão fique visível e preservado sem deformar
     if offsets:
         min_dy = min(dy for _, dy in offsets)
         max_dy = max(dy for _, dy in offsets)
@@ -1517,6 +1511,7 @@ def main():
     touch_start_pos = None
     touch_current_pos = None
     toque_ativo = False
+    ultimo_clique_tempo = 0  # Debounce para evitar duplo clique
 
     cor_atual_ceu = list(COR_DIA)
 
@@ -1570,7 +1565,12 @@ def main():
         estado = "JOGANDO"
 
     def processar_clique_ui(pos):
-        nonlocal estado
+        nonlocal estado, ultimo_clique_tempo
+        tempo_atual = pygame.time.get_ticks()
+        if tempo_atual - ultimo_clique_tempo < 300:  # Ignora cliques duplicados em menos de 300ms
+            return
+        ultimo_clique_tempo = tempo_atual
+
         gerenciador_sons.tocar_som("clique", False, dados["vol_sfx"])
         if estado == "INICIO":
             if btn_jogar.collidepoint(pos):
@@ -1655,7 +1655,6 @@ def main():
     while rodando:
         frame_count += 1
 
-        # Controle da Animação de Entrada
         if estado != estado_anterior:
             if estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
                 anim_menu_tempo = 0
@@ -1776,7 +1775,6 @@ def main():
             if dy > 30:
                 segurando_baixo_touch = True
 
-        # Atualização de Fundo e Gameplay
         if estado == "JOGANDO":
             vel_base = min(20.0, 6.0 + (metros_atuais / 35.0) * 0.35)
             if jogador.tempo_slow > 0:
@@ -1925,7 +1923,6 @@ def main():
         # --- RENDERIZAÇÃO NA TELA ---
         display_surface.fill(cor_ceu_tupla)
 
-        # 1. Desenho do mundo do jogo ao fundo (Gameplay, Pausa ou Game Over)
         if estado in ["JOGANDO", "PAUSA", "GAMEOVER"]:
             bg_parallax.draw(display_surface, cor_ceu_tupla, e_noite)
             pygame.draw.rect(display_surface, CINZA_CHAO, (0, ALTURA_VIRTUAL - 70, LARGURA_VIRTUAL, 70))
@@ -1940,7 +1937,6 @@ def main():
                 overlay_slow.fill((30, 180, 60, 45))
                 display_surface.blit(overlay_slow, (0, 0))
 
-            # --- TEXTO DE ATENÇÃO DO LASER (POSICIONADO DIRETAMENTE SOBRE O LASER) ---
             for perigo in perigos_especiais:
                 if isinstance(perigo, AvisoLaser) and perigo.timer > 0:
                     seg_restantes = (perigo.timer / 60.0)
@@ -1949,18 +1945,14 @@ def main():
                         pos_y_alerta = max(10, perigo.rect.y - 28)
                         desenhar_texto_centralizado(display_surface, txt_alerta, fonte_alerta, VERMELHO_OBSTACULO, AMARELO_NEON, pos_y_alerta)
 
-            # --- ESCUDO E BARRA PERSEGUIDORA DE DANO DO ESCUDO ---
             if jogador and jogador.escudo_hits > 0 and estado in ["JOGANDO", "PAUSA"] and not jogador.morrendo:
-                # Círculo de energia ao redor do jogador
                 pygame.draw.circle(display_surface, CIANO_ESCUDO, jogador.rect.center, 42, 3)
 
-                # Barra perseguindo bem acima da cabeça do jogador
                 bar_w = 50
                 bar_h = 7
                 bar_x = jogador.rect.centerx - bar_w // 2
                 bar_y = jogador.rect.top - 24
 
-                # Fundo e borda
                 pygame.draw.rect(display_surface, CINZA_PAINEL, (bar_x - 1, bar_y - 1, bar_w + 2, bar_h + 2), border_radius=4)
                 max_hits = max(1, jogador.escudo_max)
                 pct_escudo = jogador.escudo_hits / float(max_hits)
@@ -1969,28 +1961,22 @@ def main():
                     pygame.draw.rect(display_surface, CIANO_ESCUDO, (bar_x, bar_y, w_preenchido, bar_h), border_radius=3)
                 pygame.draw.rect(display_surface, BRANCO, (bar_x, bar_y, bar_w, bar_h), 1, border_radius=3)
 
-                # Texto com os pontos numéricos da vida do escudo
                 surf_esc_num = fonte_pequena.render(f"{jogador.escudo_hits}/{max_hits}", True, BRANCO)
                 display_surface.blit(surf_esc_num, (jogador.rect.centerx - surf_esc_num.get_width() // 2, bar_y - 14))
 
-        # 2. HUD da Partida Ativa
         if estado == "JOGANDO":
             rect_hud = pygame.Rect(15, 15, 190, 68)
             pygame.draw.rect(display_surface, (20, 20, 30, 220), rect_hud, border_radius=12)
             pygame.draw.rect(display_surface, CIANO_ESCUDO, rect_hud, 2, border_radius=12)
 
-            # Texto de Metros
             desenhar_texto_com_sombra(display_surface, f"{metros_atuais} {t('m_unit', dados)}", fonte_grande, AMARELO_NEON, PRETO, (25, 20))
-            # Texto de Moedas
             desenhar_texto_com_sombra(display_surface, f"{t('moedas_hud', dados)}: {moedas_coletadas}", fonte, AMARELO_NEON, PRETO, (25, 52))
 
-            # Botão de Pausa
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_pausa, border_radius=8)
             pygame.draw.rect(display_surface, BRANCO, btn_pausa, 2, border_radius=8)
             pygame.draw.rect(display_surface, BRANCO, (LARGURA_VIRTUAL - 45, 23, 6, 24))
             pygame.draw.rect(display_surface, BRANCO, (LARGURA_VIRTUAL - 33, 23, 6, 24))
 
-            # --- HUD MISSÕES DA PARTIDA (POSICIONADAS ABAIXO DO CONTADOR) ---
             rect_missoes_hud = pygame.Rect(15, 90, 210, 95)
             pygame.draw.rect(display_surface, (20, 20, 30, 200), rect_missoes_hud, border_radius=10)
             pygame.draw.rect(display_surface, CIANO_ESCUDO, rect_missoes_hud, 1, border_radius=10)
@@ -2005,7 +1991,6 @@ def main():
                 desenhar_texto_com_sombra(display_surface, f"• {txt_m} ({st})", fonte_pequena, cor_m, PRETO, (22, y_m))
                 y_m += 22
 
-            # Barra de Power-ups Ativos abaixo das missões
             py_pup = 192
             for pup_key, pup_conf in UPGRADES_CONFIG.items():
                 tempo_restante = 0
@@ -2023,20 +2008,17 @@ def main():
                     desenhar_icone_powerup(display_surface, pup_key, 27, py_pup + 10)
                     py_pup += 25
 
-        # 3. Interfaces de Menus e Telas Sobrepostas
         if estado == "INICIO":
             t_anim = anim_menu_tempo / 45.0
             ease_out = 1.0 - (1.0 - t_anim) ** 3
 
             bg_parallax.draw(display_surface, cor_ceu_tupla, False)
 
-            # Título PIXEL RUSH em Pixel Art
             offset_y_titulo = int((1.0 - ease_out) * -220)
             float_y = math.sin(frame_count * 0.05) * 4
             pos_y_titulo = 95 + offset_y_titulo + float_y
             desenhar_titulo_pixel_art(display_surface, LARGURA_VIRTUAL // 2, pos_y_titulo, frame_count)
 
-            # Cards de Recorde e Moedas
             card1_x = 35 - int((1.0 - ease_out) * 320)
             card2_x = 240 + int((1.0 - ease_out) * 320)
             card_y = 210
@@ -2053,7 +2035,6 @@ def main():
             desenhar_texto_com_sombra(display_surface, t("moedas_banco", dados), fonte_pequena, AMARELO_MOEDA, PRETO, (card2_x + 15, card_y + 12))
             desenhar_texto_com_sombra(display_surface, f"{dados['moedas_totais']}", fonte_grande, BRANCO, PRETO, (card2_x + 15, card_y + 30))
 
-            # Botões do Menu Principal
             botoes_menu = [
                 (btn_jogar, t("jogar", dados), (46, 204, 113)),
                 (btn_loja, t("loja_skins", dados), (52, 152, 219)),
@@ -2078,7 +2059,6 @@ def main():
 
             desenhar_texto_centralizado(display_surface, f"{VERSAO} - PIXEL RUSH", fonte_pequena, BRANCO, PRETO, ALTURA_VIRTUAL - 30)
 
-        # --- LOJA DE SKINS ---
         elif estado == "LOJA":
             t_anim = anim_menu_tempo / 35.0
             ease_out = 1.0 - (1.0 - t_anim) ** 3
@@ -2123,7 +2103,6 @@ def main():
             surf_v = fonte.render(t("voltar_menu", dados), True, BRANCO)
             display_surface.blit(surf_v, (btn_voltar.centerx - surf_v.get_width() // 2, btn_voltar.centery - surf_v.get_height() // 2))
 
-        # --- LOJA DE UPGRADES ---
         elif estado == "UPGRADES":
             t_anim = anim_menu_tempo / 35.0
             ease_out = 1.0 - (1.0 - t_anim) ** 3
@@ -2165,7 +2144,6 @@ def main():
             surf_v = fonte.render(t("voltar_menu", dados), True, BRANCO)
             display_surface.blit(surf_v, (btn_voltar.centerx - surf_v.get_width() // 2, btn_voltar.centery - surf_v.get_height() // 2))
 
-        # --- CONFIGURAÇÕES ---
         elif estado == "CONFIG":
             t_anim = anim_menu_tempo / 35.0
             ease_out = 1.0 - (1.0 - t_anim) ** 3
@@ -2205,7 +2183,6 @@ def main():
             surf_s = fonte.render(t("salvar", dados), True, BRANCO)
             display_surface.blit(surf_s, (btn_voltar_config.centerx - surf_s.get_width() // 2, btn_voltar_config.centery - surf_s.get_height() // 2))
 
-        # --- TELA DE PAUSA ---
         elif estado == "PAUSA":
             overlay_pausa = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
             overlay_pausa.fill((0, 0, 0, 185))
@@ -2213,7 +2190,6 @@ def main():
 
             desenhar_texto_centralizado(display_surface, t("pausa_titulo", dados), fonte_grande, AMARELO_NEON, PRETO, 150)
 
-            # Painel com Estatísticas e Missões na Pausa
             rect_pausa_box = pygame.Rect(45, 210, 360, 290)
             pygame.draw.rect(display_surface, CINZA_PAINEL, rect_pausa_box, border_radius=12)
             pygame.draw.rect(display_surface, CIANO_ESCUDO, rect_pausa_box, 2, border_radius=12)
@@ -2243,7 +2219,6 @@ def main():
             surf_m = fonte.render(t("menu_principal", dados), True, BRANCO)
             display_surface.blit(surf_m, (btn_menu_pausa.centerx - surf_m.get_width() // 2, btn_menu_pausa.centery - surf_m.get_height() // 2))
 
-        # --- TELA DE GAME OVER ---
         elif estado == "GAMEOVER":
             overlay_go = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
             overlay_go.fill((20, 0, 0, 200))
