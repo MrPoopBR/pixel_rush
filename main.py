@@ -7,7 +7,7 @@ import math
 import array
 from pygame.sprite import Sprite
 
-# --- INICIALIZAÇÃO E MIXER DE ÁUDIO ---
+# --- INICIALIZAÇÃO E MIXER DE ÁUDIO BLINDADO PARA EMULADORES ---
 pygame.init()
 
 
@@ -16,25 +16,43 @@ def init_audio():
         if not pygame.mixer.get_init():
             pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
     except Exception:
-        pass
+        try:
+            pygame.mixer.init()
+        except Exception:
+            pass
 
 
 init_audio()
 
 # Versão do Jogo
-VERSAO = "v3.2.5"
+VERSAO = "v3.2.9"
 
 # Resolução lógica interna do jogo (Proporção Vertical 450x800)
 LARGURA_VIRTUAL = 450
 ALTURA_VIRTUAL = 800
 
-# Descobre a resolução nativa real da tela do dispositivo/notebook
-info_tela = pygame.display.Info()
-LARGURA_TELA = info_tela.current_w
-ALTURA_TELA = info_tela.current_h
+# Detecção segura de resolução para evitar crash em emuladores Android
+try:
+    info_tela = pygame.display.Info()
+    LARGURA_TELA = info_tela.current_w
+    ALTURA_TELA = info_tela.current_h
+except Exception:
+    LARGURA_TELA, ALTURA_TELA = 450, 800
 
-# Abre em tela cheia real usando a resolução física total
-tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA), pygame.FULLSCREEN)
+if LARGURA_TELA <= 0 or ALTURA_TELA <= 0:
+    LARGURA_TELA, ALTURA_TELA = 450, 800
+
+# Inicialização de vídeo blindada contra falhas de driver em emuladores
+try:
+    tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA), pygame.FULLSCREEN)
+except Exception:
+    try:
+        tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA))
+    except Exception:
+        tela = pygame.display.set_mode((450, 800))
+
+# Atualiza dimensões reais garantidas
+LARGURA_TELA, ALTURA_TELA = tela.get_size()
 display_surface = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
 
 pygame.display.set_caption(f"Corrida Infinita 2D - {VERSAO}")
@@ -205,6 +223,7 @@ UPGRADES_CONFIG = {
 # Fontes
 fonte = pygame.font.SysFont("Arial", 20, bold=True)
 fonte_pequena = pygame.font.SysFont("Arial", 13, bold=True)
+fonte_missoes = pygame.font.SysFont("Arial", 15, bold=True)
 fonte_grande = pygame.font.SysFont("Arial", 30, bold=True)
 fonte_alerta = pygame.font.SysFont("Arial", 24, bold=True)
 
@@ -248,7 +267,6 @@ def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
     start_x = int(centro_x - largura_total / 2)
     start_y = int(pos_y)
 
-    # 1. Sombra 3D Proporcional
     curr_x = start_x
     for char in texto:
         if char in pixel_map:
@@ -262,7 +280,6 @@ def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
                         pygame.draw.rect(surface, (15, 10, 25), (bx + 4, by + 5, tam_block + 2, tam_block + 2))
             curr_x += (w_char + 1) * tam_block
 
-    # 2. Borda Preta
     curr_x = start_x
     for char in texto:
         if char in pixel_map:
@@ -276,7 +293,6 @@ def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
                         pygame.draw.rect(surface, PRETO, (bx - 2, by - 2, tam_block + 4, tam_block + 4))
             curr_x += (w_char + 1) * tam_block
 
-    # 3. Degradê Colorido Animado + Highlights
     curr_x = start_x
     col_global = 0
     for char in texto:
@@ -311,96 +327,96 @@ def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
             col_global += w_char + 1
 
 
-# --- SINTETIZADOR DE ÁUDIO EM TEMPO REAL ---
+# --- SINTETIZADOR DE ÁUDIO EM TEMPO REAL BLINDADO ---
 def criar_som_sintetico(frequencia_inicio, frequencia_fim, duracao, tipo="sine", volume=0.5):
-    sample_rate = 22050
-    num_samples = int(sample_rate * duracao)
-    buf = array.array('h')
-    for i in range(num_samples):
-        t_sample = i / num_samples
-        freq = frequencia_inicio + (frequencia_fim - frequencia_inicio) * t_sample
-        time_sec = i / sample_rate
-
-        if tipo == "sine":
-            val = math.sin(2 * math.pi * freq * time_sec)
-        elif tipo == "square":
-            val = 0.8 if math.sin(2 * math.pi * freq * time_sec) >= 0 else -0.8
-        elif tipo == "saw":
-            val = 2.0 * (time_sec * freq - math.floor(0.5 + time_sec * freq))
-        elif tipo == "noise":
-            val = random.uniform(-0.8, 0.8)
-        elif tipo == "soft_wind":
-            val = 0.35 * random.uniform(-0.5, 0.5) + 0.65 * math.sin(2 * math.pi * freq * time_sec)
-        else:
-            val = math.sin(2 * math.pi * freq * time_sec)
-
-        fade = 1.0 - t_sample
-        sample = int(val * 32767 * volume * fade)
-        sample = max(-32768, min(32767, sample))
-        buf.append(sample)
-        buf.append(sample)
     try:
+        sample_rate = 22050
+        num_samples = int(sample_rate * duracao)
+        buf = array.array('h')
+        for i in range(num_samples):
+            t_sample = i / num_samples
+            freq = frequencia_inicio + (frequencia_fim - frequencia_inicio) * t_sample
+            time_sec = i / sample_rate
+
+            if tipo == "sine":
+                val = math.sin(2 * math.pi * freq * time_sec)
+            elif tipo == "square":
+                val = 0.8 if math.sin(2 * math.pi * freq * time_sec) >= 0 else -0.8
+            elif tipo == "saw":
+                val = 2.0 * (time_sec * freq - math.floor(0.5 + time_sec * freq))
+            elif tipo == "noise":
+                val = random.uniform(-0.8, 0.8)
+            elif tipo == "soft_wind":
+                val = 0.35 * random.uniform(-0.5, 0.5) + 0.65 * math.sin(2 * math.pi * freq * time_sec)
+            else:
+                val = math.sin(2 * math.pi * freq * time_sec)
+
+            fade = 1.0 - t_sample
+            sample = int(val * 32767 * volume * fade)
+            sample = max(-32768, min(32767, sample))
+            buf.append(sample)
+            buf.append(sample)
         return pygame.mixer.Sound(buffer=buf)
     except Exception:
         return None
 
 
 def criar_som_arpejo(notas, duracao_nota=0.1, tipo="sine", volume=0.5):
-    sample_rate = 22050
-    buf = array.array('h')
-    for freq in notas:
-        num_samples = int(sample_rate * duracao_nota)
-        for i in range(num_samples):
-            t_sample = i / num_samples
-            time_sec = i / sample_rate
-            if tipo == "sine":
-                val = math.sin(2 * math.pi * freq * time_sec)
-            elif tipo == "square":
-                val = 0.7 if math.sin(2 * math.pi * freq * time_sec) >= 0 else -0.7
-            elif tipo == "saw":
-                val = 1.5 * (time_sec * freq - math.floor(0.5 + time_sec * freq))
-            else:
-                val = math.sin(2 * math.pi * freq * time_sec)
-            fade = 1.0 - (t_sample * 0.4)
-            sample = int(val * 32767 * volume * fade)
-            sample = max(-32768, min(32767, sample))
-            buf.append(sample)
-            buf.append(sample)
     try:
+        sample_rate = 22050
+        buf = array.array('h')
+        for freq in notas:
+            num_samples = int(sample_rate * duracao_nota)
+            for i in range(num_samples):
+                t_sample = i / num_samples
+                time_sec = i / sample_rate
+                if tipo == "sine":
+                    val = math.sin(2 * math.pi * freq * time_sec)
+                elif tipo == "square":
+                    val = 0.7 if math.sin(2 * math.pi * freq * time_sec) >= 0 else -0.7
+                elif tipo == "saw":
+                    val = 1.5 * (time_sec * freq - math.floor(0.5 + time_sec * freq))
+                else:
+                    val = math.sin(2 * math.pi * freq * time_sec)
+                fade = 1.0 - (t_sample * 0.4)
+                sample = int(val * 32767 * volume * fade)
+                sample = max(-32768, min(32767, sample))
+                buf.append(sample)
+                buf.append(sample)
         return pygame.mixer.Sound(buffer=buf)
     except Exception:
         return None
 
 
 def gerar_trilha_sonora(grave=False):
-    sample_rate = 22050
-    duracao_total = 4.0
-    num_samples = int(sample_rate * duracao_total)
-    buf = array.array('h')
-
-    fator = 0.5 if grave else 1.0
-    notas_baixo = [130.81, 130.81, 146.83, 164.81, 110.00, 110.00, 123.47, 130.81]
-    notas_melodia = [523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 523.25, 440.00]
-
-    for i in range(num_samples):
-        t_sec = i / sample_rate
-        beat_idx = int((t_sec / duracao_total) * 8) % 8
-        t_in_beat = (t_sec % 0.5) / 0.5
-
-        freq_b = notas_baixo[beat_idx] * fator
-        freq_m = notas_melodia[beat_idx] * fator
-
-        val_b = 0.25 * (1.0 if math.sin(2 * math.pi * freq_b * t_sec) >= 0 else -1.0)
-        val_m = 0.2 * math.sin(2 * math.pi * freq_m * t_sec)
-        val_k = 0.25 * math.sin(2 * math.pi * (100 * (1 - t_in_beat)) * t_sec) if t_in_beat < 0.1 else 0
-
-        mix = (val_b + val_m + val_k) * (1.0 - t_in_beat * 0.25)
-        sample = int(mix * 32767 * 0.35)
-        sample = max(-32768, min(32767, sample))
-        buf.append(sample)
-        buf.append(sample)
-
     try:
+        sample_rate = 22050
+        duracao_total = 4.0
+        num_samples = int(sample_rate * duracao_total)
+        buf = array.array('h')
+
+        fator = 0.5 if grave else 1.0
+        notas_baixo = [130.81, 130.81, 146.83, 164.81, 110.00, 110.00, 123.47, 130.81]
+        notas_melodia = [523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 523.25, 440.00]
+
+        for i in range(num_samples):
+            t_sec = i / sample_rate
+            beat_idx = int((t_sec / duracao_total) * 8) % 8
+            t_in_beat = (t_sec % 0.5) / 0.5
+
+            freq_b = notas_baixo[beat_idx] * fator
+            freq_m = notas_melodia[beat_idx] * fator
+
+            val_b = 0.25 * (1.0 if math.sin(2 * math.pi * freq_b * t_sec) >= 0 else -1.0)
+            val_m = 0.2 * math.sin(2 * math.pi * freq_m * t_sec)
+            val_k = 0.25 * math.sin(2 * math.pi * (100 * (1 - t_in_beat)) * t_sec) if t_in_beat < 0.1 else 0
+
+            mix = (val_b + val_m + val_k) * (1.0 - t_in_beat * 0.25)
+            sample = int(mix * 32767 * 0.35)
+            sample = max(-32768, min(32767, sample))
+            buf.append(sample)
+            buf.append(sample)
+
         return pygame.mixer.Sound(buffer=buf)
     except Exception:
         return None
@@ -417,7 +433,8 @@ class GerenciadorSons:
 
     def carregar_sons(self):
         try:
-            self.canal_musica = pygame.mixer.Channel(0)
+            if pygame.mixer.get_init():
+                self.canal_musica = pygame.mixer.Channel(0)
             self.sons["pulo"] = criar_som_sintetico(180, 450, 0.14, "sine", 0.4)
             self.sons["swipe"] = criar_som_sintetico(260, 90, 0.12, "soft_wind", 0.25)
             self.sons["swipe_down"] = criar_som_sintetico(260, 90, 0.12, "soft_wind", 0.25)
@@ -463,22 +480,25 @@ class GerenciadorSons:
 
     def atualizar_musica(self, estado, e_slow, vol_musica):
         if not self.canal_musica: return
-        self.canal_musica.set_volume(vol_musica)
-        if estado in ["JOGANDO", "PAUSA"]:
-            trilha_alvo = self.trilha_lenta if e_slow else self.trilha_normal
-            if self.musica_tocando != trilha_alvo:
-                if trilha_alvo:
-                    self.canal_musica.play(trilha_alvo, loops=-1)
-                self.musica_tocando = trilha_alvo
-        elif estado in ["INICIO", "CONFIG", "LOJA", "UPGRADES"]:
-            if self.musica_tocando != self.trilha_normal:
-                if self.trilha_normal:
-                    self.canal_musica.play(self.trilha_normal, loops=-1)
-                self.musica_tocando = self.trilha_normal
-        else:
-            if self.musica_tocando is not None:
-                self.canal_musica.stop()
-                self.musica_tocando = None
+        try:
+            self.canal_musica.set_volume(vol_musica)
+            if estado in ["JOGANDO", "PAUSA"]:
+                trilha_alvo = self.trilha_lenta if e_slow else self.trilha_normal
+                if self.musica_tocando != trilha_alvo:
+                    if trilha_alvo:
+                        self.canal_musica.play(trilha_alvo, loops=-1)
+                    self.musica_tocando = trilha_alvo
+            elif estado in ["INICIO", "CONFIG", "LOJA", "UPGRADES"]:
+                if self.musica_tocando != self.trilha_normal:
+                    if self.trilha_normal:
+                        self.canal_musica.play(self.trilha_normal, loops=-1)
+                    self.musica_tocando = self.trilha_normal
+            else:
+                if self.musica_tocando is not None:
+                    self.canal_musica.stop()
+                    self.musica_tocando = None
+        except Exception:
+            pass
 
 
 # --- SISTEMA DE SALVAMENTO ---
@@ -894,24 +914,23 @@ class Jogador(Sprite):
         pygame.draw.circle(surf, cor, (int(32 + dx1), int(74 - dy1)), 4)
         pygame.draw.circle(surf, cor, (int(48 + dx2), int(74 - dy2)), 4)
 
-    def desenhar_raios_ima(self, surf):
+    def desenhar_raios_ima(self, surf, frame_contador):
         cx, cy = 40, 40
         raio = 38
         pontos_raio = []
         qtd_segmentos = 8
         for i in range(qtd_segmentos):
             angulo = (math.pi * 2 / qtd_segmentos) * i
-            r_offset = raio + random.randint(-6, 8)
+            r_offset = raio + int(math.sin(frame_contador * 0.4 + i * 1.5) * 6)
             px = cx + math.cos(angulo) * r_offset
             py = cy + math.sin(angulo) * r_offset
             pontos_raio.append((px, py))
 
         if len(pontos_raio) > 2:
             pygame.draw.polygon(surf, AZUL_IMA, pontos_raio, 2)
-            pygame.draw.polygon(surf, BRANCO,
-                                [(p[0] + random.randint(-1, 1), p[1] + random.randint(-1, 1)) for p in pontos_raio], 1)
+            pygame.draw.polygon(surf, BRANCO, pontos_raio, 1)
 
-    def aplicar_visual_skin(self, cor_corpo):
+    def aplicar_visual_skin(self, cor_corpo, frame_contador=0):
         surf = self.image_original
         nome = self.skin_nome
 
@@ -942,7 +961,7 @@ class Jogador(Sprite):
                 pygame.draw.line(surf, (218, 165, 32), (32, 60), (48, 66), 3)
 
             if self.tempo_ima > 0 and not self.morrendo:
-                self.desenhar_raios_ima(surf)
+                self.desenhar_raios_ima(surf, frame_contador)
             return
 
         CORPO_RECT = (22, 14, 36, 50)
@@ -1005,7 +1024,7 @@ class Jogador(Sprite):
             pygame.draw.rect(surf, (218, 165, 32), (38, 56, 6, 8), border_radius=2)
 
         if self.tempo_ima > 0 and not self.morrendo:
-            self.desenhar_raios_ima(surf)
+            self.desenhar_raios_ima(surf, frame_contador)
 
     def ativar_powerup(self, tipo, gerenciador_sons=None, vol_sfx=1.0):
         if self.morrendo: return
@@ -1090,8 +1109,8 @@ class Jogador(Sprite):
         if random.random() < 0.5:
             criar_explosao_particulas(self.rect.centerx, self.rect.centery, self.cor_base, 2, particulas, pool_manager)
 
-    def update(self, vel_jogo, segurando_pulo=False, segurando_baixo=False, particulas=None, pool_manager=None,
-               gerenciador_sons=None, vol_sfx=1.0):
+    def update(self, vel_jogo, frame_contador=0, segurando_pulo=False, segurando_baixo=False, particulas=None,
+               pool_manager=None, gerenciador_sons=None, vol_sfx=1.0):
         if self.morrendo:
             self.update_morte(particulas, pool_manager)
             return
@@ -1116,7 +1135,7 @@ class Jogador(Sprite):
             current_cor = self.cor_base
 
         self.image_original.fill((0, 0, 0, 0))
-        self.aplicar_visual_skin(current_cor)
+        self.aplicar_visual_skin(current_cor, frame_contador)
 
         if self.descida_rapida:
             self.velocidade_y += 2.2
@@ -1716,17 +1735,14 @@ def main():
     while rodando:
         frame_count += 1
 
-        # Configuração de escala e conversão de cliques dependendo se é Android ou PC
         largura_atual_tela, altura_atual_tela = tela.get_size()
 
         if E_ANDROID:
-            # Android: preenche tela inteira sem bordas e com máxima fluidez
             largura_render = largura_atual_tela
             altura_render = altura_atual_tela
             offset_x = 0
             offset_y = 0
         else:
-            # PC: Mantém proporção vertical com bordas coloridas
             escala = min(largura_atual_tela / LARGURA_VIRTUAL, altura_atual_tela / ALTURA_VIRTUAL)
             largura_render = int(LARGURA_VIRTUAL * escala)
             altura_render = int(ALTURA_VIRTUAL * escala)
@@ -1787,14 +1803,20 @@ def main():
                     estado = "PAUSA"
                 salvar_dados(dados)
                 if gerenciador_sons and gerenciador_sons.canal_musica:
-                    gerenciador_sons.canal_musica.pause()
+                    try:
+                        gerenciador_sons.canal_musica.pause()
+                    except Exception:
+                        pass
 
             elif (APP_WILLENTERFOREGROUND and evento.type == APP_WILLENTERFOREGROUND) or \
                     (APP_DIDENTERFOREGROUND and evento.type == APP_DIDENTERFOREGROUND) or \
                     (evento.type == pygame.ACTIVEEVENT and hasattr(evento, 'gain') and evento.gain == 1):
                 if gerenciador_sons and gerenciador_sons.canal_musica and estado in ["JOGANDO", "PAUSA", "INICIO",
                                                                                      "CONFIG", "LOJA", "UPGRADES"]:
-                    gerenciador_sons.canal_musica.unpause()
+                    try:
+                        gerenciador_sons.canal_musica.unpause()
+                    except Exception:
+                        pass
 
             elif evento.type == pygame.FINGERDOWN:
                 if E_ANDROID:
@@ -1916,8 +1938,8 @@ def main():
             prev_slow = jogador.tempo_slow
             prev_turbo = jogador.tempo_turbo
 
-            jogador.update(vel_jogo, segurando_pulo, segurando_baixo, particulas, pool_manager, gerenciador_sons,
-                           dados["vol_sfx"])
+            jogador.update(vel_jogo, frame_count, segurando_pulo, segurando_baixo, particulas, pool_manager,
+                           gerenciador_sons, dados["vol_sfx"])
 
             if (prev_slow > 0 and jogador.tempo_slow == 0) or (prev_turbo > 0 and jogador.tempo_turbo == 0):
                 aplicar_shake(20, 10)
@@ -1932,8 +1954,9 @@ def main():
                     perigo.kill()
 
             if jogador.tempo_turbo > 0 and not jogador.morrendo:
-                criar_rastro_turbo(jogador.rect.left, jogador.rect.centery + random.randint(-10, 10), particulas,
-                                   pool_manager)
+                if frame_count % 2 == 0:
+                    criar_rastro_turbo(jogador.rect.left, jogador.rect.centery + random.randint(-10, 10), particulas,
+                                       pool_manager)
 
             for m in missoes_atuais:
                 if m["tipo"] == "DISTANCIA":
@@ -2107,22 +2130,22 @@ def main():
             pygame.draw.rect(display_surface, BRANCO, (LARGURA_VIRTUAL - 45, 23, 6, 24))
             pygame.draw.rect(display_surface, BRANCO, (LARGURA_VIRTUAL - 33, 23, 6, 24))
 
-            rect_missoes_hud = pygame.Rect(15, 90, 210, 95)
+            rect_missoes_hud = pygame.Rect(15, 90, 240, 115)
             pygame.draw.rect(display_surface, (20, 20, 30, 200), rect_missoes_hud, border_radius=10)
             pygame.draw.rect(display_surface, CIANO_ESCUDO, rect_missoes_hud, 1, border_radius=10)
 
-            desenhar_texto_com_sombra(display_surface, t("missoes_partida", dados), fonte_pequena, AMARELO_NEON, PRETO,
-                                      (22, 94))
+            desenhar_texto_com_sombra(display_surface, t("missoes_partida", dados), fonte_missoes, AMARELO_NEON, PRETO,
+                                      (22, 96))
 
-            y_m = 114
+            y_m = 120
             for m in missoes_atuais:
                 txt_m = t(m["key"], dados).format(m["alvo"])
                 st = "OK!" if m["concluida"] else f"{m['atual']}/{m['alvo']}"
                 cor_m = VERDE_SLOW if m["concluida"] else BRANCO
-                desenhar_texto_com_sombra(display_surface, f"• {txt_m} ({st})", fonte_pequena, cor_m, PRETO, (22, y_m))
-                y_m += 22
+                desenhar_texto_com_sombra(display_surface, f"• {txt_m} ({st})", fonte_missoes, cor_m, PRETO, (22, y_m))
+                y_m += 25
 
-            py_pup = 192
+            py_pup = 212
             for pup_key, pup_conf in UPGRADES_CONFIG.items():
                 tempo_restante = 0
                 if pup_key == "IMA":
@@ -2340,8 +2363,8 @@ def main():
             pygame.draw.rect(display_surface, (46, 204, 113), btn_voltar_config, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_voltar_config, 2, border_radius=10)
             surf_s = fonte.render(t("salvar", dados), True, BRANCO)
-            display_surface.blit(surf_s, (
-            btn_voltar_config.centerx - surf_s.get_width() // 2, btn_voltar_config.centery - surf_s.get_height() // 2))
+            display_surface.blit(surf_s, (btn_voltar_config.centerx - surf_s.get_width() // 2,
+                                          btn_voltar_config.centery - surf_voltar_config.get_height() // 2))
 
         elif estado == "PAUSA":
             overlay_pausa = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
@@ -2363,15 +2386,15 @@ def main():
 
             pygame.draw.line(display_surface, CINZA_BOTAO, (65, 308), (385, 308), 2)
 
-            desenhar_texto_com_sombra(display_surface, t("missoes_partida", dados), fonte_pequena, CIANO_ESCUDO, PRETO,
+            desenhar_texto_com_sombra(display_surface, t("missoes_partida", dados), fonte_missoes, CIANO_ESCUDO, PRETO,
                                       (65, 318))
             y_m = 345
             for m in missoes_atuais:
                 txt_m = t(m["key"], dados).format(m["alvo"])
                 st = "OK!" if m["concluida"] else f"{m['atual']}/{m['alvo']}"
                 cor_m = VERDE_SLOW if m["concluida"] else BRANCO
-                desenhar_texto_com_sombra(display_surface, f"• {txt_m} ({st})", fonte_pequena, cor_m, PRETO, (70, y_m))
-                y_m += 28
+                desenhar_texto_com_sombra(display_surface, f"• {txt_m} ({st})", fonte_missoes, cor_m, PRETO, (70, y_m))
+                y_m += 26
 
             pygame.draw.rect(display_surface, (46, 204, 113), btn_continuar, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_continuar, 2, border_radius=10)
@@ -2382,8 +2405,8 @@ def main():
             pygame.draw.rect(display_surface, VERMELHO_OBSTACULO, btn_menu_pausa, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_menu_pausa, 2, border_radius=10)
             surf_m = fonte.render(t("menu_principal", dados), True, BRANCO)
-            display_surface.blit(surf_m, (
-            btn_menu_pausa.centerx - surf_m.get_width() // 2, btn_menu_pausa.centery - surf_m.get_height() // 2))
+            display_surface.blit(surf_m, (btn_menu_pausa.centerx - surf_m.get_width() // 2,
+                                          btn_menu_pausa.centery - surf_menu_pausa.get_height() // 2))
 
         elif estado == "GAMEOVER":
             overlay_go = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
@@ -2407,15 +2430,15 @@ def main():
 
             pygame.draw.line(display_surface, CINZA_BOTAO, (65, 322), (385, 322), 2)
 
-            desenhar_texto_com_sombra(display_surface, t("missoes_partida", dados), fonte, CIANO_ESCUDO, PRETO,
-                                      (65, 332))
-            y_m = 368
+            desenhar_texto_com_sombra(display_surface, t("missoes_partida", dados), fonte_missoes, CIANO_ESCUDO, PRETO,
+                                      (65, 330))
+            y_m = 358
             for m in missoes_atuais:
                 txt_m = t(m["key"], dados).format(m["alvo"])
                 st = "OK!" if m["concluida"] else f"{m['atual']}/{m['alvo']}"
                 cor_m = VERDE_SLOW if m["concluida"] else BRANCO
-                desenhar_texto_com_sombra(display_surface, f"• {txt_m} ({st})", fonte_pequena, cor_m, PRETO, (70, y_m))
-                y_m += 28
+                desenhar_texto_com_sombra(display_surface, f"• {txt_m} ({st})", fonte_missoes, cor_m, PRETO, (70, y_m))
+                y_m += 26
 
             pygame.draw.rect(display_surface, (46, 204, 113), btn_reiniciar, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_reiniciar, 2, border_radius=10)
@@ -2435,13 +2458,10 @@ def main():
             ox = random.randint(-shake_intensidade, shake_intensidade)
             oy = random.randint(-shake_intensidade, shake_intensidade)
 
-        # Renderização final otimizada por plataforma
         if E_ANDROID:
-            # Android: Escalonamento direto para preencher 100% da tela com fluidez máxima
             superficie_final = pygame.transform.scale(display_surface, (LARGURA_TELA, ALTURA_TELA))
             tela.blit(superficie_final, (ox, oy))
         else:
-            # PC: Preenche com cor de fundo e renderiza com proporção correta
             tela.fill(cor_ceu_tupla)
             superficie_final = pygame.transform.scale(display_surface, (largura_render, altura_render))
             tela.blit(superficie_final, (offset_x + ox, offset_y + oy))
