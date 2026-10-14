@@ -22,7 +22,7 @@ def init_audio():
 init_audio()
 
 # Versão do Jogo
-VERSAO = "v3.2.4"
+VERSAO = "v3.2.5"
 
 # Resolução lógica interna do jogo (Proporção Vertical 450x800)
 LARGURA_VIRTUAL = 450
@@ -39,6 +39,9 @@ display_surface = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
 
 pygame.display.set_caption(f"Corrida Infinita 2D - {VERSAO}")
 relogio = pygame.time.Clock()
+
+# Detecção de plataforma (Android vs PC)
+E_ANDROID = (sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ)
 
 # Cores
 CINZA_CHAO = (90, 90, 90)
@@ -1713,18 +1716,32 @@ def main():
     while rodando:
         frame_count += 1
 
-        # Dimensões e escala dinâmica para manter proporção e calcular posições de clique
+        # Configuração de escala e conversão de cliques dependendo se é Android ou PC
         largura_atual_tela, altura_atual_tela = tela.get_size()
-        escala = min(largura_atual_tela / LARGURA_VIRTUAL, altura_atual_tela / ALTURA_VIRTUAL)
-        largura_render = int(LARGURA_VIRTUAL * escala)
-        altura_render = int(ALTURA_VIRTUAL * escala)
-        offset_x = (largura_atual_tela - largura_render) // 2
-        offset_y = (altura_atual_tela - altura_render) // 2
+
+        if E_ANDROID:
+            # Android: preenche tela inteira sem bordas e com máxima fluidez
+            largura_render = largura_atual_tela
+            altura_render = altura_atual_tela
+            offset_x = 0
+            offset_y = 0
+        else:
+            # PC: Mantém proporção vertical com bordas coloridas
+            escala = min(largura_atual_tela / LARGURA_VIRTUAL, altura_atual_tela / ALTURA_VIRTUAL)
+            largura_render = int(LARGURA_VIRTUAL * escala)
+            altura_render = int(ALTURA_VIRTUAL * escala)
+            offset_x = (largura_atual_tela - largura_render) // 2
+            offset_y = (altura_atual_tela - altura_render) // 2
 
         def screen_to_virtual(px, py):
-            vx = (px - offset_x) / escala
-            vy = (py - offset_y) / escala
-            return int(vx), int(vy)
+            if E_ANDROID:
+                vx = (px / largura_atual_tela) * LARGURA_VIRTUAL
+                vy = (py / altura_atual_tela) * ALTURA_VIRTUAL
+                return int(vx), int(vy)
+            else:
+                vx = (px - offset_x) / (largura_render / LARGURA_VIRTUAL)
+                vy = (py - offset_y) / (altura_render / ALTURA_VIRTUAL)
+                return int(vx), int(vy)
 
         if estado != estado_anterior:
             if estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
@@ -1780,9 +1797,13 @@ def main():
                     gerenciador_sons.canal_musica.unpause()
 
             elif evento.type == pygame.FINGERDOWN:
-                px = evento.x * largura_atual_tela
-                py = evento.y * altura_atual_tela
-                pos_touch = screen_to_virtual(px, py)
+                if E_ANDROID:
+                    pos_touch = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
+                else:
+                    px = evento.x * largura_atual_tela
+                    py = evento.y * altura_atual_tela
+                    pos_touch = screen_to_virtual(px, py)
+
                 touch_start_pos = pos_touch
                 touch_current_pos = pos_touch
                 toque_ativo = True
@@ -1793,16 +1814,24 @@ def main():
 
             elif evento.type == pygame.FINGERMOTION:
                 if toque_ativo:
-                    px = evento.x * largura_atual_tela
-                    py = evento.y * altura_atual_tela
-                    touch_current_pos = screen_to_virtual(px, py)
+                    if E_ANDROID:
+                        touch_current_pos = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
+                    else:
+                        px = evento.x * largura_atual_tela
+                        py = evento.y * altura_atual_tela
+                        touch_current_pos = screen_to_virtual(px, py)
 
             elif evento.type == pygame.FINGERUP:
                 toque_ativo = False
                 if touch_start_pos and jogador:
-                    px = evento.x * largura_atual_tela
-                    py = evento.y * altura_atual_tela
-                    end_x, end_y = screen_to_virtual(px, py)
+                    if E_ANDROID:
+                        end_x = evento.x * LARGURA_VIRTUAL
+                        end_y = evento.y * ALTURA_VIRTUAL
+                    else:
+                        px = evento.x * largura_atual_tela
+                        py = evento.y * altura_atual_tela
+                        end_x, end_y = screen_to_virtual(px, py)
+
                     dy = end_y - touch_start_pos[1]
                     dx = end_x - touch_start_pos[0]
 
@@ -1817,9 +1846,13 @@ def main():
                         if abs(dx) < 30 and abs(dy) < 30:
                             processar_clique_ui((end_x, end_y))
                 elif touch_start_pos and estado != "JOGANDO":
-                    px = evento.x * largura_atual_tela
-                    py = evento.y * altura_atual_tela
-                    end_x, end_y = screen_to_virtual(px, py)
+                    if E_ANDROID:
+                        end_x = evento.x * LARGURA_VIRTUAL
+                        end_y = evento.y * ALTURA_VIRTUAL
+                    else:
+                        px = evento.x * largura_atual_tela
+                        py = evento.y * altura_atual_tela
+                        end_x, end_y = screen_to_virtual(px, py)
                     processar_clique_ui((end_x, end_y))
 
                 touch_start_pos = None
@@ -2402,14 +2435,16 @@ def main():
             ox = random.randint(-shake_intensidade, shake_intensidade)
             oy = random.randint(-shake_intensidade, shake_intensidade)
 
-        # Preenche a tela inteira (incluindo as bordas laterais) com a cor do céu atual do jogo
-        tela.fill(cor_ceu_tupla)
-
-        # Redimensiona a tela virtual mantendo a proporção (sem distorcer)
-        superficie_final = pygame.transform.scale(display_surface, (largura_render, altura_render))
-
-        # Desenha centralizado na tela com o efeito de shake
-        tela.blit(superficie_final, (offset_x + ox, offset_y + oy))
+        # Renderização final otimizada por plataforma
+        if E_ANDROID:
+            # Android: Escalonamento direto para preencher 100% da tela com fluidez máxima
+            superficie_final = pygame.transform.scale(display_surface, (LARGURA_TELA, ALTURA_TELA))
+            tela.blit(superficie_final, (ox, oy))
+        else:
+            # PC: Preenche com cor de fundo e renderiza com proporção correta
+            tela.fill(cor_ceu_tupla)
+            superficie_final = pygame.transform.scale(display_surface, (largura_render, altura_render))
+            tela.blit(superficie_final, (offset_x + ox, offset_y + oy))
 
         pygame.display.flip()
         relogio.tick(60)
