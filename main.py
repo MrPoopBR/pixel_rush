@@ -7,6 +7,25 @@ import math
 import array
 from pygame.sprite import Sprite
 
+# --- SUPORTE A VIBRAÇÃO (ANDROID / PLYER) ---
+try:
+    from plyer import vibrator
+
+    SUPORTE_VIBRADOR = True
+except Exception:
+    SUPORTE_VIBRADOR = False
+
+
+def disparar_vibracao(duracao=0.2, vibracao_ligada=True):
+    if not vibracao_ligada:
+        return
+    if SUPORTE_VIBRADOR:
+        try:
+            vibrator.vibrate(duracao)
+        except Exception:
+            pass
+
+
 # --- INICIALIZAÇÃO E MIXER DE ÁUDIO BLINDADO PARA EMULADORES ---
 pygame.init()
 
@@ -14,7 +33,7 @@ pygame.init()
 def init_audio():
     try:
         if not pygame.mixer.get_init():
-            pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+            pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=1024)
     except Exception:
         try:
             pygame.mixer.init()
@@ -25,41 +44,46 @@ def init_audio():
 init_audio()
 
 # Versão do Jogo
-VERSAO = "v3.2.9"
+VERSAO = "v3.4.0"
 
 # Resolução lógica interna do jogo (Proporção Vertical 450x800)
 LARGURA_VIRTUAL = 450
 ALTURA_VIRTUAL = 800
 
-# Detecção segura de resolução para evitar crash em emuladores Android
-try:
-    info_tela = pygame.display.Info()
-    LARGURA_TELA = info_tela.current_w
-    ALTURA_TELA = info_tela.current_h
-except Exception:
-    LARGURA_TELA, ALTURA_TELA = 450, 800
+# Detecção de plataforma (Android vs PC)
+E_ANDROID = (sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ)
 
-if LARGURA_TELA <= 0 or ALTURA_TELA <= 0:
-    LARGURA_TELA, ALTURA_TELA = 450, 800
-
-# Inicialização de vídeo blindada contra falhas de driver em emuladores
+# Inicialização de vídeo otimizada e blindada contra falhas de driver em emuladores
 try:
-    tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA), pygame.FULLSCREEN)
+    if E_ANDROID:
+        tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
+    else:
+        info_tela = pygame.display.Info()
+        LARGURA_TELA = info_tela.current_w
+        ALTURA_TELA = info_tela.current_h
+        if LARGURA_TELA <= 0 or ALTURA_TELA <= 0:
+            LARGURA_TELA, ALTURA_TELA = 450, 800
+        try:
+            tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA), pygame.FULLSCREEN)
+        except Exception:
+            tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
 except Exception:
-    try:
-        tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA))
-    except Exception:
-        tela = pygame.display.set_mode((450, 800))
+    tela = pygame.display.set_mode((450, 800))
 
 # Atualiza dimensões reais garantidas
 LARGURA_TELA, ALTURA_TELA = tela.get_size()
 display_surface = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
 
+# Superfícies translúcidas reutilizadas: evita alocações a cada frame.
+OVERLAY_SLOW = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
+OVERLAY_SLOW.fill((30, 180, 60, 45))
+OVERLAY_PAUSA = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
+OVERLAY_PAUSA.fill((0, 0, 0, 185))
+OVERLAY_GAMEOVER = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
+OVERLAY_GAMEOVER.fill((20, 0, 0, 200))
+
 pygame.display.set_caption(f"Corrida Infinita 2D - {VERSAO}")
 relogio = pygame.time.Clock()
-
-# Detecção de plataforma (Android vs PC)
-E_ANDROID = (sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ)
 
 # Cores
 CINZA_CHAO = (90, 90, 90)
@@ -115,6 +139,9 @@ TEXTOS = {
         "equipar": "EQUIP",
         "maximo": "MAX",
         "idioma": "Language",
+        "vibracao": "Vibration",
+        "ligado": "ON",
+        "desligado": "OFF",
         "vol_musica": "Music Volume",
         "vol_sfx": "SFX Volume",
         "salvar": "SAVE & BACK",
@@ -122,7 +149,7 @@ TEXTOS = {
         "limpeza_total": "TOTAL CLEAR!",
         "escudo_ativo": "SHIELD!",
         "missao_completa": "MISSION COMPLETE!",
-        "moedas_hud": "Moedas",
+        "moedas_hud": "Coins",
         "metros": "Meters",
         "m_unit": "m",
         "missao_moedas": "Collect {} coins",
@@ -164,6 +191,9 @@ TEXTOS = {
         "equipar": "EQUIPAR",
         "maximo": "MÁXIMO",
         "idioma": "Idioma",
+        "vibracao": "Vibração",
+        "ligado": "LIGADO",
+        "desligado": "DESLIGADO",
         "vol_musica": "Vol. Trilha",
         "vol_sfx": "Vol. Efeitos",
         "salvar": "SALVAR E VOLTAR",
@@ -245,66 +275,82 @@ def desenhar_texto_com_sombra(superficie, texto, fonte_obj, cor_texto, cor_sombr
 
 
 # --- DESENHADOR DE TÍTULO EM PIXEL ART ESTILIZADO COM DEGRADÊ ---
-def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
-    pixel_map = {
-        'P': ["11110", "10001", "11110", "10000", "10000", "10000"],
-        'I': ["11111", "00100", "00100", "00100", "00100", "11111"],
-        'X': ["10001", "10001", "01010", "00100", "01010", "10001"],
-        'E': ["11111", "10000", "11110", "10000", "10000", "11111"],
-        'L': ["10000", "10000", "10000", "10000", "10000", "11111"],
-        ' ': ["00", "00", "00", "00", "00", "00"],
-        'R': ["11110", "10001", "11110", "10100", "10010", "10001"],
-        'U': ["10001", "10001", "10001", "10001", "10001", "01110"],
-        'S': ["01111", "10000", "11110", "00001", "00001", "11110"],
-        'H': ["10001", "10001", "11111", "10001", "10001", "10001"]
-    }
+TITULO_PIXEL_MAP = {
+    'P': ["11110", "10001", "11110", "10000", "10000", "10000"],
+    'I': ["11111", "00100", "00100", "00100", "00100", "11111"],
+    'X': ["10001", "10001", "01010", "00100", "01010", "10001"],
+    'E': ["11111", "10000", "11110", "10000", "10000", "11111"],
+    'L': ["10000", "10000", "10000", "10000", "10000", "11111"],
+    ' ': ["00", "00", "00", "00", "00", "00"],
+    'R': ["11110", "10001", "11110", "10100", "10010", "10001"],
+    'U': ["10001", "10001", "10001", "10001", "10001", "01110"],
+    'S': ["01111", "10000", "11110", "00001", "00001", "11110"],
+    'H': ["10001", "10001", "11111", "10001", "10001", "10001"]
+}
+_TITULO_PIXEL_BASE = None
+_TITULO_PIXEL_METRICAS = None
 
+
+def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
+    global _TITULO_PIXEL_BASE, _TITULO_PIXEL_METRICAS
     texto = "PIXEL RUSH"
     tam_block = 6
 
-    total_cols = sum(len(pixel_map[c][0]) + 1 for c in texto if c in pixel_map) - 1
-    largura_total = total_cols * tam_block
+    if _TITULO_PIXEL_BASE is None:
+        total_cols = sum(len(TITULO_PIXEL_MAP[c][0]) + 1 for c in texto if c in TITULO_PIXEL_MAP) - 1
+        largura_total = total_cols * tam_block
+        base = pygame.Surface((largura_total + 16, tam_block * 6 + 12), pygame.SRCALPHA)
+        base.fill((0, 0, 0, 0))
+
+        # Sombra e contorno são estáticos; são desenhados uma única vez.
+        curr_x = 4
+        for char in texto:
+            if char in TITULO_PIXEL_MAP:
+                matriz = TITULO_PIXEL_MAP[char]
+                w_char = len(matriz[0])
+                for r in range(6):
+                    for c in range(w_char):
+                        if matriz[r][c] == '1':
+                            bx = curr_x + c * tam_block
+                            by = 2 + r * tam_block
+                            pygame.draw.rect(base, (15, 10, 25),
+                                             (bx + 4, by + 5, tam_block + 2, tam_block + 2))
+                curr_x += (w_char + 1) * tam_block
+
+        curr_x = 4
+        for char in texto:
+            if char in TITULO_PIXEL_MAP:
+                matriz = TITULO_PIXEL_MAP[char]
+                w_char = len(matriz[0])
+                for r in range(6):
+                    for c in range(w_char):
+                        if matriz[r][c] == '1':
+                            bx = curr_x + c * tam_block
+                            by = 2 + r * tam_block
+                            pygame.draw.rect(base, PRETO,
+                                             (bx - 2, by - 2, tam_block + 4, tam_block + 4))
+                curr_x += (w_char + 1) * tam_block
+
+        _TITULO_PIXEL_BASE = base
+        _TITULO_PIXEL_METRICAS = (total_cols, largura_total)
+
+    total_cols, largura_total = _TITULO_PIXEL_METRICAS
     start_x = int(centro_x - largura_total / 2)
     start_y = int(pos_y)
+    surface.blit(_TITULO_PIXEL_BASE, (start_x - 4, start_y - 2))
 
-    curr_x = start_x
-    for char in texto:
-        if char in pixel_map:
-            matriz = pixel_map[char]
-            w_char = len(matriz[0])
-            for r in range(6):
-                for c in range(w_char):
-                    if matriz[r][c] == '1':
-                        bx = curr_x + c * tam_block
-                        by = start_y + r * tam_block
-                        pygame.draw.rect(surface, (15, 10, 25), (bx + 4, by + 5, tam_block + 2, tam_block + 2))
-            curr_x += (w_char + 1) * tam_block
-
-    curr_x = start_x
-    for char in texto:
-        if char in pixel_map:
-            matriz = pixel_map[char]
-            w_char = len(matriz[0])
-            for r in range(6):
-                for c in range(w_char):
-                    if matriz[r][c] == '1':
-                        bx = curr_x + c * tam_block
-                        by = start_y + r * tam_block
-                        pygame.draw.rect(surface, PRETO, (bx - 2, by - 2, tam_block + 4, tam_block + 4))
-            curr_x += (w_char + 1) * tam_block
-
+    # O gradiente continua animado, preservando o visual original.
     curr_x = start_x
     col_global = 0
     for char in texto:
-        if char in pixel_map:
-            matriz = pixel_map[char]
+        if char in TITULO_PIXEL_MAP:
+            matriz = TITULO_PIXEL_MAP[char]
             w_char = len(matriz[0])
             for r in range(6):
                 for c in range(w_char):
                     if matriz[r][c] == '1':
                         bx = curr_x + c * tam_block
                         by = start_y + r * tam_block
-
                         prog_col = (col_global + c) / float(total_cols)
                         prog_row = r / 6.0
                         ratio = (prog_col * 0.75 + prog_row * 0.25 + tempo_anim * 0.008) % 1.0
@@ -320,7 +366,6 @@ def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
                             cor = (255, int(220 - 80 * f), int(0 + 40 * f))
 
                         pygame.draw.rect(surface, cor, (bx, by, tam_block, tam_block))
-
                         if r == 0 or (r > 0 and matriz[r - 1][c] == '0'):
                             pygame.draw.rect(surface, BRANCO, (bx, by, tam_block, 2))
             curr_x += (w_char + 1) * tam_block
@@ -509,7 +554,7 @@ def carregar_dados():
     dados_padrao = {
         "recorde": 0, "moedas_totais": 0, "skin_equipada": "AZUL", "skins_desbloqueadas": ["AZUL"],
         "upgrades": {"IMA": 0, "TURBO": 0, "ESCUDO": 0, "MULT_2X": 0, "SLOW": 0},
-        "vol_sfx": 0.7, "vol_musica": 0.5, "idioma": "pt_BR"
+        "vol_sfx": 0.7, "vol_musica": 0.5, "idioma": "pt_BR", "vibracao": True
     }
     if os.path.exists(ARQUIVO_SAVE):
         try:
@@ -559,56 +604,62 @@ def desenhar_icone_powerup(surface, tipo, x, y):
 
 
 # --- DESENHADOR DE PREVIEWS DE SKINS ---
-def desenhar_mini_skin(surface, skin_nome, cx, cy):
-    cor_base = SKINS.get(skin_nome, SKINS["AZUL"])["cor"]
-    mini_surf = pygame.Surface((40, 40), pygame.SRCALPHA)
-    CORPO_RECT = (11, 7, 18, 25)
+MINI_SKIN_CACHE = {}
 
-    if skin_nome == "AZUL":
-        pygame.draw.line(mini_surf, PRETO, (16, 33), (16, 38), 6)
-        pygame.draw.line(mini_surf, (15, 15, 15), (16, 33), (16, 38), 4)
-        pygame.draw.line(mini_surf, PRETO, (24, 33), (24, 38), 6)
-        pygame.draw.line(mini_surf, (15, 15, 15), (24, 33), (24, 38), 4)
-        pygame.draw.rect(mini_surf, PRETO, (9, 5, 22, 29), border_radius=6)
-        pygame.draw.rect(mini_surf, cor_base, CORPO_RECT, border_radius=5)
-        pygame.draw.rect(mini_surf, (200, 20, 20), (11, 11, 18, 4), border_radius=2)
-        pygame.draw.rect(mini_surf, BRANCO, (14, 12, 4, 2), border_radius=1)
-        pygame.draw.rect(mini_surf, BRANCO, (22, 12, 4, 2), border_radius=1)
-    elif skin_nome == "ROSA":
-        pygame.draw.rect(mini_surf, PRETO, (13, -1, 6, 10), border_radius=3)
-        pygame.draw.rect(mini_surf, BRANCO, (14, 0, 4, 8), border_radius=2)
-        pygame.draw.rect(mini_surf, PRETO, (21, -1, 6, 10), border_radius=3)
-        pygame.draw.rect(mini_surf, BRANCO, (22, 0, 4, 8), border_radius=2)
-        pygame.draw.line(mini_surf, PRETO, (16, 33), (16, 38), 6)
-        pygame.draw.line(mini_surf, cor_base, (16, 33), (16, 38), 4)
-        pygame.draw.line(mini_surf, PRETO, (24, 33), (24, 38), 6)
-        pygame.draw.line(mini_surf, cor_base, (24, 33), (24, 38), 4)
-        pygame.draw.rect(mini_surf, PRETO, (9, 5, 22, 29), border_radius=6)
-        pygame.draw.rect(mini_surf, cor_base, CORPO_RECT, border_radius=5)
-        pygame.draw.ellipse(mini_surf, BRANCO, (14, 19, 12, 12))
-        pygame.draw.rect(mini_surf, PRETO, (15, 14, 3, 4), border_radius=1)
-        pygame.draw.rect(mini_surf, PRETO, (22, 14, 3, 4), border_radius=1)
-    elif skin_nome == "VERDE":
-        pygame.draw.polygon(mini_surf, PRETO, [(11, 21), (-1, 30), (11, 33)])
-        pygame.draw.polygon(mini_surf, cor_base, [(11, 23), (1, 30), (11, 31)])
-        pygame.draw.line(mini_surf, PRETO, (16, 33), (16, 38), 6)
-        pygame.draw.line(mini_surf, cor_base, (16, 33), (16, 38), 4)
-        pygame.draw.line(mini_surf, PRETO, (24, 33), (24, 38), 6)
-        pygame.draw.line(mini_surf, cor_base, (24, 33), (24, 38), 4)
-        pygame.draw.rect(mini_surf, PRETO, (9, 5, 22, 29), border_radius=6)
-        pygame.draw.rect(mini_surf, cor_base, CORPO_RECT, border_radius=5)
-        pygame.draw.rect(mini_surf, (241, 196, 15), (20, 17, 9, 15), border_radius=3)
-        pygame.draw.rect(mini_surf, PRETO, (23, 10, 3, 3), border_radius=1)
-    elif skin_nome == "DOURADO":
-        pygame.draw.line(mini_surf, PRETO, (16, 33), (16, 38), 6)
-        pygame.draw.line(mini_surf, cor_base, (16, 33), (16, 38), 4)
-        pygame.draw.line(mini_surf, PRETO, (24, 33), (24, 38), 6)
-        pygame.draw.line(mini_surf, cor_base, (24, 33), (24, 38), 4)
-        pygame.draw.rect(mini_surf, PRETO, (9, 5, 22, 29), border_radius=6)
-        pygame.draw.rect(mini_surf, cor_base, CORPO_RECT, border_radius=5)
-        pygame.draw.rect(mini_surf, (20, 20, 20), (11, 5, 18, 6), border_radius=2)
-        pygame.draw.rect(mini_surf, PRETO, (16, 12, 14, 7), border_radius=2)
-        pygame.draw.rect(mini_surf, (255, 215, 0), (15, 11, 16, 9), 1, border_radius=2)
+
+def desenhar_mini_skin(surface, skin_nome, cx, cy):
+    mini_surf = MINI_SKIN_CACHE.get(skin_nome)
+    if mini_surf is None:
+        cor_base = SKINS.get(skin_nome, SKINS["AZUL"])["cor"]
+        mini_surf = pygame.Surface((40, 40), pygame.SRCALPHA)
+        CORPO_RECT = (11, 7, 18, 25)
+
+        if skin_nome == "AZUL":
+            pygame.draw.line(mini_surf, PRETO, (16, 33), (16, 38), 6)
+            pygame.draw.line(mini_surf, (15, 15, 15), (16, 33), (16, 38), 4)
+            pygame.draw.line(mini_surf, PRETO, (24, 33), (24, 38), 6)
+            pygame.draw.line(mini_surf, (15, 15, 15), (24, 33), (24, 38), 4)
+            pygame.draw.rect(mini_surf, PRETO, (9, 5, 22, 29), border_radius=6)
+            pygame.draw.rect(mini_surf, cor_base, CORPO_RECT, border_radius=5)
+            pygame.draw.rect(mini_surf, (200, 20, 20), (11, 11, 18, 4), border_radius=2)
+            pygame.draw.rect(mini_surf, BRANCO, (14, 12, 4, 2), border_radius=1)
+            pygame.draw.rect(mini_surf, BRANCO, (22, 12, 4, 2), border_radius=1)
+        elif skin_nome == "ROSA":
+            pygame.draw.rect(mini_surf, PRETO, (13, -1, 6, 10), border_radius=3)
+            pygame.draw.rect(mini_surf, BRANCO, (14, 0, 4, 8), border_radius=2)
+            pygame.draw.rect(mini_surf, PRETO, (21, -1, 6, 10), border_radius=3)
+            pygame.draw.rect(mini_surf, BRANCO, (22, 0, 4, 8), border_radius=2)
+            pygame.draw.line(mini_surf, PRETO, (16, 33), (16, 38), 6)
+            pygame.draw.line(mini_surf, cor_base, (16, 33), (16, 38), 4)
+            pygame.draw.line(mini_surf, PRETO, (24, 33), (24, 38), 6)
+            pygame.draw.line(mini_surf, cor_base, (24, 33), (24, 38), 4)
+            pygame.draw.rect(mini_surf, PRETO, (9, 5, 22, 29), border_radius=6)
+            pygame.draw.rect(mini_surf, cor_base, CORPO_RECT, border_radius=5)
+            pygame.draw.ellipse(mini_surf, BRANCO, (14, 19, 12, 12))
+            pygame.draw.rect(mini_surf, PRETO, (15, 14, 3, 4), border_radius=1)
+            pygame.draw.rect(mini_surf, PRETO, (22, 14, 3, 4), border_radius=1)
+        elif skin_nome == "VERDE":
+            pygame.draw.polygon(mini_surf, PRETO, [(11, 21), (-1, 30), (11, 33)])
+            pygame.draw.polygon(mini_surf, cor_base, [(11, 23), (1, 30), (11, 31)])
+            pygame.draw.line(mini_surf, PRETO, (16, 33), (16, 38), 6)
+            pygame.draw.line(mini_surf, cor_base, (16, 33), (16, 38), 4)
+            pygame.draw.line(mini_surf, PRETO, (24, 33), (24, 38), 6)
+            pygame.draw.line(mini_surf, cor_base, (24, 33), (24, 38), 4)
+            pygame.draw.rect(mini_surf, PRETO, (9, 5, 22, 29), border_radius=6)
+            pygame.draw.rect(mini_surf, cor_base, CORPO_RECT, border_radius=5)
+            pygame.draw.rect(mini_surf, (241, 196, 15), (20, 17, 9, 15), border_radius=3)
+            pygame.draw.rect(mini_surf, PRETO, (23, 10, 3, 3), border_radius=1)
+        elif skin_nome == "DOURADO":
+            pygame.draw.line(mini_surf, PRETO, (16, 33), (16, 38), 6)
+            pygame.draw.line(mini_surf, cor_base, (16, 33), (16, 38), 4)
+            pygame.draw.line(mini_surf, PRETO, (24, 33), (24, 38), 6)
+            pygame.draw.line(mini_surf, cor_base, (24, 33), (24, 38), 4)
+            pygame.draw.rect(mini_surf, PRETO, (9, 5, 22, 29), border_radius=6)
+            pygame.draw.rect(mini_surf, cor_base, CORPO_RECT, border_radius=5)
+            pygame.draw.rect(mini_surf, (20, 20, 20), (11, 5, 18, 6), border_radius=2)
+            pygame.draw.rect(mini_surf, PRETO, (16, 12, 14, 7), border_radius=2)
+            pygame.draw.rect(mini_surf, (255, 215, 0), (15, 11, 16, 9), 1, border_radius=2)
+        MINI_SKIN_CACHE[skin_nome] = mini_surf
 
     surface.blit(mini_surf, (cx - 20, cy - 20))
 
@@ -617,6 +668,8 @@ def desenhar_mini_skin(surface, skin_nome, cx, cy):
 class Particula(Sprite):
     def __init__(self, x=0, y=0, cor=(255, 255, 255), vx=None, vy=None, vida=25, tamanho=5):
         super().__init__()
+        self._image_cache = {}
+        self.image = None
         self.reset(x, y, cor, vx, vy, vida, tamanho)
 
     def reset(self, x, y, cor, vx=None, vy=None, vida=25, tamanho=5):
@@ -626,7 +679,15 @@ class Particula(Sprite):
         self.tamanho = tamanho
         self.vx = vx if vx is not None else random.uniform(-4, 4)
         self.vy = vy if vy is not None else random.uniform(-4, 4)
-        self.image = pygame.Surface((tamanho, tamanho), pygame.SRCALPHA)
+
+        tamanho_img = (tamanho, tamanho)
+        imagem = self._image_cache.get(tamanho_img)
+        if imagem is None:
+            imagem = pygame.Surface(tamanho_img, pygame.SRCALPHA)
+            self._image_cache[tamanho_img] = imagem
+        else:
+            imagem.fill((0, 0, 0, 0))
+        self.image = imagem
         self.rect = self.image.get_rect(center=(x, y))
         self.ativo = True
 
@@ -674,7 +735,12 @@ class Moeda(Sprite):
 class PoolManager:
     def __init__(self):
         self.particulas_pool = [Particula() for _ in range(250)]
+        for particula in self.particulas_pool:
+            particula.ativo = False
+
         self.moedas_pool = [Moeda() for _ in range(120)]
+        for moeda in self.moedas_pool:
+            moeda.ativo = False
 
     def obter_particula(self, x, y, cor, vx=None, vy=None, vida=25, tamanho=5):
         for p in self.particulas_pool:
@@ -714,6 +780,7 @@ class TextoFlutuante(Sprite):
         super().__init__()
         fnt = fonte_grande if tamanho == "grande" else fonte
         self.image_base = fnt.render(texto, True, cor)
+        self.image_sombra = fnt.render(texto, True, (0, 0, 0))
         self.cor = cor
         self.fnt = fnt
         self.texto = texto
@@ -731,12 +798,10 @@ class TextoFlutuante(Sprite):
         else:
             alpha = int((self.vida / float(self.vida_max)) * 255)
             self.image.fill((0, 0, 0, 0))
-            surf_sombra = self.fnt.render(self.texto, True, (0, 0, 0))
-            surf_texto = self.fnt.render(self.texto, True, self.cor)
-            surf_sombra.set_alpha(alpha)
-            surf_texto.set_alpha(alpha)
-            self.image.blit(surf_sombra, (2, 2))
-            self.image.blit(surf_texto, (0, 0))
+            self.image_sombra.set_alpha(alpha)
+            self.image_base.set_alpha(alpha)
+            self.image.blit(self.image_sombra, (2, 2))
+            self.image.blit(self.image_base, (0, 0))
 
 
 # --- PARALLAX BACKGROUND ---
@@ -839,6 +904,7 @@ class Jogador(Sprite):
 
         self.image_original = pygame.Surface((self.base_w, self.base_h), pygame.SRCALPHA)
         self.image = self.image_original.copy()
+        self._scaled_image_cache = {}
 
         self.rect = self.image.get_rect()
         self.rect.x = 40
@@ -1026,7 +1092,7 @@ class Jogador(Sprite):
         if self.tempo_ima > 0 and not self.morrendo:
             self.desenhar_raios_ima(surf, frame_contador)
 
-    def ativar_powerup(self, tipo, gerenciador_sons=None, vol_sfx=1.0):
+    def ativar_powerup(self, tipo, gerenciador_sons=None, vol_sfx=1.0, vibracao_ligada=True):
         if self.morrendo: return
         self.powerups_coletados += 1
         nivel = self.upgrades.get(tipo, 0)
@@ -1038,8 +1104,10 @@ class Jogador(Sprite):
             duracao = config["duracao_base"] + (nivel * config["bonus_por_nivel"])
             if tipo == "IMA":
                 self.tempo_ima = duracao
+                disparar_vibracao(0.2, vibracao_ligada)
             elif tipo == "TURBO":
                 self.tempo_turbo = duracao
+                disparar_vibracao(0.4, vibracao_ligada)
             elif tipo == "MULT_2X":
                 self.tempo_mult = duracao
             elif tipo == "SLOW":
@@ -1173,7 +1241,13 @@ class Jogador(Sprite):
 
         centro_x = self.rect.centerx
         base_bottom = self.rect.bottom
-        self.image = pygame.transform.scale(self.image_original, (int(self.w_atual), int(self.h_atual)))
+        tamanho_imagem = (max(1, int(self.w_atual)), max(1, int(self.h_atual)))
+        imagem_escalada = self._scaled_image_cache.get(tamanho_imagem)
+        if imagem_escalada is None:
+            imagem_escalada = pygame.Surface(tamanho_imagem, pygame.SRCALPHA)
+            self._scaled_image_cache[tamanho_imagem] = imagem_escalada
+        pygame.transform.scale(self.image_original, tamanho_imagem, imagem_escalada)
+        self.image = imagem_escalada
         self.rect = self.image.get_rect()
         self.rect.centerx = centro_x
         self.rect.bottom = base_bottom
@@ -1597,6 +1671,7 @@ def main():
 
     EVENTO_GERAR = pygame.USEREVENT + 1
     tempo_spawn_atual = 1500
+    superficies_escala = {}
 
     # Botões Centralizados do Menu Inicial
     btn_jogar = pygame.Rect(75, 390, 300, 50)
@@ -1613,12 +1688,13 @@ def main():
     btn_menu_pausa = pygame.Rect(75, 600, 300, 50)
 
     # UI Configurações
-    btn_musica_menos = pygame.Rect(75, 220, 60, 45)
-    btn_musica_mais = pygame.Rect(315, 220, 60, 45)
-    btn_sfx_menos = pygame.Rect(75, 330, 60, 45)
-    btn_sfx_mais = pygame.Rect(315, 330, 60, 45)
-    btn_lang = pygame.Rect(75, 440, 300, 50)
-    btn_voltar_config = pygame.Rect(75, 650, 300, 50)
+    btn_musica_menos = pygame.Rect(75, 180, 60, 45)
+    btn_musica_mais = pygame.Rect(315, 180, 60, 45)
+    btn_sfx_menos = pygame.Rect(75, 275, 60, 45)
+    btn_sfx_mais = pygame.Rect(315, 275, 60, 45)
+    btn_vibracao = pygame.Rect(75, 370, 300, 50)
+    btn_lang = pygame.Rect(75, 445, 300, 50)
+    btn_voltar_config = pygame.Rect(75, 580, 300, 50)
 
     def reiniciar_jogo():
         nonlocal jogador, pontuacao, moedas_coletadas, novo_recorde_alcançado, missoes_atuais, cor_atual_ceu, tempo_spawn_atual, estado
@@ -1679,6 +1755,10 @@ def main():
                 salvar_dados(dados)
             elif btn_sfx_mais.collidepoint(pos):
                 dados["vol_sfx"] = min(1.0, round(dados["vol_sfx"] + 0.1, 1))
+                salvar_dados(dados)
+            elif btn_vibracao.collidepoint(pos):
+                dados["vibracao"] = not dados.get("vibracao", True)
+                disparar_vibracao(0.15, dados["vibracao"])
                 salvar_dados(dados)
             elif btn_lang.collidepoint(pos):
                 dados["idioma"] = "pt_BR" if dados.get("idioma") == "en_US" else "en_US"
@@ -1968,7 +2048,9 @@ def main():
                 elif m["tipo"] == "SLOW":
                     m["atual"] = jogador.slow_ativados
 
-            for s in todos_sprites:
+            for s in todos_sprites.sprites():
+                if not s.alive():
+                    continue
                 if s != jogador:
                     if isinstance(s, Moeda):
                         s.update(vel_jogo, jogador)
@@ -2001,7 +2083,7 @@ def main():
                 for p in list(powerups):
                     if hitbox_jogador.colliderect(p.rect):
                         p.kill()
-                        jogador.ativar_powerup(p.tipo, gerenciador_sons, dados["vol_sfx"])
+                        jogador.ativar_powerup(p.tipo, gerenciador_sons, dados["vol_sfx"], dados.get("vibracao", True))
                         nome_p = t(UPGRADES_CONFIG[p.tipo]["nome_key"], dados)
                         textos_flut.add(TextoFlutuante(jogador.rect.centerx, jogador.rect.top - 15, f"+ {nome_p}!",
                                                        UPGRADES_CONFIG[p.tipo]["cor"]))
@@ -2024,6 +2106,7 @@ def main():
                                 if missao["tipo"] == "QUEBRAR": missao["atual"] += cactos_destruidos
                     elif jogador.escudo_hits > 0:
                         jogador.escudo_hits -= 1
+                        disparar_vibracao(0.3, dados.get("vibracao", True))  # Vibração de quebra de escudo
                         textos_flut.add(TextoFlutuante(jogador.rect.centerx, jogador.rect.top - 20,
                                                        f"-1 {t('escudo_ativo', dados)}", CIANO_ESCUDO, "grande"))
                         aplicar_shake(15, 8)
@@ -2037,6 +2120,7 @@ def main():
                                 if missao["tipo"] == "QUEBRAR": missao["atual"] += cactos_destruidos
                         for h in hit_laser: h.kill()
                     else:
+                        disparar_vibracao(0.5, dados.get("vibracao", True))  # Vibração de colisão / game over
                         aplicar_shake(25, 15)
                         criar_explosao_particulas(jogador.rect.centerx, jogador.rect.centery, cor_jogador, 30,
                                                   particulas, pool_manager)
@@ -2081,9 +2165,7 @@ def main():
             textos_flut.draw(display_surface)
 
             if jogador and jogador.tempo_slow > 0 and estado in ["JOGANDO", "PAUSA"]:
-                overlay_slow = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-                overlay_slow.fill((30, 180, 60, 45))
-                display_surface.blit(overlay_slow, (0, 0))
+                display_surface.blit(OVERLAY_SLOW, (0, 0))
 
             for perigo in perigos_especiais:
                 if isinstance(perigo, AvisoLaser) and perigo.timer > 0:
@@ -2327,9 +2409,10 @@ def main():
 
             off_top = int((1.0 - ease_out) * -150)
             desenhar_texto_centralizado(display_surface, t("configuracoes", dados), fonte_grande, AMARELO_NEON, PRETO,
-                                        50 + off_top)
+                                        35 + off_top)
 
-            desenhar_texto_com_sombra(display_surface, t("vol_musica", dados), fonte, BRANCO, PRETO, (75, 185))
+            # Trilha Sonora
+            desenhar_texto_com_sombra(display_surface, t("vol_musica", dados), fonte, BRANCO, PRETO, (75, 145))
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_musica_menos, border_radius=8)
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_musica_mais, border_radius=8)
             desenhar_texto_com_sombra(display_surface, "-", fonte_grande, BRANCO, PRETO,
@@ -2338,10 +2421,11 @@ def main():
                                       (btn_musica_mais.centerx - 8, btn_musica_mais.centery - 15))
 
             pct_m = int(dados["vol_musica"] * 100)
-            pygame.draw.rect(display_surface, CINZA_PAINEL, (145, 220, 160, 45), border_radius=8)
-            desenhar_texto_com_sombra(display_surface, f"{pct_m}%", fonte, AMARELO_NEON, PRETO, (205, 230))
+            pygame.draw.rect(display_surface, CINZA_PAINEL, (145, 180, 160, 45), border_radius=8)
+            desenhar_texto_com_sombra(display_surface, f"{pct_m}%", fonte, AMARELO_NEON, PRETO, (205, 190))
 
-            desenhar_texto_com_sombra(display_surface, t("vol_sfx", dados), fonte, BRANCO, PRETO, (75, 295))
+            # Efeitos Sonoros
+            desenhar_texto_com_sombra(display_surface, t("vol_sfx", dados), fonte, BRANCO, PRETO, (75, 240))
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_sfx_menos, border_radius=8)
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_sfx_mais, border_radius=8)
             desenhar_texto_com_sombra(display_surface, "-", fonte_grande, BRANCO, PRETO,
@@ -2350,9 +2434,18 @@ def main():
                                       (btn_sfx_mais.centerx - 8, btn_sfx_mais.centery - 15))
 
             pct_s = int(dados["vol_sfx"] * 100)
-            pygame.draw.rect(display_surface, CINZA_PAINEL, (145, 330, 160, 45), border_radius=8)
-            desenhar_texto_com_sombra(display_surface, f"{pct_s}%", fonte, AMARELO_NEON, PRETO, (205, 340))
+            pygame.draw.rect(display_surface, CINZA_PAINEL, (145, 275, 160, 45), border_radius=8)
+            desenhar_texto_com_sombra(display_surface, f"{pct_s}%", fonte, AMARELO_NEON, PRETO, (205, 285))
 
+            # Vibração (Ligado / Desligado)
+            pygame.draw.rect(display_surface, CINZA_BOTAO, btn_vibracao, border_radius=10)
+            pygame.draw.rect(display_surface, BRANCO, btn_vibracao, 2, border_radius=10)
+            vib_status = t("ligado", dados) if dados.get("vibracao", True) else t("desligado", dados)
+            surf_vib = fonte.render(f"{t('vibracao', dados)}: {vib_status}", True, BRANCO)
+            display_surface.blit(surf_vib, (
+            btn_vibracao.centerx - surf_vib.get_width() // 2, btn_vibracao.centery - surf_vib.get_height() // 2))
+
+            # Idioma
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_lang, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_lang, 2, border_radius=10)
             lang_str = "Português (BR)" if dados.get("idioma") == "pt_BR" else "English (US)"
@@ -2360,16 +2453,15 @@ def main():
             display_surface.blit(surf_l, (
             btn_lang.centerx - surf_l.get_width() // 2, btn_lang.centery - surf_l.get_height() // 2))
 
+            # Salvar e Voltar
             pygame.draw.rect(display_surface, (46, 204, 113), btn_voltar_config, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_voltar_config, 2, border_radius=10)
-            surf_s = fonte.render(t("salvar", dados), True, BRANCO)
-            display_surface.blit(surf_s, (btn_voltar_config.centerx - surf_s.get_width() // 2,
-                                          btn_voltar_config.centery - surf_voltar_config.get_height() // 2))
+            surf_voltar_config = fonte.render(t("salvar", dados), True, BRANCO)
+            display_surface.blit(surf_voltar_config, (btn_voltar_config.centerx - surf_voltar_config.get_width() // 2,
+                                                      btn_voltar_config.centery - surf_voltar_config.get_height() // 2))
 
         elif estado == "PAUSA":
-            overlay_pausa = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-            overlay_pausa.fill((0, 0, 0, 185))
-            display_surface.blit(overlay_pausa, (0, 0))
+            display_surface.blit(OVERLAY_PAUSA, (0, 0))
 
             desenhar_texto_centralizado(display_surface, t("pausa_titulo", dados), fonte_grande, AMARELO_NEON, PRETO,
                                         150)
@@ -2404,14 +2496,12 @@ def main():
 
             pygame.draw.rect(display_surface, VERMELHO_OBSTACULO, btn_menu_pausa, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_menu_pausa, 2, border_radius=10)
-            surf_m = fonte.render(t("menu_principal", dados), True, BRANCO)
-            display_surface.blit(surf_m, (btn_menu_pausa.centerx - surf_m.get_width() // 2,
-                                          btn_menu_pausa.centery - surf_menu_pausa.get_height() // 2))
+            surf_menu_pausa = fonte.render(t("menu_principal", dados), True, BRANCO)
+            display_surface.blit(surf_menu_pausa, (btn_menu_pausa.centerx - surf_menu_pausa.get_width() // 2,
+                                                   btn_menu_pausa.centery - surf_menu_pausa.get_height() // 2))
 
         elif estado == "GAMEOVER":
-            overlay_go = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-            overlay_go.fill((20, 0, 0, 200))
-            display_surface.blit(overlay_go, (0, 0))
+            display_surface.blit(OVERLAY_GAMEOVER, (0, 0))
 
             txt_go = t("novo_recorde", dados) if novo_recorde_alcançado else t("gameover", dados)
             cor_go = AMARELO_NEON if novo_recorde_alcançado else VERMELHO_OBSTACULO
@@ -2459,12 +2549,23 @@ def main():
             oy = random.randint(-shake_intensidade, shake_intensidade)
 
         if E_ANDROID:
-            superficie_final = pygame.transform.scale(display_surface, (LARGURA_TELA, ALTURA_TELA))
-            tela.blit(superficie_final, (ox, oy))
+            tamanho_final = (LARGURA_TELA, ALTURA_TELA)
+            pos_final = (ox, oy)
         else:
             tela.fill(cor_ceu_tupla)
-            superficie_final = pygame.transform.scale(display_surface, (largura_render, altura_render))
-            tela.blit(superficie_final, (offset_x + ox, offset_y + oy))
+            tamanho_final = (largura_render, altura_render)
+            pos_final = (offset_x + ox, offset_y + oy)
+
+        if tamanho_final == display_surface.get_size():
+            superficie_final = display_surface
+        else:
+            superficie_final = superficies_escala.get(tamanho_final)
+            if superficie_final is None:
+                superficie_final = pygame.Surface(tamanho_final)
+                superficies_escala[tamanho_final] = superficie_final
+            pygame.transform.scale(display_surface, tamanho_final, superficie_final)
+
+        tela.blit(superficie_final, pos_final)
 
         pygame.display.flip()
         relogio.tick(60)
