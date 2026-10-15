@@ -260,11 +260,43 @@ UPGRADES_CONFIG = {
 }
 
 # Fontes
-fonte = pygame.font.SysFont("Arial", 20, bold=True)
-fonte_pequena = pygame.font.SysFont("Arial", 13, bold=True)
-fonte_missoes = pygame.font.SysFont("Arial", 15, bold=True)
-fonte_grande = pygame.font.SysFont("Arial", 30, bold=True)
-fonte_alerta = pygame.font.SysFont("Arial", 24, bold=True)
+# No Windows, mantemos Arial exatamente como antes.
+# No Android, pygame.font.SysFont() tenta executar fc-list, o que pode falhar
+# no ambiente Android/Buildozer. O Android 9 associa Arial à família sans-serif
+# (Roboto); por isso carregamos diretamente o arquivo de peso correspondente.
+def carregar_fonte(nome, tamanho, bold=False, italic=False):
+    if E_ANDROID and nome.strip().lower() == "arial":
+        if bold and italic:
+            candidatos = ["/system/fonts/Roboto-BoldItalic.ttf"]
+        elif bold:
+            candidatos = ["/system/fonts/Roboto-Bold.ttf"]
+        elif italic:
+            candidatos = ["/system/fonts/Roboto-Italic.ttf"]
+        else:
+            candidatos = ["/system/fonts/Roboto-Regular.ttf"]
+
+        for caminho_fonte in candidatos:
+            if os.path.isfile(caminho_fonte):
+                try:
+                    return pygame.font.Font(caminho_fonte, tamanho)
+                except Exception:
+                    pass
+
+        # Fallback para evitar que a inicialização falhe se o sistema não expuser
+        # o arquivo Roboto esperado. Não usa SysFont aqui porque ele chama fc-list.
+        fonte_fallback = pygame.font.Font(None, tamanho)
+        if italic:
+            fonte_fallback.set_italic(True)
+        return fonte_fallback
+
+    return pygame.font.SysFont(nome, tamanho, bold=bold, italic=italic)
+
+
+fonte = carregar_fonte("Arial", 20, bold=True)
+fonte_pequena = carregar_fonte("Arial", 13, bold=True)
+fonte_missoes = carregar_fonte("Arial", 15, bold=True)
+fonte_grande = carregar_fonte("Arial", 30, bold=True)
+fonte_alerta = carregar_fonte("Arial", 24, bold=True)
 
 
 # --- CACHE LIMITADO DE TEXTO (MUITO IMPORTANTE PARA ANDROID) ---
