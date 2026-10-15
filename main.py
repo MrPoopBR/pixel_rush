@@ -58,10 +58,32 @@ ALTURA_VIRTUAL = 800
 # Detecção de plataforma (Android vs PC)
 E_ANDROID = (sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ)
 
-# Inicialização de vídeo otimizada e blindada contra falhas de driver em emuladores
+# Inicialização de vídeo.
+# No Android, tenta manter a superfície lógica em 450x800 e deixar o SDL/Pygame
+# fazer a escala através do modo SCALED, evitando transform.scale para 1080x2340
+# em software a cada frame. Caso não seja suportado, recua para o modo anterior.
+ANDROID_SCALED_ATIVO = False
 try:
     if E_ANDROID:
-        tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
+        flag_scaled = getattr(pygame, "SCALED", None)
+        if flag_scaled:
+            try:
+                # VSync só é suportado em combinações específicas; a chamada pode falhar
+                # dependendo da versão do Pygame/SDL embarcada no APK.
+                tela = pygame.display.set_mode(
+                    (LARGURA_VIRTUAL, ALTURA_VIRTUAL), flag_scaled, vsync=1
+                )
+                ANDROID_SCALED_ATIVO = True
+            except Exception:
+                try:
+                    tela = pygame.display.set_mode(
+                        (LARGURA_VIRTUAL, ALTURA_VIRTUAL), flag_scaled
+                    )
+                    ANDROID_SCALED_ATIVO = True
+                except Exception:
+                    tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
+        else:
+            tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
     else:
         info_tela = pygame.display.Info()
         LARGURA_TELA = info_tela.current_w
@@ -1746,11 +1768,14 @@ def main():
     debug_frame_ms = 0.0
     debug_logic_ms = 0.0
     debug_render_ms = 0.0
+    debug_draw_ms = 0.0
+    debug_scale_ms = 0.0
+    debug_flip_ms = 0.0
     debug_logic_start = _perf_window_start
     debug_render_start = _perf_window_start
 
     # Superficie reutilizada para o painel de diagnostico.
-    debug_panel = pygame.Surface((272, 74), pygame.SRCALPHA)
+    debug_panel = pygame.Surface((272, 92), pygame.SRCALPHA)
     debug_panel.fill((0, 0, 0, 190))
     debug_font = pygame.font.SysFont("Arial", 12, bold=True)
     debug_text_surfaces = []
@@ -2269,6 +2294,7 @@ def main():
         debug_render_start = time.perf_counter()
 
         # --- RENDERIZAÇÃO NA TELA VIRTUAL ---
+        # O tempo até aqui mede o desenho de todos os elementos na superfície lógica.
         # O ParallaxBackground.draw() já preenche o céu nos estados de jogo.
         # Evitamos um segundo fill da tela inteira nesses frames.
         if estado not in ["JOGANDO", "PAUSA", "GAMEOVER"]:
@@ -2669,9 +2695,11 @@ def main():
                 linhas_debug = (
                     f"FPS: {debug_fps:.1f} | frame: {debug_frame_ms:.1f} ms",
                     f"Logica: {debug_logic_ms:.1f} ms",
-                    f"Render + flip (anterior): {debug_render_ms:.1f} ms",
-                    f"Superficie: {display_surface.get_width()}x{display_surface.get_height()}",
-                    f"Tela: {tela.get_width()}x{tela.get_height()}"
+                    f"Desenho interno: {debug_draw_ms:.1f} ms",
+                    f"Escala final: {debug_scale_ms:.1f} ms",
+                    f"Blit + flip: {debug_flip_ms:.1f} ms",
+                    f"Surface: {display_surface.get_width()}x{display_surface.get_height()}",
+                    f"Tela: {tela.get_width()}x{tela.get_height()} | SCALED:{'SIM' if ANDROID_SCALED_ATIVO else 'NAO'}"
                 )
                 debug_text_surfaces = [debug_font.render(linha, True, (255, 255, 255))
                                        for linha in linhas_debug]
@@ -2679,7 +2707,9 @@ def main():
 
             display_surface.blit(debug_panel, (LARGURA_VIRTUAL - 277, 95))
             for _i, _texto_debug in enumerate(debug_text_surfaces):
-                display_surface.blit(_texto_debug, (LARGURA_VIRTUAL - 272, 99 + _i * 13))
+                display_surface.blit(_texto_debug, (LARGURA_VIRTUAL - 272, 99 + _i * 12))
+
+        debug_draw_ms = (time.perf_counter() - debug_render_start) * 1000.0
 
         ox, oy = 0, 0
         if shake_timer > 0:
@@ -2687,6 +2717,7 @@ def main():
             ox = random.randint(-shake_intensidade, shake_intensidade)
             oy = random.randint(-shake_intensidade, shake_intensidade)
 
+        _debug_scale_start = time.perf_counter()
         if E_ANDROID:
             tamanho_final = (LARGURA_TELA, ALTURA_TELA)
             pos_final = (ox, oy)
@@ -2704,10 +2735,12 @@ def main():
                 superficies_escala[tamanho_final] = superficie_final
             pygame.transform.scale(display_surface, tamanho_final, superficie_final)
 
+        debug_scale_ms = (time.perf_counter() - _debug_scale_start) * 1000.0
+        _debug_flip_start = time.perf_counter()
         tela.blit(superficie_final, pos_final)
-
         pygame.display.flip()
-        debug_render_ms = (time.perf_counter() - debug_render_start) * 1000.0
+        debug_flip_ms = (time.perf_counter() - _debug_flip_start) * 1000.0
+        debug_render_ms = debug_draw_ms + debug_scale_ms + debug_flip_ms
         relogio.tick(60)
 
     pygame.quit()
