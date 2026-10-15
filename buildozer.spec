@@ -5,8 +5,8 @@ package.domain = com
 source.dir = .
 source.include_exts = py,json
 source.exclude_dirs = .git,.buildozer,bin,p4a-recipes,__pycache__
-version = 3.2.5
-android.numeric_version = 2
+version = 3.9.1
+android.numeric_version = 3
 requirements = python3==3.10.12,hostpython3==3.10.12,pygame-ce,pyjnius,plyer
 orientation = portrait
 fullscreen = 1
