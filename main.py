@@ -5,6 +5,7 @@ import json
 import os
 import math
 import array
+import time
 from pygame.sprite import Sprite
 
 # --- SUPORTE A VIBRAÇÃO (ANDROID / PLYER) ---
@@ -45,6 +46,10 @@ init_audio()
 
 # Versão do Jogo
 VERSAO = "v3.4.0"
+
+# Diagnostico temporario: mostra FPS e tempo gasto em logica/renderizacao.
+# Defina False para ocultar o painel depois do teste.
+DEBUG_PERFORMANCE = True
 
 # Resolução lógica interna do jogo (Proporção Vertical 450x800)
 LARGURA_VIRTUAL = 450
@@ -1733,6 +1738,24 @@ def main():
     novo_recorde_alcançado = False
     frame_count = 0
 
+    # Medicao simples do desempenho real no dispositivo (sem alterar a simulacao).
+    _perf_window_start = time.perf_counter()
+    _perf_window_frames = 0
+    _perf_last_loop_start = _perf_window_start
+    debug_fps = 0.0
+    debug_frame_ms = 0.0
+    debug_logic_ms = 0.0
+    debug_render_ms = 0.0
+    debug_logic_start = _perf_window_start
+    debug_render_start = _perf_window_start
+
+    # Superficie reutilizada para o painel de diagnostico.
+    debug_panel = pygame.Surface((272, 74), pygame.SRCALPHA)
+    debug_panel.fill((0, 0, 0, 190))
+    debug_font = pygame.font.SysFont("Arial", 12, bold=True)
+    debug_text_surfaces = []
+    debug_last_text_update = 0.0
+
     shake_timer = 0
     shake_intensidade = 0
 
@@ -1892,6 +1915,16 @@ def main():
 
     rodando = True
     while rodando:
+        _loop_start = time.perf_counter()
+        debug_frame_ms = (_loop_start - _perf_last_loop_start) * 1000.0
+        _perf_last_loop_start = _loop_start
+        _perf_window_frames += 1
+        _perf_elapsed = _loop_start - _perf_window_start
+        if _perf_elapsed >= 0.5:
+            debug_fps = _perf_window_frames / max(_perf_elapsed, 0.001)
+            _perf_window_frames = 0
+            _perf_window_start = _loop_start
+
         frame_count += 1
 
         largura_atual_tela, altura_atual_tela = tela.get_size()
@@ -2069,6 +2102,7 @@ def main():
             if dy > 30:
                 segurando_baixo_touch = True
 
+        debug_logic_start = time.perf_counter()
         if estado == "JOGANDO":
             vel_base = min(20.0, 6.0 + (metros_atuais / 35.0) * 0.35)
             if jogador.tempo_slow > 0:
@@ -2230,6 +2264,9 @@ def main():
                                        BRANCO))
         elif estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
             bg_parallax.update(1.2)
+
+        debug_logic_ms = (time.perf_counter() - debug_logic_start) * 1000.0
+        debug_render_start = time.perf_counter()
 
         # --- RENDERIZAÇÃO NA TELA VIRTUAL ---
         # O ParallaxBackground.draw() já preenche o céu nos estados de jogo.
@@ -2624,6 +2661,26 @@ def main():
             display_surface.blit(surf_mg, (btn_menu_gameover.centerx - surf_mg.get_width() // 2,
                                            btn_menu_gameover.centery - surf_mg.get_height() // 2))
 
+        if DEBUG_PERFORMANCE:
+            _debug_now = time.perf_counter()
+            # Atualiza os textos 4 vezes por segundo para o proprio diagnostico
+            # ter custo minimo e nao mascarar o desempenho que estamos medindo.
+            if not debug_text_surfaces or _debug_now - debug_last_text_update >= 0.25:
+                linhas_debug = (
+                    f"FPS: {debug_fps:.1f} | frame: {debug_frame_ms:.1f} ms",
+                    f"Logica: {debug_logic_ms:.1f} ms",
+                    f"Render + flip (anterior): {debug_render_ms:.1f} ms",
+                    f"Superficie: {display_surface.get_width()}x{display_surface.get_height()}",
+                    f"Tela: {tela.get_width()}x{tela.get_height()}"
+                )
+                debug_text_surfaces = [debug_font.render(linha, True, (255, 255, 255))
+                                       for linha in linhas_debug]
+                debug_last_text_update = _debug_now
+
+            display_surface.blit(debug_panel, (LARGURA_VIRTUAL - 277, 95))
+            for _i, _texto_debug in enumerate(debug_text_surfaces):
+                display_surface.blit(_texto_debug, (LARGURA_VIRTUAL - 272, 99 + _i * 13))
+
         ox, oy = 0, 0
         if shake_timer > 0:
             shake_timer -= 1
@@ -2650,6 +2707,7 @@ def main():
         tela.blit(superficie_final, pos_final)
 
         pygame.display.flip()
+        debug_render_ms = (time.perf_counter() - debug_render_start) * 1000.0
         relogio.tick(60)
 
     pygame.quit()
