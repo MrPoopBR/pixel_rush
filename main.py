@@ -3172,10 +3172,28 @@ def main():
     touch_current_pos = None
     touch_jetpack_anchor = None
     toque_ativo = False
+    # Toque parado por alguns ticks inicia o pulo sem esperar o dedo ser solto.
+    # Isso permite que o Android aplique o mesmo pulo longo do teclado no PC,
+    # sem confundir imediatamente um swipe para baixo com um comando de pulo.
+    touch_hold_frames = 0
+    touch_jump_started = False
+    touch_gesture_moved = False
     jetpack_gesto_usado = False
     mouse_drag_active = False
     mouse_drag_anchor_pos = None
     mouse_jetpack_gesto_usado = False
+    # Mouse segue o mesmo reconhecimento de toque: toque curto pula, segurar pula
+    # alto e arrastar para baixo agacha/desce rapidamente.
+    mouse_start_pos = None
+    mouse_current_pos = None
+    mouse_hold_frames = 0
+    mouse_jump_started = False
+    mouse_gesture_moved = False
+    mouse_gameplay_press = False
+    mouse_input_ignored = False
+    # Um swipe para baixo curto também precisa ter tempo de produzir o agachamento
+    # mesmo quando DOWN/MOTION/UP chegam no mesmo lote de eventos.
+    gesto_agachar_frames = 0
     spawn_bloqueado_frames = 0
     segurando_baixo_touch = False
     input_pulo_ativo = False
@@ -3352,8 +3370,13 @@ def main():
         nonlocal frame_count, pontuacao, moedas_coletadas, novo_recorde_alcançado, estado
         nonlocal anim_menu_tempo, metros_atuais, e_slow, cor_jogador, e_noite, alvo_ceu, cor_ceu_tupla, shake_timer
         nonlocal cenario_atual, cenario_tempo_restante, transicao_cenario_timer, cenario_transicao_nome, spawn_bloqueado_frames
+        nonlocal touch_hold_frames, touch_jump_started, touch_gesture_moved
+        nonlocal mouse_hold_frames, mouse_jump_started, mouse_gesture_moved
+        nonlocal gesto_agachar_frames
 
         frame_count += 1
+        if gesto_agachar_frames > 0:
+            gesto_agachar_frames -= 1
         if shake_timer > 0:
             shake_timer -= 1
         if estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
@@ -3411,9 +3434,46 @@ def main():
 
             centro_pe_jogador = jogador.rect.centerx
             pode_pousar = not any(b.rect.left <= centro_pe_jogador <= b.rect.right for b in buracos)
-            segurando_pulo = input_pulo_ativo or input_mouse_ativo or (
+
+            # Toque parado passa a ser um comando de pulo após 8 ticks (~133 ms).
+            # Se o dedo descer, o gesto fica reservado para agachar/descida rapida.
+            if (toque_ativo and touch_start_pos and touch_current_pos and
+                    not touch_jump_started and not touch_gesture_moved and
+                    not btn_pausa.collidepoint(touch_start_pos) and
+                    jogador.jetpack_fase is None):
+                touch_dx = touch_current_pos[0] - touch_start_pos[0]
+                touch_dy = touch_current_pos[1] - touch_start_pos[1]
+                if abs(touch_dx) > 30 or abs(touch_dy) > 30:
+                    touch_gesture_moved = True
+                else:
+                    touch_hold_frames += 1
+                    if touch_hold_frames >= 8:
+                        jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                        touch_jump_started = True
+
+            # Mouse: mesmo limiar do touch para distinguir clique/pulo de swipe.
+            if (mouse_drag_active and mouse_gameplay_press and not mouse_input_ignored and
+                    mouse_start_pos and mouse_current_pos and not mouse_jump_started and
+                    not mouse_gesture_moved and jogador.jetpack_fase is None and
+                    not btn_pausa.collidepoint(mouse_start_pos)):
+                mouse_dx = mouse_current_pos[0] - mouse_start_pos[0]
+                mouse_dy = mouse_current_pos[1] - mouse_start_pos[1]
+                if abs(mouse_dx) > 30 or abs(mouse_dy) > 30:
+                    mouse_gesture_moved = True
+                else:
+                    mouse_hold_frames += 1
+                    if mouse_hold_frames >= 8:
+                        jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                        mouse_jump_started = True
+
+            mouse_baixo = bool(
+                mouse_drag_active and mouse_gameplay_press and not mouse_input_ignored and
+                mouse_start_pos and mouse_current_pos and jogador.jetpack_fase is None and
+                mouse_current_pos[1] - mouse_start_pos[1] > 30)
+            segurando_pulo = input_pulo_ativo or (input_mouse_ativo and not mouse_baixo) or (
                 toque_ativo and not segurando_baixo_touch)
-            segurando_baixo = input_baixo_ativo or segurando_baixo_touch
+            segurando_baixo = (input_baixo_ativo or segurando_baixo_touch or mouse_baixo or
+                               (gesto_agachar_frames > 0 and jogador.no_chao))
 
             prev_slow = jogador.tempo_slow
             prev_turbo = jogador.tempo_turbo
@@ -3693,6 +3753,14 @@ def main():
                     (evento.type == pygame.ACTIVEEVENT and hasattr(evento, 'gain') and evento.gain == 0):
                 if estado == "JOGANDO":
                     estado = "PAUSA"
+                mouse_drag_active = False
+                mouse_start_pos = None
+                mouse_current_pos = None
+                mouse_hold_frames = 0
+                mouse_jump_started = False
+                mouse_gesture_moved = False
+                mouse_gameplay_press = False
+                mouse_input_ignored = False
                 salvar_dados(dados)
                 if gerenciador_sons and gerenciador_sons.canal_musica:
                     try:
@@ -3722,6 +3790,10 @@ def main():
                 touch_current_pos = pos_touch
                 touch_jetpack_anchor = pos_touch
                 toque_ativo = True
+                touch_hold_frames = 0
+                touch_jump_started = False
+                touch_gesture_moved = bool(
+                    estado == "JOGANDO" and jogador and jogador.jetpack_fase is not None)
                 jetpack_gesto_usado = False
 
                 if estado == "JOGANDO" and jogador:
@@ -3773,16 +3845,19 @@ def main():
                             elif jogador.jetpack_fase == "voando" and not jetpack_gesto_usado and dy > 30:
                                 jogador.mover_jetpack(1)
                         elif dy < -40:
-                            jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                            if not touch_jump_started:
+                                jogador.pular(gerenciador_sons, dados["vol_sfx"])
                         elif dy > 40:
-                            # No chao, o gesto e agachamento; no ar, continua sendo
-                            # descida rapida. Evita transformar um swipe de agachar em salto.
+                            # No chao, um swipe curto tambem gera agachamento; no ar,
+                            # interrompe o pulo longo e inicia a descida rapida.
                             if jogador.no_chao:
-                                jogador.agachar(False, gerenciador_sons, dados["vol_sfx"])
+                                gesto_agachar_frames = max(gesto_agachar_frames, 12)
                             else:
                                 jogador.iniciar_descida_rapida(gerenciador_sons, dados["vol_sfx"])
                         elif abs(dx) < 30 and abs(dy) < 30:
-                            jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                            # O toque longo já iniciou o pulo; soltar não deve disparar outro.
+                            if not touch_jump_started:
+                                jogador.pular(gerenciador_sons, dados["vol_sfx"])
                     else:
                         if abs(dx) < 30 and abs(dy) < 30:
                             processar_clique_ui((end_x, end_y))
@@ -3799,44 +3874,98 @@ def main():
                 touch_start_pos = None
                 touch_current_pos = None
                 touch_jetpack_anchor = None
+                touch_hold_frames = 0
+                touch_jump_started = False
+                touch_gesture_moved = False
                 jetpack_gesto_usado = False
 
             elif evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 1:
                     vx, vy = screen_to_virtual(evento.pos[0], evento.pos[1])
                     mouse_drag_active = True
+                    mouse_start_pos = (vx, vy)
+                    mouse_current_pos = (vx, vy)
                     mouse_drag_anchor_pos = (vx, vy)
+                    mouse_hold_frames = 0
+                    mouse_jump_started = False
+                    mouse_gesture_moved = False
                     mouse_jetpack_gesto_usado = False
-                    if not touch_start_pos:
-                        if E_ANDROID and estado == "JOGANDO":
-                            # Eventos de mouse duplicados do toque Android não devem causar saltos.
-                            pass
-                        elif estado == "JOGANDO" and jogador and not btn_pausa.collidepoint((vx, vy)):
-                            if jogador.jetpack_fase is None:
-                                jogador.pular(gerenciador_sons, dados["vol_sfx"])
-                        else:
+                    # SDL pode sintetizar eventos de mouse para o mesmo toque no Android;
+                    # quando touch está ativo, apenas o caminho FINGER trata o gesto.
+                    mouse_input_ignored = bool(
+                        (E_ANDROID and estado == "JOGANDO") or touch_start_pos is not None)
+                    mouse_gameplay_press = bool(
+                        estado == "JOGANDO" and jogador and not mouse_input_ignored and
+                        not btn_pausa.collidepoint((vx, vy)))
+                    if estado == "JOGANDO" and jogador and btn_pausa.collidepoint((vx, vy)):
+                        mouse_gesture_moved = True
+                        mouse_gameplay_press = False
+                        if not mouse_input_ignored:
+                            processar_clique_ui((vx, vy))
+                    elif estado != "JOGANDO":
+                        # Menus continuam respondendo ao clique exatamente como antes.
+                        mouse_gesture_moved = True
+                        mouse_gameplay_press = False
+                        if not mouse_input_ignored:
                             processar_clique_ui((vx, vy))
 
             elif evento.type == pygame.MOUSEMOTION:
-                if mouse_drag_active and estado == "JOGANDO" and jogador and jogador.jetpack_fase == "voando":
-                    if hasattr(evento, "buttons") and evento.buttons and evento.buttons[0]:
-                        mx, my = screen_to_virtual(evento.pos[0], evento.pos[1])
-                        if mouse_drag_anchor_pos is not None:
-                            dy_mouse = my - mouse_drag_anchor_pos[1]
-                            if dy_mouse <= -30:
-                                jogador.mover_jetpack(-1)
-                                mouse_drag_anchor_pos = (mx, my)
-                                mouse_jetpack_gesto_usado = True
-                            elif dy_mouse >= 30:
-                                jogador.mover_jetpack(1)
-                                mouse_drag_anchor_pos = (mx, my)
-                                mouse_jetpack_gesto_usado = True
+                if mouse_drag_active:
+                    mx, my = screen_to_virtual(evento.pos[0], evento.pos[1])
+                    mouse_current_pos = (mx, my)
+                    if (not mouse_input_ignored and estado == "JOGANDO" and jogador and
+                            mouse_gameplay_press):
+                        if jogador.jetpack_fase == "voando":
+                            # Jetpack mantém o controle contínuo: cada movimento ultrapassando
+                            # o limiar muda uma faixa e reposiciona a âncora sem soltar o mouse.
+                            if hasattr(evento, "buttons") and evento.buttons and evento.buttons[0]:
+                                if mouse_drag_anchor_pos is not None:
+                                    dy_mouse = my - mouse_drag_anchor_pos[1]
+                                    if dy_mouse <= -30:
+                                        jogador.mover_jetpack(-1)
+                                        mouse_drag_anchor_pos = (mx, my)
+                                        mouse_jetpack_gesto_usado = True
+                                    elif dy_mouse >= 30:
+                                        jogador.mover_jetpack(1)
+                                        mouse_drag_anchor_pos = (mx, my)
+                                        mouse_jetpack_gesto_usado = True
+                        elif (abs(mx - mouse_start_pos[0]) > 30 or
+                              abs(my - mouse_start_pos[1]) > 30):
+                            mouse_gesture_moved = True
 
             elif evento.type == pygame.MOUSEBUTTONUP:
                 if evento.button == 1:
+                    if (mouse_drag_active and mouse_gameplay_press and not mouse_input_ignored and
+                            estado == "JOGANDO" and jogador and mouse_start_pos):
+                        end_x, end_y = screen_to_virtual(evento.pos[0], evento.pos[1])
+                        mouse_current_pos = (end_x, end_y)
+                        dx_mouse = end_x - mouse_start_pos[0]
+                        dy_mouse = end_y - mouse_start_pos[1]
+                        if jogador.jetpack_fase is None and not btn_pausa.collidepoint(mouse_start_pos):
+                            if dy_mouse < -40:
+                                if not mouse_jump_started:
+                                    jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                            elif dy_mouse > 40:
+                                # Arrastar para baixo interrompe o pulo longo; no ar desce
+                                # rapidamente e no chão mantém um agachamento curto.
+                                if jogador.no_chao:
+                                    gesto_agachar_frames = max(gesto_agachar_frames, 12)
+                                else:
+                                    jogador.iniciar_descida_rapida(gerenciador_sons, dados["vol_sfx"])
+                            elif abs(dx_mouse) < 30 and abs(dy_mouse) < 30:
+                                # Clique curto pula; segurar já pode ter iniciado o pulo longo.
+                                if not mouse_jump_started:
+                                    jogador.pular(gerenciador_sons, dados["vol_sfx"])
                     mouse_drag_active = False
                     mouse_drag_anchor_pos = None
                     mouse_jetpack_gesto_usado = False
+                    mouse_start_pos = None
+                    mouse_current_pos = None
+                    mouse_hold_frames = 0
+                    mouse_jump_started = False
+                    mouse_gesture_moved = False
+                    mouse_gameplay_press = False
+                    mouse_input_ignored = False
 
             elif evento.type == pygame.KEYDOWN:
                 if evento.key in (pygame.K_p, pygame.K_ESCAPE, getattr(pygame, "K_AC_BACK", pygame.K_ESCAPE)):
