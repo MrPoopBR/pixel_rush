@@ -258,18 +258,42 @@ fonte_grande = pygame.font.SysFont("Arial", 30, bold=True)
 fonte_alerta = pygame.font.SysFont("Arial", 24, bold=True)
 
 
+# Cache limitado de superfícies de texto. As superfícies devolvidas são apenas
+# desenhadas na tela; não são alteradas após a renderização.
+_CACHE_TEXTOS = {}
+_LIMITE_CACHE_TEXTOS = 1024
+
+def render_texto_cacheado(fonte_obj, texto, cor):
+    texto = str(texto)
+    cor = tuple(cor)
+    chave = (id(fonte_obj), texto, cor)
+    superficie_texto = _CACHE_TEXTOS.get(chave)
+    if superficie_texto is not None:
+        # Renova a posição no cache para conservar os textos mais usados.
+        _CACHE_TEXTOS.pop(chave)
+        _CACHE_TEXTOS[chave] = superficie_texto
+        return superficie_texto
+
+    superficie_texto = fonte_obj.render(texto, True, cor)
+    if len(_CACHE_TEXTOS) >= _LIMITE_CACHE_TEXTOS:
+        # Dicionários preservam ordem de inserção nas versões suportadas de Python.
+        _CACHE_TEXTOS.pop(next(iter(_CACHE_TEXTOS)))
+    _CACHE_TEXTOS[chave] = superficie_texto
+    return superficie_texto
+
+
 # --- HELPER: DESENHAR TEXTO SOMBREADO CENTRALIZADO ---
 def desenhar_texto_centralizado(surface, texto, fonte_obj, cor_texto, cor_sombra, y_pos):
-    surf_sombra = fonte_obj.render(texto, True, cor_sombra)
-    surf_texto = fonte_obj.render(texto, True, cor_texto)
+    surf_sombra = render_texto_cacheado(fonte_obj, texto, cor_sombra)
+    surf_texto = render_texto_cacheado(fonte_obj, texto, cor_texto)
     x_pos = (LARGURA_VIRTUAL - surf_texto.get_width()) // 2
     surface.blit(surf_sombra, (x_pos + 2, y_pos + 2))
     surface.blit(surf_texto, (x_pos, y_pos))
 
 
 def desenhar_texto_com_sombra(superficie, texto, fonte_obj, cor_texto, cor_sombra, pos):
-    surf_sombra = fonte_obj.render(texto, True, cor_sombra)
-    surf_texto = fonte_obj.render(texto, True, cor_texto)
+    surf_sombra = render_texto_cacheado(fonte_obj, texto, cor_sombra)
+    surf_texto = render_texto_cacheado(fonte_obj, texto, cor_texto)
     superficie.blit(surf_sombra, (pos[0] + 2, pos[1] + 2))
     superficie.blit(surf_texto, pos)
 
@@ -599,7 +623,7 @@ def desenhar_icone_powerup(surface, tipo, x, y):
         pygame.draw.line(surface, BRANCO, (x, y), (x, y - 5), 2)
         pygame.draw.line(surface, BRANCO, (x, y), (x + 4, y), 2)
     elif tipo == "MULT_2X":
-        txt = fonte_pequena.render("2X", True, BRANCO)
+        txt = render_texto_cacheado(fonte_pequena, "2X", BRANCO)
         surface.blit(txt, (x - txt.get_width() // 2, y - txt.get_height() // 2))
 
 
@@ -668,9 +692,20 @@ def desenhar_mini_skin(surface, skin_nome, cx, cy):
 class Particula(Sprite):
     def __init__(self, x=0, y=0, cor=(255, 255, 255), vx=None, vy=None, vida=25, tamanho=5):
         super().__init__()
+        self.pool_manager = None
+        self._pool_livre = False
         self._image_cache = {}
         self.image = None
         self.reset(x, y, cor, vx, vy, vida, tamanho)
+
+    def kill(self):
+        # O Sprite sai dos grupos normalmente; depois fica disponível para reuso.
+        super().kill()
+        manager = self.pool_manager
+        if manager is not None and not self._pool_livre:
+            self.ativo = False
+            self._pool_livre = True
+            manager.particulas_disponiveis.append(self)
 
     def reset(self, x, y, cor, vx=None, vy=None, vida=25, tamanho=5):
         self.cor = cor
@@ -707,11 +742,22 @@ class Particula(Sprite):
 class Moeda(Sprite):
     def __init__(self, x_pos=0, y_pos=0):
         super().__init__()
+        self.pool_manager = None
+        self._pool_livre = False
         self.image = pygame.Surface((22, 22), pygame.SRCALPHA)
         pygame.draw.circle(self.image, AMARELO_MOEDA, (11, 11), 11)
         pygame.draw.circle(self.image, PRETO, (11, 11), 11, 2)
         self.rect = self.image.get_rect(center=(x_pos, y_pos))
         self.ativo = True
+
+    def kill(self):
+        # Impede duplicação na lista livre caso kill() seja chamado novamente.
+        super().kill()
+        manager = self.pool_manager
+        if manager is not None and not self._pool_livre:
+            self.ativo = False
+            self._pool_livre = True
+            manager.moedas_disponiveis.append(self)
 
     def reset(self, x_pos, y_pos):
         self.rect.center = (x_pos, y_pos)
@@ -734,29 +780,45 @@ class Moeda(Sprite):
 
 class PoolManager:
     def __init__(self):
+        # Pilhas de disponíveis permitem obter/reutilizar objetos em O(1), sem
+        # percorrer todos os objetos ativos a cada explosão ou rastro de turbo.
         self.particulas_pool = [Particula() for _ in range(250)]
+        self.particulas_disponiveis = list(self.particulas_pool)
         for particula in self.particulas_pool:
+            particula.pool_manager = self
             particula.ativo = False
+            particula._pool_livre = True
 
         self.moedas_pool = [Moeda() for _ in range(120)]
+        self.moedas_disponiveis = list(self.moedas_pool)
         for moeda in self.moedas_pool:
+            moeda.pool_manager = self
             moeda.ativo = False
+            moeda._pool_livre = True
 
     def obter_particula(self, x, y, cor, vx=None, vy=None, vida=25, tamanho=5):
-        for p in self.particulas_pool:
-            if not p.ativo and not p.alive():
-                p.reset(x, y, cor, vx, vy, vida, tamanho)
-                return p
+        if self.particulas_disponiveis:
+            particula = self.particulas_disponiveis.pop()
+            particula._pool_livre = False
+            particula.reset(x, y, cor, vx, vy, vida, tamanho)
+            return particula
+
         nova = Particula(x, y, cor, vx, vy, vida, tamanho)
+        nova.pool_manager = self
+        nova._pool_livre = False
         self.particulas_pool.append(nova)
         return nova
 
     def obter_moeda(self, x_pos, y_pos):
-        for m in self.moedas_pool:
-            if not m.ativo and not m.alive():
-                m.reset(x_pos, y_pos)
-                return m
+        if self.moedas_disponiveis:
+            moeda = self.moedas_disponiveis.pop()
+            moeda._pool_livre = False
+            moeda.reset(x_pos, y_pos)
+            return moeda
+
         nova = Moeda(x_pos, y_pos)
+        nova.pool_manager = self
+        nova._pool_livre = False
         self.moedas_pool.append(nova)
         return nova
 
@@ -818,6 +880,26 @@ class ParallaxBackground:
             {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(0, 350), "blink": random.uniform(0.02, 0.08),
              "offset": random.uniform(0, math.pi * 2)} for _ in range(40)]
 
+        # As janelas não mudam de posição dentro do padrão dos prédios; só a cor
+        # muda entre dia e noite. Pré-renderizamos os dois estados e reutilizamos.
+        self.predios = ((20, 600, 60, 200), (120, 650, 40, 150),
+                        (200, 550, 80, 250), (320, 620, 70, 180))
+        self.janelas_predios = {}
+        cores_luzes = {False: (160, 200, 240), True: (255, 255, 120)}
+        for bx, by, bw, bh in self.predios:
+            for noite, cor_luz in cores_luzes.items():
+                y_inicio_janelas = by + 10
+                altura_janelas = ALTURA_VIRTUAL - y_inicio_janelas
+                camada_janelas = pygame.Surface((bw, altura_janelas), pygame.SRCALPHA)
+                # A superfície é cortada ao trecho vertical relevante para evitar
+                # blits alpha grandes cheios de pixels transparentes.
+                for wy in range(y_inicio_janelas, ALTURA_VIRTUAL - 15, 25):
+                    for local_wx in range(10, bw - 10, 15):
+                        if ((bx + wy + local_wx) % 7) < 4:
+                            pygame.draw.rect(camada_janelas, cor_luz,
+                                             (local_wx, wy - y_inicio_janelas, 8, 12))
+                self.janelas_predios[(bx, by, bw, bh, noite)] = camada_janelas
+
     def update(self, velocidade_jogo=1.0):
         self.tempo_animacao += 1
         self.camada_longe -= velocidade_jogo * 0.1
@@ -878,17 +960,14 @@ class ParallaxBackground:
 
         for i in range(2):
             x_base_p = self.camada_perto + (i * LARGURA_VIRTUAL)
-            predios = [(20, 600, 60, 200), (120, 650, 40, 150), (200, 550, 80, 250), (320, 620, 70, 180)]
-            for bx, by, bw, bh in predios:
+            for bx, by, bw, bh in self.predios:
                 real_x = x_base_p + bx
                 pygame.draw.rect(superficie, cor_perto, (real_x, by, bw, bh))
 
-                luz_cor = (255, 255, 120) if e_noite else (160, 200, 240)
-                for wy in range(by + 10, 800 - 15, 25):
-                    for wx in range(int(real_x) + 10, int(real_x) + bw - 10, 15):
-                        local_wx = wx - int(real_x)
-                        if ((bx + wy + local_wx) % 7) < 4:
-                            pygame.draw.rect(superficie, luz_cor, (wx, wy, 8, 12))
+                # O padrão de janelas já está desenhado numa superfície transparente.
+                # O deslocamento int(real_x) reproduz o posicionamento do código original.
+                camada_janelas = self.janelas_predios[(bx, by, bw, bh, e_noite)]
+                superficie.blit(camada_janelas, (int(real_x), by + 10))
 
 
 # --- JOGADOR ---
@@ -2153,7 +2232,10 @@ def main():
             bg_parallax.update(1.2)
 
         # --- RENDERIZAÇÃO NA TELA VIRTUAL ---
-        display_surface.fill(cor_ceu_tupla)
+        # O ParallaxBackground.draw() já preenche o céu nos estados de jogo.
+        # Evitamos um segundo fill da tela inteira nesses frames.
+        if estado not in ["JOGANDO", "PAUSA", "GAMEOVER"]:
+            display_surface.fill(cor_ceu_tupla)
 
         if estado in ["JOGANDO", "PAUSA", "GAMEOVER"]:
             bg_parallax.draw(display_surface, cor_ceu_tupla, e_noite)
@@ -2194,7 +2276,7 @@ def main():
                                      border_radius=3)
                 pygame.draw.rect(display_surface, BRANCO, (bar_x, bar_y, bar_w, bar_h), 1, border_radius=3)
 
-                surf_esc_num = fonte_pequena.render(f"{jogador.escudo_hits}/{max_hits}", True, BRANCO)
+                surf_esc_num = render_texto_cacheado(fonte_pequena, f"{jogador.escudo_hits}/{max_hits}", BRANCO)
                 display_surface.blit(surf_esc_num, (jogador.rect.centerx - surf_esc_num.get_width() // 2, bar_y - 14))
 
         if estado == "JOGANDO":
@@ -2299,7 +2381,7 @@ def main():
                 pygame.draw.rect(display_surface, cor_btn, rect_desenhado, border_radius=12)
                 pygame.draw.rect(display_surface, BRANCO, rect_desenhado, 2, border_radius=12)
 
-                surf_txt = fonte.render(texto_btn, True, PRETO if cor_btn == (241, 196, 15) else BRANCO)
+                surf_txt = render_texto_cacheado(fonte, texto_btn, PRETO if cor_btn == (241, 196, 15) else BRANCO)
                 display_surface.blit(surf_txt, (rect_desenhado.centerx - surf_txt.get_width() // 2,
                                                 rect_desenhado.centery - surf_txt.get_height() // 2))
 
@@ -2352,7 +2434,7 @@ def main():
 
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_voltar, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_voltar, 2, border_radius=10)
-            surf_v = fonte.render(t("voltar_menu", dados), True, BRANCO)
+            surf_v = render_texto_cacheado(fonte, t("voltar_menu", dados), BRANCO)
             display_surface.blit(surf_v, (
             btn_voltar.centerx - surf_v.get_width() // 2, btn_voltar.centery - surf_v.get_height() // 2))
 
@@ -2398,7 +2480,7 @@ def main():
 
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_voltar, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_voltar, 2, border_radius=10)
-            surf_v = fonte.render(t("voltar_menu", dados), True, BRANCO)
+            surf_v = render_texto_cacheado(fonte, t("voltar_menu", dados), BRANCO)
             display_surface.blit(surf_v, (
             btn_voltar.centerx - surf_v.get_width() // 2, btn_voltar.centery - surf_v.get_height() // 2))
 
@@ -2441,7 +2523,7 @@ def main():
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_vibracao, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_vibracao, 2, border_radius=10)
             vib_status = t("ligado", dados) if dados.get("vibracao", True) else t("desligado", dados)
-            surf_vib = fonte.render(f"{t('vibracao', dados)}: {vib_status}", True, BRANCO)
+            surf_vib = render_texto_cacheado(fonte, f"{t('vibracao', dados)}: {vib_status}", BRANCO)
             display_surface.blit(surf_vib, (
             btn_vibracao.centerx - surf_vib.get_width() // 2, btn_vibracao.centery - surf_vib.get_height() // 2))
 
@@ -2449,14 +2531,14 @@ def main():
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_lang, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_lang, 2, border_radius=10)
             lang_str = "Português (BR)" if dados.get("idioma") == "pt_BR" else "English (US)"
-            surf_l = fonte.render(f"{t('idioma', dados)}: {lang_str}", True, BRANCO)
+            surf_l = render_texto_cacheado(fonte, f"{t('idioma', dados)}: {lang_str}", BRANCO)
             display_surface.blit(surf_l, (
             btn_lang.centerx - surf_l.get_width() // 2, btn_lang.centery - surf_l.get_height() // 2))
 
             # Salvar e Voltar
             pygame.draw.rect(display_surface, (46, 204, 113), btn_voltar_config, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_voltar_config, 2, border_radius=10)
-            surf_voltar_config = fonte.render(t("salvar", dados), True, BRANCO)
+            surf_voltar_config = render_texto_cacheado(fonte, t("salvar", dados), BRANCO)
             display_surface.blit(surf_voltar_config, (btn_voltar_config.centerx - surf_voltar_config.get_width() // 2,
                                                       btn_voltar_config.centery - surf_voltar_config.get_height() // 2))
 
@@ -2490,13 +2572,13 @@ def main():
 
             pygame.draw.rect(display_surface, (46, 204, 113), btn_continuar, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_continuar, 2, border_radius=10)
-            surf_c = fonte.render(t("continuar", dados), True, BRANCO)
+            surf_c = render_texto_cacheado(fonte, t("continuar", dados), BRANCO)
             display_surface.blit(surf_c, (
             btn_continuar.centerx - surf_c.get_width() // 2, btn_continuar.centery - surf_c.get_height() // 2))
 
             pygame.draw.rect(display_surface, VERMELHO_OBSTACULO, btn_menu_pausa, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_menu_pausa, 2, border_radius=10)
-            surf_menu_pausa = fonte.render(t("menu_principal", dados), True, BRANCO)
+            surf_menu_pausa = render_texto_cacheado(fonte, t("menu_principal", dados), BRANCO)
             display_surface.blit(surf_menu_pausa, (btn_menu_pausa.centerx - surf_menu_pausa.get_width() // 2,
                                                    btn_menu_pausa.centery - surf_menu_pausa.get_height() // 2))
 
@@ -2532,13 +2614,13 @@ def main():
 
             pygame.draw.rect(display_surface, (46, 204, 113), btn_reiniciar, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_reiniciar, 2, border_radius=10)
-            surf_r = fonte.render(t("jogar_novamente", dados), True, BRANCO)
+            surf_r = render_texto_cacheado(fonte, t("jogar_novamente", dados), BRANCO)
             display_surface.blit(surf_r, (
             btn_reiniciar.centerx - surf_r.get_width() // 2, btn_reiniciar.centery - surf_r.get_height() // 2))
 
             pygame.draw.rect(display_surface, CINZA_BOTAO, btn_menu_gameover, border_radius=10)
             pygame.draw.rect(display_surface, BRANCO, btn_menu_gameover, 2, border_radius=10)
-            surf_mg = fonte.render(t("voltar_menu", dados), True, BRANCO)
+            surf_mg = render_texto_cacheado(fonte, t("voltar_menu", dados), BRANCO)
             display_surface.blit(surf_mg, (btn_menu_gameover.centerx - surf_mg.get_width() // 2,
                                            btn_menu_gameover.centery - surf_mg.get_height() // 2))
 
