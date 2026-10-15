@@ -6,6 +6,7 @@ import os
 import math
 import array
 import time
+from collections import OrderedDict
 from pygame.sprite import Sprite
 
 # --- SUPORTE A VIBRAÇÃO (ANDROID / PLYER) ---
@@ -58,32 +59,15 @@ ALTURA_VIRTUAL = 800
 # Detecção de plataforma (Android vs PC)
 E_ANDROID = (sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ)
 
-# Inicialização de vídeo.
-# No Android, tenta manter a superfície lógica em 450x800 e deixar o SDL/Pygame
-# fazer a escala através do modo SCALED, evitando transform.scale para 1080x2340
-# em software a cada frame. Caso não seja suportado, recua para o modo anterior.
+# Inicializacao de video.
+# IMPORTANTE: no Android nao usar pygame.SCALED aqui. No pacote testado,
+# SCALED fez o jogo aparecer numa janela logica centralizada com barras pretas.
+# O modo Android original deixa o SDL ocupar a superficie do aparelho e
+# a escala final e feita por uma superficie reutilizada no final do loop.
 ANDROID_SCALED_ATIVO = False
 try:
     if E_ANDROID:
-        flag_scaled = getattr(pygame, "SCALED", None)
-        if flag_scaled:
-            try:
-                # VSync só é suportado em combinações específicas; a chamada pode falhar
-                # dependendo da versão do Pygame/SDL embarcada no APK.
-                tela = pygame.display.set_mode(
-                    (LARGURA_VIRTUAL, ALTURA_VIRTUAL), flag_scaled, vsync=1
-                )
-                ANDROID_SCALED_ATIVO = True
-            except Exception:
-                try:
-                    tela = pygame.display.set_mode(
-                        (LARGURA_VIRTUAL, ALTURA_VIRTUAL), flag_scaled
-                    )
-                    ANDROID_SCALED_ATIVO = True
-                except Exception:
-                    tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
-        else:
-            tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
+        tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
     else:
         info_tela = pygame.display.Info()
         LARGURA_TELA = info_tela.current_w
@@ -101,13 +85,20 @@ except Exception:
 LARGURA_TELA, ALTURA_TELA = tela.get_size()
 display_surface = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
 
-# Superfícies translúcidas reutilizadas: evita alocações a cada frame.
-OVERLAY_SLOW = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-OVERLAY_SLOW.fill((30, 180, 60, 45))
-OVERLAY_PAUSA = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-OVERLAY_PAUSA.fill((0, 0, 0, 185))
-OVERLAY_GAMEOVER = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-OVERLAY_GAMEOVER.fill((20, 0, 0, 200))
+# Sobreposicoes translucidas reutilizadas. Superficies sem canal alpha por pixel
+# usam alpha global, que costuma ser mais leve no blit por software do Android.
+def _criar_overlay(cor, alpha):
+    try:
+        camada = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL)).convert()
+    except Exception:
+        camada = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
+    camada.fill(cor)
+    camada.set_alpha(alpha)
+    return camada
+
+OVERLAY_SLOW = _criar_overlay((30, 180, 60), 45)
+OVERLAY_PAUSA = _criar_overlay((0, 0, 0), 185)
+OVERLAY_GAMEOVER = _criar_overlay((20, 0, 0), 200)
 
 pygame.display.set_caption(f"Corrida Infinita 2D - {VERSAO}")
 relogio = pygame.time.Clock()
@@ -344,6 +335,9 @@ _TITULO_PIXEL_METRICAS = None
 
 def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
     global _TITULO_PIXEL_BASE, _TITULO_PIXEL_METRICAS
+    # O gradiente troca em passos de 2 frames (30 atualizacoes/s a 60 FPS).
+    # Isso evita repetir centenas de draw.rect em cada frame sem alterar o layout.
+    tempo_anim = (int(tempo_anim) // 2) * 2
     texto = "PIXEL RUSH"
     tam_block = 6
 
@@ -895,45 +889,127 @@ class TextoFlutuante(Sprite):
 
 # --- PARALLAX BACKGROUND ---
 class ParallaxBackground:
+    """Fundo parallax com camadas estaticas previamente rasterizadas.
+
+    Mantem nuvens/estrelas dinamicas e o deslocamento das duas camadas, mas
+    evita redesenhar montanhas, neve, predios e centenas de janelas a cada frame.
+    """
+    CAMADA_Y = 450
+    PASSO_PALETA = 8
+    MAX_CAMADAS_CACHE = 3
+
     def __init__(self):
         self.camada_longe = 0
         self.camada_perto = 0
         self.tempo_animacao = 0
 
         self.nuvens = [
-            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(20, 200), "vel": random.uniform(0.15, 0.45),
-             "tam": random.randint(20, 45)} for _ in range(6)]
+            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(20, 200),
+             "vel": random.uniform(0.15, 0.45), "tam": random.randint(20, 45)}
+            for _ in range(6)
+        ]
         self.estrelas = [
-            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(0, 350), "blink": random.uniform(0.02, 0.08),
-             "offset": random.uniform(0, math.pi * 2)} for _ in range(40)]
+            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(0, 350),
+             "blink": random.uniform(0.02, 0.08), "offset": random.uniform(0, math.pi * 2)}
+            for _ in range(40)
+        ]
 
-        # As janelas não mudam de posição dentro do padrão dos prédios; só a cor
-        # muda entre dia e noite. Pré-renderizamos os dois estados e reutilizamos.
         self.predios = ((20, 600, 60, 200), (120, 650, 40, 150),
                         (200, 550, 80, 250), (320, 620, 70, 180))
-        self.janelas_predios = {}
-        cores_luzes = {False: (160, 200, 240), True: (255, 255, 120)}
-        for bx, by, bw, bh in self.predios:
-            for noite, cor_luz in cores_luzes.items():
-                y_inicio_janelas = by + 10
-                altura_janelas = ALTURA_VIRTUAL - y_inicio_janelas
-                camada_janelas = pygame.Surface((bw, altura_janelas), pygame.SRCALPHA)
-                # A superfície é cortada ao trecho vertical relevante para evitar
-                # blits alpha grandes cheios de pixels transparentes.
-                for wy in range(y_inicio_janelas, ALTURA_VIRTUAL - 15, 25):
-                    for local_wx in range(10, bw - 10, 15):
-                        if ((bx + wy + local_wx) % 7) < 4:
-                            pygame.draw.rect(camada_janelas, cor_luz,
-                                             (local_wx, wy - y_inicio_janelas, 8, 12))
-                self.janelas_predios[(bx, by, bw, bh, noite)] = camada_janelas
+        self._cache_montanhas = OrderedDict()
+        self._cache_predios = OrderedDict()
+        self._cache_janelas = {}
+        self._preparar_janelas()
+
+    @staticmethod
+    def _cor_em_passo(cor, passo):
+        # Discretiza apenas a paleta da geometria durante o amanhecer/anoitecer;
+        # o ceu continua usando sua cor exata em todos os frames.
+        return tuple(max(0, min(255, (int(c) // passo) * passo)) for c in cor)
+
+    @staticmethod
+    def _lru_obter(cache, chave):
+        camada = cache.get(chave)
+        if camada is not None:
+            cache.move_to_end(chave)
+        return camada
+
+    def _lru_guardar(self, cache, chave, camada):
+        cache[chave] = camada
+        cache.move_to_end(chave)
+        while len(cache) > self.MAX_CAMADAS_CACHE:
+            cache.popitem(last=False)
+        return camada
+
+    def _preparar_janelas(self):
+        """Desenha uma vez as janelas; elas so mudam entre dia e noite."""
+        altura = ALTURA_VIRTUAL - self.CAMADA_Y
+        for noite, cor_luz in ((False, (160, 200, 240)), (True, (255, 255, 120))):
+            camada = pygame.Surface((LARGURA_VIRTUAL * 2, altura), pygame.SRCALPHA)
+            for tile_x in (0, LARGURA_VIRTUAL):
+                for bx, by, bw, bh in self.predios:
+                    real_x = tile_x + bx
+                    for wy in range(by + 10, ALTURA_VIRTUAL - 15, 25):
+                        for wx_local in range(10, bw - 10, 15):
+                            if ((bx + wy + wx_local) % 7) < 4:
+                                pygame.draw.rect(
+                                    camada, cor_luz,
+                                    (real_x + wx_local, wy - self.CAMADA_Y, 8, 12)
+                                )
+            self._cache_janelas[noite] = camada
+
+    def _montanhas(self, cor_montanha):
+        chave = cor_montanha
+        camada = self._lru_obter(self._cache_montanhas, chave)
+        if camada is not None:
+            return camada
+
+        y0 = self.CAMADA_Y
+        altura = ALTURA_VIRTUAL - y0
+        camada = pygame.Surface((LARGURA_VIRTUAL * 2, altura), pygame.SRCALPHA)
+        for x_base in (0, LARGURA_VIRTUAL):
+            for x, w, h in ((-50, 200, 300), (100, 240, 240), (280, 220, 320)):
+                bx = x_base + x
+                py = ALTURA_VIRTUAL - h
+                pontos = [(bx, altura), (bx + w // 2, py - y0), (bx + w, altura)]
+                pygame.draw.polygon(camada, cor_montanha, pontos)
+
+                sn_h = h * 0.25
+                px = bx + w // 2
+                lx = px - int((w // 2) * (sn_h / h))
+                rx = px + int((w // 2) * (sn_h / h))
+                pts_neve = [
+                    (px, py - y0),
+                    (lx, py + sn_h - y0),
+                    (px - 10, py + sn_h + 10 - y0),
+                    (px + 10, py + sn_h + 5 - y0),
+                    (rx, py + sn_h - y0),
+                ]
+                pygame.draw.polygon(camada, BRANCO, pts_neve)
+        return self._lru_guardar(self._cache_montanhas, chave, camada)
+
+    def _predios_coloridos(self, cor_perto):
+        camada = self._lru_obter(self._cache_predios, cor_perto)
+        if camada is not None:
+            return camada
+
+        y0 = self.CAMADA_Y
+        camada = pygame.Surface((LARGURA_VIRTUAL * 2, ALTURA_VIRTUAL - y0), pygame.SRCALPHA)
+        for tile_x in (0, LARGURA_VIRTUAL):
+            for bx, by, bw, bh in self.predios:
+                pygame.draw.rect(camada, cor_perto,
+                                 (tile_x + bx, by - y0, bw, bh))
+        return self._lru_guardar(self._cache_predios, cor_perto, camada)
 
     def update(self, velocidade_jogo=1.0):
         self.tempo_animacao += 1
         self.camada_longe -= velocidade_jogo * 0.1
-        if self.camada_longe <= -LARGURA_VIRTUAL: self.camada_longe += LARGURA_VIRTUAL
+        if self.camada_longe <= -LARGURA_VIRTUAL:
+            self.camada_longe += LARGURA_VIRTUAL
 
         self.camada_perto -= velocidade_jogo * 0.3
-        if self.camada_perto <= -LARGURA_VIRTUAL: self.camada_perto += LARGURA_VIRTUAL
+        if self.camada_perto <= -LARGURA_VIRTUAL:
+            self.camada_perto += LARGURA_VIRTUAL
 
         for nuvem in self.nuvens:
             nuvem["x"] -= nuvem["vel"] + (velocidade_jogo * 0.05)
@@ -949,52 +1025,45 @@ class ParallaxBackground:
                 alpha = int(100 + 100 * math.sin(self.tempo_animacao * est["blink"] + est["offset"]))
                 alpha = min(255, max(0, alpha)) * (intensidade_noite / 255.0)
                 if alpha > 10:
-                    pygame.draw.circle(superficie, (255, 255, 255, int(alpha)), (int(est["x"]), int(est["y"])), 1)
+                    pygame.draw.circle(superficie, (255, 255, 255, int(alpha)),
+                                       (int(est["x"]), int(est["y"])), 1)
                     if alpha > 150:
-                        pygame.draw.circle(superficie, (255, 255, 255, int(alpha // 2)), (int(est["x"]), int(est["y"])),
-                                           2)
+                        pygame.draw.circle(superficie, (255, 255, 255, int(alpha // 2)),
+                                           (int(est["x"]), int(est["y"])), 2)
 
         if cor_ceu[0] > 60:
             for nuvem in self.nuvens:
-                x, y, t = int(nuvem["x"]), int(nuvem["y"]), nuvem["tam"]
-                cor_nuvem = (min(255, cor_ceu[0] + 100), min(255, cor_ceu[1] + 100), min(255, cor_ceu[2] + 100))
-                pygame.draw.circle(superficie, cor_nuvem, (x, y), t)
-                pygame.draw.circle(superficie, cor_nuvem, (x + t // 1.2, y + t // 3), t // 1.2)
-                pygame.draw.circle(superficie, cor_nuvem, (x - t // 1.2, y + t // 3), t // 1.2)
+                x, y, tam = int(nuvem["x"]), int(nuvem["y"]), nuvem["tam"]
+                cor_nuvem = (min(255, cor_ceu[0] + 100),
+                             min(255, cor_ceu[1] + 100),
+                             min(255, cor_ceu[2] + 100))
+                pygame.draw.circle(superficie, cor_nuvem, (x, y), tam)
+                pygame.draw.circle(superficie, cor_nuvem,
+                                   (x + int(tam / 1.2), y + int(tam / 3)), int(tam / 1.2))
+                pygame.draw.circle(superficie, cor_nuvem,
+                                   (x - int(tam / 1.2), y + int(tam / 3)), int(tam / 1.2))
 
-        cor_montanha = (max(30, cor_ceu[0] // 2 - 10), max(40, cor_ceu[1] // 2), max(60, cor_ceu[2] // 2 + 10))
-        cor_perto = (max(20, cor_ceu[0] // 3), max(20, cor_ceu[1] // 3), max(30, cor_ceu[2] // 3))
+        cor_montanha_real = (
+            max(30, cor_ceu[0] // 2 - 10),
+            max(40, cor_ceu[1] // 2),
+            max(60, cor_ceu[2] // 2 + 10),
+        )
+        cor_perto_real = (
+            max(20, cor_ceu[0] // 3),
+            max(20, cor_ceu[1] // 3),
+            max(30, cor_ceu[2] // 3),
+        )
+        cor_montanha = self._cor_em_passo(cor_montanha_real, self.PASSO_PALETA)
+        cor_perto = self._cor_em_passo(cor_perto_real, self.PASSO_PALETA)
 
-        for i in range(2):
-            x_base = self.camada_longe + (i * LARGURA_VIRTUAL)
-
-            def desenhar_montanha_com_neve(x, w, h):
-                pts_montanha = [(x, 800), (x + w // 2, 800 - h), (x + w, 800)]
-                pygame.draw.polygon(superficie, cor_montanha, pts_montanha)
-
-                sn_h = h * 0.25
-                py = 800 - h
-                px = x + w // 2
-                lx = px - int((w // 2) * (sn_h / h))
-                rx = px + int((w // 2) * (sn_h / h))
-                pts_neve = [(px, py), (lx, py + sn_h), (px - 10, py + sn_h + 10), (px + 10, py + sn_h + 5),
-                            (rx, py + sn_h)]
-                pygame.draw.polygon(superficie, BRANCO, pts_neve)
-
-            desenhar_montanha_com_neve(x_base - 50, 200, 300)
-            desenhar_montanha_com_neve(x_base + 100, 240, 240)
-            desenhar_montanha_com_neve(x_base + 280, 220, 320)
-
-        for i in range(2):
-            x_base_p = self.camada_perto + (i * LARGURA_VIRTUAL)
-            for bx, by, bw, bh in self.predios:
-                real_x = x_base_p + bx
-                pygame.draw.rect(superficie, cor_perto, (real_x, by, bw, bh))
-
-                # O padrão de janelas já está desenhado numa superfície transparente.
-                # O deslocamento int(real_x) reproduz o posicionamento do código original.
-                camada_janelas = self.janelas_predios[(bx, by, bw, bh, e_noite)]
-                superficie.blit(camada_janelas, (int(real_x), by + 10))
+        y0 = self.CAMADA_Y
+        offset_montanha = int(self.camada_longe)
+        offset_predios = int(self.camada_perto)
+        superficie.blit(self._montanhas(cor_montanha), (offset_montanha, y0))
+        superficie.blit(self._predios_coloridos(cor_perto), (offset_predios, y0))
+        # Os predios nao se sobrepoem horizontalmente; janelas em camada separada
+        # preservam o resultado original e evitam redesenhar centenas de retangulos.
+        superficie.blit(self._cache_janelas[bool(e_noite)], (offset_predios, y0))
 
 
 # --- JOGADOR ---
@@ -2699,7 +2768,7 @@ def main():
                     f"Escala final: {debug_scale_ms:.1f} ms",
                     f"Blit + flip: {debug_flip_ms:.1f} ms",
                     f"Surface: {display_surface.get_width()}x{display_surface.get_height()}",
-                    f"Tela: {tela.get_width()}x{tela.get_height()} | SCALED:{'SIM' if ANDROID_SCALED_ATIVO else 'NAO'}"
+                    f"Tela: {tela.get_width()}x{tela.get_height()} | SCALED:NAO (tela cheia)"
                 )
                 debug_text_surfaces = [debug_font.render(linha, True, (255, 255, 255))
                                        for linha in linhas_debug]
@@ -2719,7 +2788,9 @@ def main():
 
         _debug_scale_start = time.perf_counter()
         if E_ANDROID:
-            tamanho_final = (LARGURA_TELA, ALTURA_TELA)
+            # No Android usamos a superficie fisica real do SDL, sem SCALED, para
+            # preencher a area que o app ja utilizava antes (sem barras pretas).
+            tamanho_final = tela.get_size()
             pos_final = (ox, oy)
         else:
             tela.fill(cor_ceu_tupla)
@@ -2731,7 +2802,10 @@ def main():
         else:
             superficie_final = superficies_escala.get(tamanho_final)
             if superficie_final is None:
-                superficie_final = pygame.Surface(tamanho_final)
+                try:
+                    superficie_final = pygame.Surface(tamanho_final).convert()
+                except Exception:
+                    superficie_final = pygame.Surface(tamanho_final)
                 superficies_escala[tamanho_final] = superficie_final
             pygame.transform.scale(display_surface, tamanho_final, superficie_final)
 
