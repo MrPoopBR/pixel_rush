@@ -81,12 +81,15 @@ except Exception:
 
 # Superficies translúcidas pré-criadas. Criá-las por frame força a alocar/limpar
 # 360 mil pixels em cada pausa, Game Over ou frame de câmera lenta.
-OVERLAY_SLOW = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-OVERLAY_SLOW.fill((30, 180, 60, 45))
-OVERLAY_PAUSA = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-OVERLAY_PAUSA.fill((0, 0, 0, 185))
-OVERLAY_GAMEOVER = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA)
-OVERLAY_GAMEOVER.fill((20, 0, 0, 200))
+OVERLAY_SLOW = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL)).convert()
+OVERLAY_SLOW.fill((30, 180, 60))
+OVERLAY_SLOW.set_alpha(45)
+OVERLAY_PAUSA = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL)).convert()
+OVERLAY_PAUSA.fill((0, 0, 0))
+OVERLAY_PAUSA.set_alpha(185)
+OVERLAY_GAMEOVER = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL)).convert()
+OVERLAY_GAMEOVER.fill((20, 0, 0))
+OVERLAY_GAMEOVER.set_alpha(200)
 
 pygame.display.set_caption(f"Corrida Infinita 2D - {VERSAO}")
 relogio = pygame.time.Clock()
@@ -318,20 +321,22 @@ TITULO_PIXEL_MAP = {
 }
 _TITULO_PIXEL_BASE = None
 _TITULO_PIXEL_METRICAS = None
+_TITULO_PIXEL_FRAMES = None
 
 
 def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
-    global _TITULO_PIXEL_BASE, _TITULO_PIXEL_METRICAS
+    global _TITULO_PIXEL_BASE, _TITULO_PIXEL_METRICAS, _TITULO_PIXEL_FRAMES
     texto = "PIXEL RUSH"
     tam_block = 6
 
     if _TITULO_PIXEL_BASE is None:
         total_cols = sum(len(TITULO_PIXEL_MAP[c][0]) + 1 for c in texto if c in TITULO_PIXEL_MAP) - 1
         largura_total = total_cols * tam_block
-        base = pygame.Surface((largura_total + 16, tam_block * 6 + 12), pygame.SRCALPHA)
+        tamanho = (largura_total + 16, tam_block * 6 + 12)
+        base = pygame.Surface(tamanho, pygame.SRCALPHA)
         base.fill((0, 0, 0, 0))
 
-        # Sombra e contorno são estáticos; são desenhados uma única vez.
+        # A sombra e o contorno sao estaticos e sao rasterizados apenas uma vez.
         curr_x = 4
         for char in texto:
             if char in TITULO_PIXEL_MAP:
@@ -356,49 +361,57 @@ def desenhar_titulo_pixel_art(surface, centro_x, pos_y, tempo_anim=0):
                         if matriz[r][c] == '1':
                             bx = curr_x + c * tam_block
                             by = 2 + r * tam_block
-                            pygame.draw.rect(base, PRETO,
-                                             (bx - 2, by - 2, tam_block + 4, tam_block + 4))
+                            pygame.draw.rect(base, PRETO, (bx - 2, by - 2, tam_block + 4, tam_block + 4))
                 curr_x += (w_char + 1) * tam_block
+
+        # Pre-renderiza os 125 estados do gradiente uma unica vez; em runtime e apenas um blit.
+        quadros = []
+        for frame_idx in range(125):
+            quadro = pygame.Surface(tamanho, pygame.SRCALPHA)
+            quadro.fill((0, 0, 0, 0))
+            quadro.blit(base, (0, 0))
+            curr_x = 4
+            col_global = 0
+            for char in texto:
+                if char in TITULO_PIXEL_MAP:
+                    matriz = TITULO_PIXEL_MAP[char]
+                    w_char = len(matriz[0])
+                    for r in range(6):
+                        for c in range(w_char):
+                            if matriz[r][c] == '1':
+                                bx = curr_x + c * tam_block
+                                by = 2 + r * tam_block
+                                prog_col = (col_global + c) / float(total_cols)
+                                prog_row = r / 6.0
+                                ratio = (prog_col * 0.75 + prog_row * 0.25 + frame_idx * 0.008) % 1.0
+                                if ratio < 0.33:
+                                    f = ratio / 0.33
+                                    cor = (int(255 * f), int(230 - 180 * f), int(255 - 60 * f))
+                                elif ratio < 0.66:
+                                    f = (ratio - 0.33) / 0.33
+                                    cor = (255, int(50 + 170 * f), int(195 - 195 * f))
+                                else:
+                                    f = (ratio - 0.66) / 0.34
+                                    cor = (255, int(220 - 80 * f), int(40 * f))
+                                pygame.draw.rect(quadro, cor, (bx, by, tam_block, tam_block))
+                                if r == 0 or (r > 0 and matriz[r - 1][c] == '0'):
+                                    pygame.draw.rect(quadro, BRANCO, (bx, by, tam_block, 2))
+                    curr_x += (w_char + 1) * tam_block
+                    col_global += w_char + 1
+            quadros.append(quadro)
 
         _TITULO_PIXEL_BASE = base
         _TITULO_PIXEL_METRICAS = (total_cols, largura_total)
+        _TITULO_PIXEL_FRAMES = quadros
 
-    total_cols, largura_total = _TITULO_PIXEL_METRICAS
+    _, largura_total = _TITULO_PIXEL_METRICAS
     start_x = int(centro_x - largura_total / 2)
     start_y = int(pos_y)
-    surface.blit(_TITULO_PIXEL_BASE, (start_x - 4, start_y - 2))
-
-    # O gradiente continua animado, preservando o visual original.
-    curr_x = start_x
-    col_global = 0
-    for char in texto:
-        if char in TITULO_PIXEL_MAP:
-            matriz = TITULO_PIXEL_MAP[char]
-            w_char = len(matriz[0])
-            for r in range(6):
-                for c in range(w_char):
-                    if matriz[r][c] == '1':
-                        bx = curr_x + c * tam_block
-                        by = start_y + r * tam_block
-                        prog_col = (col_global + c) / float(total_cols)
-                        prog_row = r / 6.0
-                        ratio = (prog_col * 0.75 + prog_row * 0.25 + tempo_anim * 0.008) % 1.0
-
-                        if ratio < 0.33:
-                            f = ratio / 0.33
-                            cor = (int(0 + 255 * f), int(230 - 180 * f), int(255 - 60 * f))
-                        elif ratio < 0.66:
-                            f = (ratio - 0.33) / 0.33
-                            cor = (255, int(50 + 170 * f), int(195 - 195 * f))
-                        else:
-                            f = (ratio - 0.66) / 0.34
-                            cor = (255, int(220 - 80 * f), int(0 + 40 * f))
-
-                        pygame.draw.rect(surface, cor, (bx, by, tam_block, tam_block))
-                        if r == 0 or (r > 0 and matriz[r - 1][c] == '0'):
-                            pygame.draw.rect(surface, BRANCO, (bx, by, tam_block, 2))
-            curr_x += (w_char + 1) * tam_block
-            col_global += w_char + 1
+    pos = (start_x - 4, start_y - 2)
+    if _TITULO_PIXEL_FRAMES:
+        surface.blit(_TITULO_PIXEL_FRAMES[int(tempo_anim) % len(_TITULO_PIXEL_FRAMES)], pos)
+    else:
+        surface.blit(_TITULO_PIXEL_BASE, pos)
 
 
 # --- SINTETIZADOR DE ÁUDIO EM TEMPO REAL BLINDADO ---
@@ -695,6 +708,8 @@ def desenhar_mini_skin(surface, skin_nome, cx, cy):
     surface.blit(mini_surf, (cx - 20, cy - 20))
 
 
+CHAVE_TRANSPARENCIA_SPRITES = (255, 0, 255)
+
 # --- SISTEMA DE OBJECT POOLING ---
 class Particula(Sprite):
     """Particula reaproveitavel; alpha global evita preencher RGBA a cada frame."""
@@ -758,9 +773,11 @@ class Moeda(Sprite):
         self.pool_manager = None
         self._pool_livre = False
         if Moeda._imagem_compartilhada is None:
-            imagem = pygame.Surface((22, 22), pygame.SRCALPHA)
+            imagem = pygame.Surface((22, 22)).convert()
+            imagem.fill(CHAVE_TRANSPARENCIA_SPRITES)
             pygame.draw.circle(imagem, AMARELO_MOEDA, (11, 11), 11)
             pygame.draw.circle(imagem, PRETO, (11, 11), 11, 2)
+            imagem.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
             Moeda._imagem_compartilhada = imagem
         self.image = Moeda._imagem_compartilhada
         self.rect = self.image.get_rect(center=(x_pos, y_pos))
@@ -784,8 +801,9 @@ class Moeda(Sprite):
         if jogador and jogador.tempo_ima > 0 and not jogador.morrendo:
             dx = jogador.rect.centerx - self.rect.centerx
             dy = jogador.rect.centery - self.rect.centery
-            distancia = (dx ** 2 + dy ** 2) ** 0.5
-            if 0 < distancia < 220:
+            distancia_quadrada = dx * dx + dy * dy
+            if 0 < distancia_quadrada < (220 * 220):
+                distancia = math.sqrt(distancia_quadrada)
                 self.rect.x += int((dx / distancia) * 12)
                 self.rect.y += int((dy / distancia) * 12)
         self.rect.x -= velocidade_jogo
@@ -877,17 +895,27 @@ class TextoFlutuante(Sprite):
 
 # --- PARALLAX BACKGROUND ---
 class ParallaxBackground:
-    def __init__(self):
-        self.camada_longe = 0
-        self.camada_perto = 0
-        self.tempo_animacao = 0
+    """Fundo com camadas repetiveis em tiles e sem blits RGBA grandes por frame."""
+    CHAVE_TRANSPARENCIA = (255, 0, 255)  # cor-chave, nao usada na arte do jogo
+    Y_MONTANHAS = 480
+    H_MONTANHAS = ALTURA_VIRTUAL - Y_MONTANHAS
+    Y_PREDIOS = 550
+    H_PREDIOS = ALTURA_VIRTUAL - Y_PREDIOS
 
+    def __init__(self):
+        self.camada_longe = 0.0
+        self.camada_perto = 0.0
+        self.tempo_animacao = 0
         self.nuvens = [
-            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(20, 200), "vel": random.uniform(0.15, 0.45),
-             "tam": random.randint(20, 45)} for _ in range(6)]
+            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(20, 200),
+             "vel": random.uniform(0.15, 0.45), "tam": random.randint(20, 45)}
+            for _ in range(6)
+        ]
         self.estrelas = [
-            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(0, 350), "blink": random.uniform(0.02, 0.08),
-             "offset": random.uniform(0, math.pi * 2)} for _ in range(40)]
+            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(0, 350),
+             "blink": random.uniform(0.02, 0.08), "offset": random.uniform(0, math.pi * 2)}
+            for _ in range(40)
+        ]
         self.predios = ((20, 600, 60, 200), (120, 650, 40, 150),
                         (200, 550, 80, 250), (320, 620, 70, 180))
         self.janelas_por_predio = {}
@@ -899,19 +927,79 @@ class ParallaxBackground:
                         janelas.append((wx_local, wy))
             self.janelas_por_predio[(bx, by, bw, bh)] = janelas
 
+        self._cache_montanhas_key = None
+        self._cache_montanhas = None
+        self._cache_predios_key = None
+        self._cache_predios = None
+
     def update(self, velocidade_jogo=1.0):
         self.tempo_animacao += 1
         self.camada_longe -= velocidade_jogo * 0.1
-        if self.camada_longe <= -LARGURA_VIRTUAL: self.camada_longe += LARGURA_VIRTUAL
-
+        if self.camada_longe <= -LARGURA_VIRTUAL:
+            self.camada_longe += LARGURA_VIRTUAL
         self.camada_perto -= velocidade_jogo * 0.3
-        if self.camada_perto <= -LARGURA_VIRTUAL: self.camada_perto += LARGURA_VIRTUAL
-
+        if self.camada_perto <= -LARGURA_VIRTUAL:
+            self.camada_perto += LARGURA_VIRTUAL
         for nuvem in self.nuvens:
             nuvem["x"] -= nuvem["vel"] + (velocidade_jogo * 0.05)
             if nuvem["x"] < -80:
                 nuvem["x"] = LARGURA_VIRTUAL + 40
                 nuvem["y"] = random.randint(20, 200)
+
+    def _obter_tile_montanhas(self, cor_ceu):
+        cor_montanha = (max(30, cor_ceu[0] // 2 - 10),
+                        max(40, cor_ceu[1] // 2), max(60, cor_ceu[2] // 2 + 10))
+        if self._cache_montanhas is not None and self._cache_montanhas_key == cor_montanha:
+            return self._cache_montanhas
+
+        tile = pygame.Surface((LARGURA_VIRTUAL * 2, self.H_MONTANHAS)).convert()
+        chave = self.CHAVE_TRANSPARENCIA
+        tile.fill(chave)
+        y_base_local = ALTURA_VIRTUAL - self.Y_MONTANHAS
+        for i in range(2):
+            x_base = i * LARGURA_VIRTUAL
+            for x_offset, w, h in ((-50, 200, 300), (100, 240, 240), (280, 220, 320)):
+                x = x_base + x_offset
+                top_y = ALTURA_VIRTUAL - h
+                pts_montanha = [(x, y_base_local), (x + w // 2, top_y - self.Y_MONTANHAS),
+                                (x + w, y_base_local)]
+                pygame.draw.polygon(tile, cor_montanha, pts_montanha)
+                sn_h = h * 0.25
+                py = top_y - self.Y_MONTANHAS
+                px = x + w // 2
+                lx = px - int((w // 2) * (sn_h / h))
+                rx = px + int((w // 2) * (sn_h / h))
+                pts_neve = [(px, py), (lx, py + sn_h), (px - 10, py + sn_h + 10),
+                            (px + 10, py + sn_h + 5), (rx, py + sn_h)]
+                pygame.draw.polygon(tile, BRANCO, pts_neve)
+        tile.set_colorkey(chave)
+        self._cache_montanhas = tile
+        self._cache_montanhas_key = cor_montanha
+        return tile
+
+    def _obter_tile_predios(self, cor_ceu, e_noite):
+        cor_perto = (max(20, cor_ceu[0] // 3), max(20, cor_ceu[1] // 3), max(30, cor_ceu[2] // 3))
+        luz_cor = (255, 255, 120) if e_noite else (160, 200, 240)
+        chave_cache = (cor_perto, luz_cor)
+        if self._cache_predios is not None and self._cache_predios_key == chave_cache:
+            return self._cache_predios
+
+        tile = pygame.Surface((LARGURA_VIRTUAL * 2, self.H_PREDIOS)).convert()
+        chave = self.CHAVE_TRANSPARENCIA
+        tile.fill(chave)
+        for i in range(2):
+            x_base = i * LARGURA_VIRTUAL
+            for bx, by, bw, bh in self.predios:
+                real_x = x_base + bx
+                y_local = by - self.Y_PREDIOS
+                pygame.draw.rect(tile, cor_perto, (real_x, y_local, bw, bh))
+                for wx_local, wy in self.janelas_por_predio[(bx, by, bw, bh)]:
+                    pygame.draw.rect(tile, luz_cor,
+                                     (real_x + wx_local, wy - self.Y_PREDIOS, 8, 12))
+        tile.set_colorkey(chave)
+        self._cache_predios = tile
+        self._cache_predios_key = chave_cache
+        return tile
 
     def draw(self, superficie, cor_ceu, e_noite):
         superficie.fill(cor_ceu)
@@ -921,52 +1009,32 @@ class ParallaxBackground:
                 alpha = int(100 + 100 * math.sin(self.tempo_animacao * est["blink"] + est["offset"]))
                 alpha = min(255, max(0, alpha)) * (intensidade_noite / 255.0)
                 if alpha > 10:
-                    pygame.draw.circle(superficie, (255, 255, 255, int(alpha)), (int(est["x"]), int(est["y"])), 1)
+                    pygame.draw.circle(superficie, (255, 255, 255, int(alpha)),
+                                       (int(est["x"]), int(est["y"])), 1)
                     if alpha > 150:
-                        pygame.draw.circle(superficie, (255, 255, 255, int(alpha // 2)), (int(est["x"]), int(est["y"])),
-                                           2)
+                        pygame.draw.circle(superficie, (255, 255, 255, int(alpha // 2)),
+                                           (int(est["x"]), int(est["y"])), 2)
 
         if cor_ceu[0] > 60:
             for nuvem in self.nuvens:
                 x, y, t = int(nuvem["x"]), int(nuvem["y"]), nuvem["tam"]
-                cor_nuvem = (min(255, cor_ceu[0] + 100), min(255, cor_ceu[1] + 100), min(255, cor_ceu[2] + 100))
+                cor_nuvem = (min(255, cor_ceu[0] + 100), min(255, cor_ceu[1] + 100),
+                             min(255, cor_ceu[2] + 100))
                 pygame.draw.circle(superficie, cor_nuvem, (x, y), t)
-                pygame.draw.circle(superficie, cor_nuvem, (x + t // 1.2, y + t // 3), t // 1.2)
-                pygame.draw.circle(superficie, cor_nuvem, (x - t // 1.2, y + t // 3), t // 1.2)
+                pygame.draw.circle(superficie, cor_nuvem, (int(x + t // 1.2), int(y + t // 3)), int(t // 1.2))
+                pygame.draw.circle(superficie, cor_nuvem, (int(x - t // 1.2), int(y + t // 3)), int(t // 1.2))
 
-        cor_montanha = (max(30, cor_ceu[0] // 2 - 10), max(40, cor_ceu[1] // 2), max(60, cor_ceu[2] // 2 + 10))
-        cor_perto = (max(20, cor_ceu[0] // 3), max(20, cor_ceu[1] // 3), max(30, cor_ceu[2] // 3))
+        # As montanhas comecam abaixo da area das nuvens/estrelas. Tiles com color-key
+        # evitam o custo de alpha blending de superficies transparentes grandes.
+        tile_montanhas = self._obter_tile_montanhas(cor_ceu)
+        offset_longe = int(-self.camada_longe) % LARGURA_VIRTUAL
+        superficie.blit(tile_montanhas, (0, self.Y_MONTANHAS),
+                        (offset_longe, 0, LARGURA_VIRTUAL, self.H_MONTANHAS))
 
-        for i in range(2):
-            x_base = self.camada_longe + (i * LARGURA_VIRTUAL)
-
-            def desenhar_montanha_com_neve(x, w, h):
-                pts_montanha = [(x, 800), (x + w // 2, 800 - h), (x + w, 800)]
-                pygame.draw.polygon(superficie, cor_montanha, pts_montanha)
-
-                sn_h = h * 0.25
-                py = 800 - h
-                px = x + w // 2
-                lx = px - int((w // 2) * (sn_h / h))
-                rx = px + int((w // 2) * (sn_h / h))
-                pts_neve = [(px, py), (lx, py + sn_h), (px - 10, py + sn_h + 10), (px + 10, py + sn_h + 5),
-                            (rx, py + sn_h)]
-                pygame.draw.polygon(superficie, BRANCO, pts_neve)
-
-            desenhar_montanha_com_neve(x_base - 50, 200, 300)
-            desenhar_montanha_com_neve(x_base + 100, 240, 240)
-            desenhar_montanha_com_neve(x_base + 280, 220, 320)
-
-        luz_cor = (255, 255, 120) if e_noite else (160, 200, 240)
-        # Desenho direto em retangulos opacos: evita blits de superficies grandes
-        # com alpha, que sao especialmente caros no renderizador por software Android.
-        for i in range(2):
-            x_base_p = int(self.camada_perto) + (i * LARGURA_VIRTUAL)
-            for bx, by, bw, bh in self.predios:
-                real_x = x_base_p + bx
-                pygame.draw.rect(superficie, cor_perto, (real_x, by, bw, bh))
-                for wx_local, wy in self.janelas_por_predio[(bx, by, bw, bh)]:
-                    pygame.draw.rect(superficie, luz_cor, (real_x + wx_local, wy, 8, 12))
+        tile_predios = self._obter_tile_predios(cor_ceu, e_noite)
+        offset_perto = int(-self.camada_perto) % LARGURA_VIRTUAL
+        superficie.blit(tile_predios, (0, self.Y_PREDIOS),
+                        (offset_perto, 0, LARGURA_VIRTUAL, self.H_PREDIOS))
 
 
 # --- JOGADOR ---
@@ -983,6 +1051,8 @@ class Jogador(Sprite):
         self.image_original = pygame.Surface((self.base_w, self.base_h), pygame.SRCALPHA)
         self.image = self.image_original.copy()
         self._scaled_image_cache = {}
+        self._visual_cor_atual = cor_base
+        self._visual_dirty = True
 
         self.rect = self.image.get_rect()
         self.rect.x = 40
@@ -1173,6 +1243,7 @@ class Jogador(Sprite):
     def ativar_powerup(self, tipo, gerenciador_sons=None, vol_sfx=1.0, vibracao_ligada=True):
         if self.morrendo: return
         self.powerups_coletados += 1
+        self._visual_dirty = True
         nivel = self.upgrades.get(tipo, 0)
         config = UPGRADES_CONFIG.get(tipo)
         if tipo == "ESCUDO":
@@ -1207,6 +1278,7 @@ class Jogador(Sprite):
             self.descida_rapida = False
             self.agachado = False
             self.w_atual, self.h_atual = 58, 96
+            self._visual_dirty = True
             self.pulos_na_rodada += 1
             if gerenciador_sons:
                 gerenciador_sons.tocar_som("pulo", self.tempo_slow > 0, vol_sfx)
@@ -1219,12 +1291,15 @@ class Jogador(Sprite):
             self.descida_rapida = True
             self.velocidade_y = max(self.velocidade_y, 18.0)
             self.w_atual, self.h_atual = 53, 99
+            self._visual_dirty = True
 
     def agachar(self, ativacao, gerenciador_sons=None, vol_sfx=1.0):
         if self.morrendo: return
         estava_agachado = self.agachado
         if self.no_chao:
             self.agachado = ativacao
+            if self.agachado != estava_agachado:
+                self._visual_dirty = True
             if ativacao and not estava_agachado and gerenciador_sons:
                 gerenciador_sons.tocar_som("swipe_down", self.tempo_slow > 0, vol_sfx)
         else:
@@ -1239,21 +1314,53 @@ class Jogador(Sprite):
         self.tempo_turbo = 0
         self.escudo_hits = 0
         self.agachado = False
+        self._visual_dirty = True
 
     def update_morte(self, particulas, pool_manager):
+        # Apenas atualiza a simulacao. A rotacao real da imagem e feita uma vez
+        # por frame renderizado, nunca em cada passo de recuperacao.
         self.velocidade_y += 0.8
         self.rect.y += self.velocidade_y
         self.rect.x -= 2
         self.angulo_rotacao += 18
         self.tempo_morte -= 1
-
-        surf_rotacionada = pygame.transform.rotate(self.image_original, self.angulo_rotacao)
-        self.image = surf_rotacionada
         centro = self.rect.center
-        self.rect = self.image.get_rect(center=centro)
+        rad = math.radians(self.angulo_rotacao % 360)
+        w0, h0 = self.image_original.get_size()
+        w_rot = max(1, int(abs(w0 * math.cos(rad)) + abs(h0 * math.sin(rad))))
+        h_rot = max(1, int(abs(h0 * math.cos(rad)) + abs(w0 * math.sin(rad))))
+        self.rect.size = (w_rot, h_rot)
+        self.rect.center = centro
+        self._visual_dirty = True
 
         if random.random() < 0.5:
             criar_explosao_particulas(self.rect.centerx, self.rect.centery, self.cor_base, 2, particulas, pool_manager)
+
+    def renderizar_visual(self, frame_contador=0):
+        """Atualiza a imagem do jogador uma vez por frame visivel, nao por tick."""
+        if not self._visual_dirty:
+            return
+        centro_x = self.rect.centerx
+        base_bottom = self.rect.bottom
+        if self.morrendo:
+            self.image = pygame.transform.rotate(self.image_original, self.angulo_rotacao)
+            self.rect = self.image.get_rect(center=self.rect.center)
+            self._visual_dirty = False
+            return
+
+        self.image_original.fill((0, 0, 0, 0))
+        self.aplicar_visual_skin(self._visual_cor_atual, frame_contador)
+        tamanho_imagem = (max(1, int(self.w_atual)), max(1, int(self.h_atual)))
+        imagem_escalada = self._scaled_image_cache.get(tamanho_imagem)
+        if imagem_escalada is None:
+            imagem_escalada = pygame.Surface(tamanho_imagem, pygame.SRCALPHA)
+            self._scaled_image_cache[tamanho_imagem] = imagem_escalada
+        pygame.transform.scale(self.image_original, tamanho_imagem, imagem_escalada)
+        self.image = imagem_escalada
+        self.rect = self.image.get_rect()
+        self.rect.centerx = centro_x
+        self.rect.bottom = base_bottom
+        self._visual_dirty = False
 
     def update(self, vel_jogo, frame_contador=0, segurando_pulo=False, segurando_baixo=False, particulas=None,
                pool_manager=None, gerenciador_sons=None, vol_sfx=1.0):
@@ -1270,18 +1377,16 @@ class Jogador(Sprite):
         if self.tempo_slow > 0: self.tempo_slow -= 1
 
         if self.tempo_turbo > 0:
-            current_cor = LARANJA_TURBO
+            self._visual_cor_atual = LARANJA_TURBO
         elif self.tempo_slow > 0:
-            current_cor = VERDE_SLOW
+            self._visual_cor_atual = VERDE_SLOW
         elif self.tempo_ima > 0:
-            current_cor = AZUL_IMA
+            self._visual_cor_atual = AZUL_IMA
         elif self.tempo_mult > 0:
-            current_cor = ROSA_MULT
+            self._visual_cor_atual = ROSA_MULT
         else:
-            current_cor = self.cor_base
-
-        self.image_original.fill((0, 0, 0, 0))
-        self.aplicar_visual_skin(current_cor, frame_contador)
+            self._visual_cor_atual = self.cor_base
+        self._visual_dirty = True
 
         if self.descida_rapida:
             self.velocidade_y += 2.2
@@ -1317,21 +1422,17 @@ class Jogador(Sprite):
         self.w_atual += (w_alvo - self.w_atual) * 0.25
         self.h_atual += (h_alvo - self.h_atual) * 0.25
 
+        # Atualiza apenas a hitbox retangular durante a simulacao. A imagem so e
+        # rasterizada/redimensionada uma vez antes do desenho da tela.
         centro_x = self.rect.centerx
         base_bottom = self.rect.bottom
         tamanho_imagem = (max(1, int(self.w_atual)), max(1, int(self.h_atual)))
-        imagem_escalada = self._scaled_image_cache.get(tamanho_imagem)
-        if imagem_escalada is None:
-            imagem_escalada = pygame.Surface(tamanho_imagem, pygame.SRCALPHA)
-            self._scaled_image_cache[tamanho_imagem] = imagem_escalada
-        # Redimensiona os pixels animados no buffer reservado, sem alocar uma Surface
-        # nova em cada update do jogador.
-        pygame.transform.scale(self.image_original, tamanho_imagem, imagem_escalada)
-        self.image = imagem_escalada
-        self.rect = self.image.get_rect()
+        self.rect.size = tamanho_imagem
         self.rect.centerx = centro_x
         self.rect.bottom = base_bottom
 
+
+_CACHE_VISUAIS_VOADORES = {}
 
 # --- OBSTÁCULOS E ITENS ---
 class ObstaculoTerrestre(Sprite):
@@ -1348,7 +1449,9 @@ class ObstaculoTerrestre(Sprite):
 
         self.largura = max(28, largura_total)
         self.altura = max(h for _, _, h in self.cactos_info)
-        self.image = pygame.Surface((self.largura, self.altura), pygame.SRCALPHA)
+        self.image = pygame.Surface((self.largura, self.altura)).convert()
+        self.image.fill(CHAVE_TRANSPARENCIA_SPRITES)
+        self.image.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
         self.rect = self.image.get_rect()
         self.rect.x = x_pos
         self.rect.bottom = ALTURA_VIRTUAL - 70
@@ -1390,35 +1493,43 @@ class ObstaculoVoador(Sprite):
         super().__init__()
         self.largura = 84
         self.altura = 56
-        self.image = pygame.Surface((self.largura, self.altura), pygame.SRCALPHA)
+        self.image = pygame.Surface((self.largura, self.altura)).convert()
+        self.image.fill(CHAVE_TRANSPARENCIA_SPRITES)
+        self.image.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
         self.rect = self.image.get_rect()
         self.rect.x = x_pos
         self.rect.y = random.choice([ALTURA_VIRTUAL - 130, ALTURA_VIRTUAL - 180, ALTURA_VIRTUAL - 240])
         self.anim_frame = 0
+        self.e_noite = False
 
     def update(self, velocidade_jogo, e_noite=False, e_slow=False):
         fator_vel = 0.6 if e_slow else 1.2
         self.rect.x -= (velocidade_jogo + fator_vel)
         self.anim_frame += 0.1 if e_slow else 0.2
+        self.e_noite = bool(e_noite)
+        if self.rect.x < -120:
+            self.kill()
 
-        self.image.fill((0, 0, 0, 0))
-        cor_ptero = ROXO_VOADOR
-
-        if e_noite:
-            pygame.draw.ellipse(self.image, CIANO_ESCUDO, (16, 12, 52, 28))
-            pygame.draw.circle(self.image, AMARELO_NEON, (22, 24), 6)
-
-        pygame.draw.ellipse(self.image, cor_ptero, (20, 16, 44, 24))
-        pygame.draw.polygon(self.image, cor_ptero, [(20, 24), (0, 30), (20, 34)])
-
+    def renderizar_visual(self):
         asa_offset = int(math.sin(self.anim_frame) * 14)
-        pygame.draw.polygon(self.image, cor_ptero, [(40, 24), (20, 8 + asa_offset), (60, 8 + asa_offset)])
-        pygame.draw.polygon(self.image, BRANCO, [(40, 24), (20, 8 + asa_offset), (25, 8 + asa_offset)], 2)
-
-        cor_olho = AMARELO_NEON if e_noite else PRETO
-        pygame.draw.circle(self.image, cor_olho, (18, 24), 3)
-
-        if self.rect.x < -120: self.kill()
+        chave = (self.e_noite, asa_offset)
+        imagem = _CACHE_VISUAIS_VOADORES.get(chave)
+        if imagem is None:
+            imagem = pygame.Surface((self.largura, self.altura)).convert()
+            imagem.fill(CHAVE_TRANSPARENCIA_SPRITES)
+            imagem.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
+            cor_ptero = ROXO_VOADOR
+            if self.e_noite:
+                pygame.draw.ellipse(imagem, CIANO_ESCUDO, (16, 12, 52, 28))
+                pygame.draw.circle(imagem, AMARELO_NEON, (22, 24), 6)
+            pygame.draw.ellipse(imagem, cor_ptero, (20, 16, 44, 24))
+            pygame.draw.polygon(imagem, cor_ptero, [(20, 24), (0, 30), (20, 34)])
+            pygame.draw.polygon(imagem, cor_ptero, [(40, 24), (20, 8 + asa_offset), (60, 8 + asa_offset)])
+            pygame.draw.polygon(imagem, BRANCO, [(40, 24), (20, 8 + asa_offset), (25, 8 + asa_offset)], 2)
+            cor_olho = AMARELO_NEON if self.e_noite else PRETO
+            pygame.draw.circle(imagem, cor_olho, (18, 24), 3)
+            _CACHE_VISUAIS_VOADORES[chave] = imagem
+        self.image = imagem
 
 
 class ObstaculoPulaPula(Sprite):
@@ -1448,10 +1559,33 @@ class ObstaculoPulaPula(Sprite):
 
 
 class AvisoLaser(Sprite):
+    _imagens_aviso = {}
+    _imagem_disparo = None
+
+    @classmethod
+    def _obter_imagem_aviso(cls, alpha):
+        imagem = cls._imagens_aviso.get(alpha)
+        if imagem is None:
+            imagem = pygame.Surface((LARGURA_VIRTUAL, 28), pygame.SRCALPHA)
+            pygame.draw.rect(imagem, (255, 0, 0, alpha), (0, 0, LARGURA_VIRTUAL, 28))
+            pygame.draw.rect(imagem, AMARELO_NEON, (0, 0, LARGURA_VIRTUAL, 28), 2)
+            cls._imagens_aviso[alpha] = imagem
+        return imagem
+
+    @classmethod
+    def _obter_imagem_disparo(cls):
+        if cls._imagem_disparo is None:
+            imagem = pygame.Surface((LARGURA_VIRTUAL, 28), pygame.SRCALPHA)
+            pygame.draw.rect(imagem, (255, 30, 30, 255), (0, 0, LARGURA_VIRTUAL, 28))
+            pygame.draw.rect(imagem, BRANCO, (0, 4, LARGURA_VIRTUAL, 20))
+            pygame.draw.rect(imagem, CIANO_ESCUDO, (0, 10, LARGURA_VIRTUAL, 8))
+            cls._imagem_disparo = imagem
+        return cls._imagem_disparo
+
     def __init__(self, y_pos, delay_warning):
         super().__init__()
         self.altura_total = 28
-        self.image = pygame.Surface((LARGURA_VIRTUAL, self.altura_total), pygame.SRCALPHA)
+        self.image = self._obter_imagem_aviso(60)
         self.rect = self.image.get_rect()
         self.rect.x = 0
         self.rect.y = y_pos
@@ -1468,21 +1602,15 @@ class AvisoLaser(Sprite):
                     gerenciador_sons.tocar_som("contagem_laser_high", e_slow, vol_sfx)
                 else:
                     gerenciador_sons.tocar_som("contagem_laser", e_slow, vol_sfx)
-
             freq_pisca = 6 if self.timer < 60 else 12
             alpha = 200 if (self.timer // freq_pisca) % 2 == 0 else 60
-            self.image.fill((0, 0, 0, 0))
-            pygame.draw.rect(self.image, (255, 0, 0, alpha), (0, 0, LARGURA_VIRTUAL, 28))
-            pygame.draw.rect(self.image, AMARELO_NEON, (0, 0, LARGURA_VIRTUAL, 28), 2)
+            self.image = self._obter_imagem_aviso(alpha)
         elif self.timer > -15:
             if not self.som_disparo_tocado and gerenciador_sons:
                 gerenciador_sons.tocar_som("disparo_laser", e_slow, vol_sfx)
                 self.som_disparo_tocado = True
             self.ativo = True
-            self.image.fill((0, 0, 0, 0))
-            pygame.draw.rect(self.image, (255, 30, 30, 255), (0, 0, LARGURA_VIRTUAL, 28))
-            pygame.draw.rect(self.image, BRANCO, (0, 4, LARGURA_VIRTUAL, 20))
-            pygame.draw.rect(self.image, CIANO_ESCUDO, (0, 10, LARGURA_VIRTUAL, 8))
+            self.image = self._obter_imagem_disparo()
         else:
             self.kill()
 
@@ -1491,7 +1619,9 @@ class PowerUp(Sprite):
     def __init__(self, x_pos, y_pos, tipo):
         super().__init__()
         self.tipo = tipo
-        self.image = pygame.Surface((34, 34), pygame.SRCALPHA)
+        self.image = pygame.Surface((34, 34)).convert()
+        self.image.fill(CHAVE_TRANSPARENCIA_SPRITES)
+        self.image.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
         cor = UPGRADES_CONFIG[tipo]["cor"]
         pygame.draw.circle(self.image, cor, (17, 17), 16)
         pygame.draw.circle(self.image, BRANCO, (17, 17), 16, 2)
@@ -1707,7 +1837,7 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
     gerar_padrao_moedas(x_inicial + 180, y_moeda, formato_moeda, todos_sprites, moedas, pool_manager)
 
 
-# --- LOOP PRINCIPAL ---
+# --- LOOP PRINCIPAL (SIMULACAO FIXA 60 HZ + RENDERIZACAO INDEPENDENTE) ---
 def main():
     dados = carregar_dados()
     estado = "INICIO"
@@ -1741,6 +1871,10 @@ def main():
     touch_start_pos = None
     touch_current_pos = None
     toque_ativo = False
+    segurando_baixo_touch = False
+    input_pulo_ativo = False
+    input_baixo_ativo = False
+    input_mouse_ativo = False
     ultimo_clique_tempo = 0
 
     cor_atual_ceu = list(COR_DIA)
@@ -1779,12 +1913,18 @@ def main():
 
     def reiniciar_jogo():
         nonlocal jogador, pontuacao, moedas_coletadas, novo_recorde_alcançado, missoes_atuais, cor_atual_ceu, tempo_spawn_atual, estado
-        todos_sprites.empty();
-        obstaculos.empty();
+        # Mate os sprites, em vez de apenas esvaziar os grupos. Moedas e
+        # particulas devolvem-se assim aos seus pools para serem reutilizadas
+        # nas partidas seguintes, sem acumular objetos abandonados.
+        for grupo in (todos_sprites, obstaculos, perigos_especiais, moedas, powerups, textos_flut, particulas):
+            for sprite_antigo in grupo.sprites():
+                sprite_antigo.kill()
+        todos_sprites.empty()
+        obstaculos.empty()
         perigos_especiais.empty()
-        moedas.empty();
-        powerups.empty();
-        textos_flut.empty();
+        moedas.empty()
+        powerups.empty()
+        textos_flut.empty()
         particulas.empty()
 
         skin_nome_atual = dados["skin_equipada"]
@@ -1892,186 +2032,27 @@ def main():
                                     salvar_dados(dados)
                         y_base += 70
 
-    rodando = True
-    while rodando:
+    def atualizar_simulacao():
+        nonlocal frame_count, pontuacao, moedas_coletadas, novo_recorde_alcançado, estado
+        nonlocal anim_menu_tempo, metros_atuais, e_slow, cor_jogador, e_noite, alvo_ceu, cor_ceu_tupla, shake_timer
+
         frame_count += 1
-
-        largura_atual_tela, altura_atual_tela = tela.get_size()
-
-        if E_ANDROID:
-            largura_render = largura_atual_tela
-            altura_render = altura_atual_tela
-            offset_x = 0
-            offset_y = 0
-        else:
-            escala = min(largura_atual_tela / LARGURA_VIRTUAL, altura_atual_tela / ALTURA_VIRTUAL)
-            largura_render = int(LARGURA_VIRTUAL * escala)
-            altura_render = int(ALTURA_VIRTUAL * escala)
-            offset_x = (largura_atual_tela - largura_render) // 2
-            offset_y = (altura_atual_tela - altura_render) // 2
-
-        def screen_to_virtual(px, py):
-            if E_ANDROID:
-                vx = (px / largura_atual_tela) * LARGURA_VIRTUAL
-                vy = (py / altura_atual_tela) * ALTURA_VIRTUAL
-                return int(vx), int(vy)
-            else:
-                vx = (px - offset_x) / (largura_render / LARGURA_VIRTUAL)
-                vy = (py - offset_y) / (altura_render / ALTURA_VIRTUAL)
-                return int(vx), int(vy)
-
-        if estado != estado_anterior:
-            if estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
-                anim_menu_tempo = 0
-            # Invalida cenas congeladas ao entrar/sair de qualquer estado.
-            cache_telas_estaticas.clear()
-            estado_anterior = estado
-
+        if shake_timer > 0:
+            shake_timer -= 1
         if estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
             anim_menu_tempo = min(45, anim_menu_tempo + 1)
-
         skin_nome_atual = dados["skin_equipada"]
         cor_jogador = SKINS.get(skin_nome_atual, SKINS["AZUL"])["cor"]
         metros_atuais = pontuacao // 10
-
         e_slow = (jogador.tempo_slow > 0) if jogador else False
-        gerenciador_sons.atualizar_musica(estado, e_slow, dados["vol_musica"])
-
-        if estado == "JOGANDO":
-            novo_tempo_spawn = max(750, 1500 - (metros_atuais // 100) * 50)
-            if novo_tempo_spawn != tempo_spawn_atual:
-                tempo_spawn_atual = novo_tempo_spawn
-                pygame.time.set_timer(EVENTO_GERAR, tempo_spawn_atual)
-
         e_noite = (metros_atuais >= 500 and (metros_atuais // 300) % 2 == 1)
         alvo_ceu = COR_NOITE if e_noite else COR_DIA
-
         for i in range(3):
             if cor_atual_ceu[i] < alvo_ceu[i]:
                 cor_atual_ceu[i] = min(cor_atual_ceu[i] + 1.2, alvo_ceu[i])
             elif cor_atual_ceu[i] > alvo_ceu[i]:
                 cor_atual_ceu[i] = max(cor_atual_ceu[i] - 1.2, alvo_ceu[i])
-
         cor_ceu_tupla = (int(cor_atual_ceu[0]), int(cor_atual_ceu[1]), int(cor_atual_ceu[2]))
-        segurando_baixo_touch = False
-
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                rodando = False
-
-            if (APP_WILLENTERBACKGROUND and evento.type == APP_WILLENTERBACKGROUND) or \
-                    (APP_DIDENTERBACKGROUND and evento.type == APP_DIDENTERBACKGROUND) or \
-                    (evento.type == pygame.ACTIVEEVENT and hasattr(evento, 'gain') and evento.gain == 0):
-                if estado == "JOGANDO":
-                    estado = "PAUSA"
-                salvar_dados(dados)
-                if gerenciador_sons and gerenciador_sons.canal_musica:
-                    try:
-                        gerenciador_sons.canal_musica.pause()
-                    except Exception:
-                        pass
-
-            elif (APP_WILLENTERFOREGROUND and evento.type == APP_WILLENTERFOREGROUND) or \
-                    (APP_DIDENTERFOREGROUND and evento.type == APP_DIDENTERFOREGROUND) or \
-                    (evento.type == pygame.ACTIVEEVENT and hasattr(evento, 'gain') and evento.gain == 1):
-                if gerenciador_sons and gerenciador_sons.canal_musica and estado in ["JOGANDO", "PAUSA", "INICIO",
-                                                                                     "CONFIG", "LOJA", "UPGRADES"]:
-                    try:
-                        gerenciador_sons.canal_musica.unpause()
-                    except Exception:
-                        pass
-
-            elif evento.type == pygame.FINGERDOWN:
-                if E_ANDROID:
-                    pos_touch = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
-                else:
-                    px = evento.x * largura_atual_tela
-                    py = evento.y * altura_atual_tela
-                    pos_touch = screen_to_virtual(px, py)
-
-                touch_start_pos = pos_touch
-                touch_current_pos = pos_touch
-                toque_ativo = True
-
-                if estado == "JOGANDO" and jogador:
-                    if btn_pausa.collidepoint(pos_touch):
-                        processar_clique_ui(pos_touch)
-
-            elif evento.type == pygame.FINGERMOTION:
-                if toque_ativo:
-                    if E_ANDROID:
-                        touch_current_pos = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
-                    else:
-                        px = evento.x * largura_atual_tela
-                        py = evento.y * altura_atual_tela
-                        touch_current_pos = screen_to_virtual(px, py)
-
-            elif evento.type == pygame.FINGERUP:
-                toque_ativo = False
-                if touch_start_pos and jogador:
-                    if E_ANDROID:
-                        end_x = evento.x * LARGURA_VIRTUAL
-                        end_y = evento.y * ALTURA_VIRTUAL
-                    else:
-                        px = evento.x * largura_atual_tela
-                        py = evento.y * altura_atual_tela
-                        end_x, end_y = screen_to_virtual(px, py)
-
-                    dy = end_y - touch_start_pos[1]
-                    dx = end_x - touch_start_pos[0]
-
-                    if estado == "JOGANDO" and not btn_pausa.collidepoint(touch_start_pos):
-                        if dy < -40:
-                            jogador.pular(gerenciador_sons, dados["vol_sfx"])
-                        elif dy > 40:
-                            jogador.iniciar_descida_rapida(gerenciador_sons, dados["vol_sfx"])
-                        elif abs(dx) < 30 and abs(dy) < 30:
-                            jogador.pular(gerenciador_sons, dados["vol_sfx"])
-                    else:
-                        if abs(dx) < 30 and abs(dy) < 30:
-                            processar_clique_ui((end_x, end_y))
-                elif touch_start_pos and estado != "JOGANDO":
-                    if E_ANDROID:
-                        end_x = evento.x * LARGURA_VIRTUAL
-                        end_y = evento.y * ALTURA_VIRTUAL
-                    else:
-                        px = evento.x * largura_atual_tela
-                        py = evento.y * altura_atual_tela
-                        end_x, end_y = screen_to_virtual(px, py)
-                    processar_clique_ui((end_x, end_y))
-
-                touch_start_pos = None
-                touch_current_pos = None
-
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
-                if not touch_start_pos:
-                    vx, vy = screen_to_virtual(evento.pos[0], evento.pos[1])
-                    if estado == "JOGANDO" and jogador and not btn_pausa.collidepoint((vx, vy)):
-                        jogador.pular(gerenciador_sons, dados["vol_sfx"])
-                    else:
-                        processar_clique_ui((vx, vy))
-
-            elif evento.type == pygame.KEYDOWN:
-                if evento.key in (pygame.K_p, pygame.K_ESCAPE, getattr(pygame, "K_AC_BACK", pygame.K_ESCAPE)):
-                    if estado == "JOGANDO":
-                        estado = "PAUSA"
-                    elif estado == "PAUSA":
-                        estado = "JOGANDO"
-                    elif estado in ["LOJA", "UPGRADES", "CONFIG"]:
-                        estado = "INICIO"
-
-                if jogador and estado == "JOGANDO":
-                    if evento.key in (pygame.K_SPACE, pygame.K_UP, pygame.K_w):
-                        jogador.pular(gerenciador_sons, dados["vol_sfx"])
-
-            if evento.type == EVENTO_GERAR and estado == "JOGANDO":
-                gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups, metros_atuais,
-                             pool_manager)
-
-        if toque_ativo and touch_start_pos and touch_current_pos:
-            dy = touch_current_pos[1] - touch_start_pos[1]
-            if dy > 30:
-                segurando_baixo_touch = True
 
         if estado == "JOGANDO":
             vel_base = min(20.0, 6.0 + (metros_atuais / 35.0) * 0.35)
@@ -2092,11 +2073,9 @@ def main():
 
             bg_parallax.update(vel_jogo)
 
-            teclas = pygame.key.get_pressed()
-            botoes_mouse = pygame.mouse.get_pressed()
-            segurando_pulo = teclas[pygame.K_SPACE] or teclas[pygame.K_UP] or teclas[pygame.K_w] or botoes_mouse[0] or (
-                        toque_ativo and not segurando_baixo_touch)
-            segurando_baixo = teclas[pygame.K_DOWN] or teclas[pygame.K_s] or segurando_baixo_touch
+            segurando_pulo = input_pulo_ativo or input_mouse_ativo or (
+                toque_ativo and not segurando_baixo_touch)
+            segurando_baixo = input_baixo_ativo or segurando_baixo_touch
 
             prev_slow = jogador.tempo_slow
             prev_turbo = jogador.tempo_turbo
@@ -2233,6 +2212,206 @@ def main():
         elif estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
             bg_parallax.update(1.2)
 
+    # A simulacao usa passo fixo de 60 Hz; a imagem e renderizada separadamente.
+    PASSO_FIXO = 1.0 / 60.0
+    MAX_TEMPO_ACUMULADO = 0.25
+    MAX_PASSOS_POR_FRAME = 15
+    sim_acumulado = 0.0
+    ultimo_tempo_loop_ms = pygame.time.get_ticks()
+
+    rodando = True
+    while rodando:
+        agora_loop_ms = pygame.time.get_ticks()
+        tempo_decorrido = max(0.0, min((agora_loop_ms - ultimo_tempo_loop_ms) / 1000.0,
+                                      MAX_TEMPO_ACUMULADO))
+        ultimo_tempo_loop_ms = agora_loop_ms
+        sim_acumulado = min(sim_acumulado + tempo_decorrido, MAX_TEMPO_ACUMULADO)
+
+        largura_atual_tela, altura_atual_tela = tela.get_size()
+
+        if E_ANDROID:
+            largura_render = largura_atual_tela
+            altura_render = altura_atual_tela
+            offset_x = 0
+            offset_y = 0
+        else:
+            escala = min(largura_atual_tela / LARGURA_VIRTUAL, altura_atual_tela / ALTURA_VIRTUAL)
+            largura_render = int(LARGURA_VIRTUAL * escala)
+            altura_render = int(ALTURA_VIRTUAL * escala)
+            offset_x = (largura_atual_tela - largura_render) // 2
+            offset_y = (altura_atual_tela - altura_render) // 2
+
+        def screen_to_virtual(px, py):
+            if E_ANDROID:
+                vx = (px / largura_atual_tela) * LARGURA_VIRTUAL
+                vy = (py / altura_atual_tela) * ALTURA_VIRTUAL
+                return int(vx), int(vy)
+            else:
+                vx = (px - offset_x) / (largura_render / LARGURA_VIRTUAL)
+                vy = (py - offset_y) / (altura_render / ALTURA_VIRTUAL)
+                return int(vx), int(vy)
+
+        if estado != estado_anterior:
+            if estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
+                anim_menu_tempo = 0
+            # Invalida cenas congeladas ao entrar/sair de qualquer estado.
+            cache_telas_estaticas.clear()
+            estado_anterior = estado
+
+        skin_nome_atual = dados["skin_equipada"]
+        cor_jogador = SKINS.get(skin_nome_atual, SKINS["AZUL"])["cor"]
+        metros_atuais = pontuacao // 10
+
+        e_slow = (jogador.tempo_slow > 0) if jogador else False
+        gerenciador_sons.atualizar_musica(estado, e_slow, dados["vol_musica"])
+
+        if estado == "JOGANDO":
+            novo_tempo_spawn = max(750, 1500 - (metros_atuais // 100) * 50)
+            if novo_tempo_spawn != tempo_spawn_atual:
+                tempo_spawn_atual = novo_tempo_spawn
+                pygame.time.set_timer(EVENTO_GERAR, tempo_spawn_atual)
+
+        e_noite = (metros_atuais >= 500 and (metros_atuais // 300) % 2 == 1)
+        alvo_ceu = COR_NOITE if e_noite else COR_DIA
+
+        cor_ceu_tupla = (int(cor_atual_ceu[0]), int(cor_atual_ceu[1]), int(cor_atual_ceu[2]))
+
+        # Executa os ticks acumulados antes de aplicar os eventos recem-chegados,
+        # para nao aplicar um toque novo retroativamente ao tempo anterior.
+        passos_simulacao = 0
+        while sim_acumulado + 1e-9 >= PASSO_FIXO and passos_simulacao < MAX_PASSOS_POR_FRAME and rodando:
+            atualizar_simulacao()
+            sim_acumulado -= PASSO_FIXO
+            passos_simulacao += 1
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                rodando = False
+
+            if (APP_WILLENTERBACKGROUND and evento.type == APP_WILLENTERBACKGROUND) or \
+                    (APP_DIDENTERBACKGROUND and evento.type == APP_DIDENTERBACKGROUND) or \
+                    (evento.type == pygame.ACTIVEEVENT and hasattr(evento, 'gain') and evento.gain == 0):
+                if estado == "JOGANDO":
+                    estado = "PAUSA"
+                salvar_dados(dados)
+                if gerenciador_sons and gerenciador_sons.canal_musica:
+                    try:
+                        gerenciador_sons.canal_musica.pause()
+                    except Exception:
+                        pass
+
+            elif (APP_WILLENTERFOREGROUND and evento.type == APP_WILLENTERFOREGROUND) or \
+                    (APP_DIDENTERFOREGROUND and evento.type == APP_DIDENTERFOREGROUND) or \
+                    (evento.type == pygame.ACTIVEEVENT and hasattr(evento, 'gain') and evento.gain == 1):
+                if gerenciador_sons and gerenciador_sons.canal_musica and estado in ["JOGANDO", "PAUSA", "INICIO",
+                                                                                     "CONFIG", "LOJA", "UPGRADES"]:
+                    try:
+                        gerenciador_sons.canal_musica.unpause()
+                    except Exception:
+                        pass
+
+            elif evento.type == pygame.FINGERDOWN:
+                if E_ANDROID:
+                    pos_touch = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
+                else:
+                    px = evento.x * largura_atual_tela
+                    py = evento.y * altura_atual_tela
+                    pos_touch = screen_to_virtual(px, py)
+
+                touch_start_pos = pos_touch
+                touch_current_pos = pos_touch
+                toque_ativo = True
+
+                if estado == "JOGANDO" and jogador:
+                    if btn_pausa.collidepoint(pos_touch):
+                        processar_clique_ui(pos_touch)
+
+            elif evento.type == pygame.FINGERMOTION:
+                if toque_ativo:
+                    if E_ANDROID:
+                        touch_current_pos = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
+                    else:
+                        px = evento.x * largura_atual_tela
+                        py = evento.y * altura_atual_tela
+                        touch_current_pos = screen_to_virtual(px, py)
+
+            elif evento.type == pygame.FINGERUP:
+                toque_ativo = False
+                if touch_start_pos and jogador:
+                    if E_ANDROID:
+                        end_x = evento.x * LARGURA_VIRTUAL
+                        end_y = evento.y * ALTURA_VIRTUAL
+                    else:
+                        px = evento.x * largura_atual_tela
+                        py = evento.y * altura_atual_tela
+                        end_x, end_y = screen_to_virtual(px, py)
+
+                    dy = end_y - touch_start_pos[1]
+                    dx = end_x - touch_start_pos[0]
+
+                    if estado == "JOGANDO" and not btn_pausa.collidepoint(touch_start_pos):
+                        if dy < -40:
+                            jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                        elif dy > 40:
+                            jogador.iniciar_descida_rapida(gerenciador_sons, dados["vol_sfx"])
+                        elif abs(dx) < 30 and abs(dy) < 30:
+                            jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                    else:
+                        if abs(dx) < 30 and abs(dy) < 30:
+                            processar_clique_ui((end_x, end_y))
+                elif touch_start_pos and estado != "JOGANDO":
+                    if E_ANDROID:
+                        end_x = evento.x * LARGURA_VIRTUAL
+                        end_y = evento.y * ALTURA_VIRTUAL
+                    else:
+                        px = evento.x * largura_atual_tela
+                        py = evento.y * altura_atual_tela
+                        end_x, end_y = screen_to_virtual(px, py)
+                    processar_clique_ui((end_x, end_y))
+
+                touch_start_pos = None
+                touch_current_pos = None
+
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                if not touch_start_pos:
+                    vx, vy = screen_to_virtual(evento.pos[0], evento.pos[1])
+                    if estado == "JOGANDO" and jogador and not btn_pausa.collidepoint((vx, vy)):
+                        jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                    else:
+                        processar_clique_ui((vx, vy))
+
+            elif evento.type == pygame.KEYDOWN:
+                if evento.key in (pygame.K_p, pygame.K_ESCAPE, getattr(pygame, "K_AC_BACK", pygame.K_ESCAPE)):
+                    if estado == "JOGANDO":
+                        estado = "PAUSA"
+                    elif estado == "PAUSA":
+                        estado = "JOGANDO"
+                    elif estado in ["LOJA", "UPGRADES", "CONFIG"]:
+                        estado = "INICIO"
+
+                if jogador and estado == "JOGANDO":
+                    if evento.key in (pygame.K_SPACE, pygame.K_UP, pygame.K_w):
+                        jogador.pular(gerenciador_sons, dados["vol_sfx"])
+
+            if evento.type == EVENTO_GERAR and estado == "JOGANDO":
+                gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups, metros_atuais,
+                             pool_manager)
+
+        # Guarda o estado atual dos controles para os proximos ticks fixos.
+        teclas_atuais = pygame.key.get_pressed()
+        botoes_mouse_atuais = pygame.mouse.get_pressed()
+        input_pulo_ativo = bool(teclas_atuais[pygame.K_SPACE] or teclas_atuais[pygame.K_UP] or
+                                teclas_atuais[pygame.K_w])
+        input_baixo_ativo = bool(teclas_atuais[pygame.K_DOWN] or teclas_atuais[pygame.K_s])
+        input_mouse_ativo = bool(botoes_mouse_atuais[0])
+        segurando_baixo_touch = False
+        if toque_ativo and touch_start_pos and touch_current_pos:
+            dy = touch_current_pos[1] - touch_start_pos[1]
+            if dy > 30:
+                segurando_baixo_touch = True
+
+        # A renderizacao acontece uma vez por frame visivel, independentemente dos ticks executados.
+
         # Pausa e Game Over congelam o mundo. Depois do fim da transição de céu,
         # reutilizamos a imagem pronta em vez de redesenhar o fundo, sprites e UI.
         chave_tela_estatica = (estado, cor_ceu_tupla)
@@ -2246,6 +2425,12 @@ def main():
                 bg_parallax.draw(display_surface, cor_ceu_tupla, e_noite)
                 pygame.draw.rect(display_surface, CINZA_CHAO, (0, ALTURA_VIRTUAL - 70, LARGURA_VIRTUAL, 70))
                 pygame.draw.rect(display_surface, VERDE_GRAMA, (0, ALTURA_VIRTUAL - 70, LARGURA_VIRTUAL, 10))
+
+                if jogador is not None and estado in ("JOGANDO", "PAUSA", "GAMEOVER"):
+                    jogador.renderizar_visual(frame_count)
+                for sprite_visual in todos_sprites:
+                    if isinstance(sprite_visual, ObstaculoVoador):
+                        sprite_visual.renderizar_visual()
 
                 todos_sprites.draw(display_surface)
                 particulas.draw(display_surface)
@@ -2634,7 +2819,6 @@ def main():
 
         ox, oy = 0, 0
         if shake_timer > 0:
-            shake_timer -= 1
             ox = random.randint(-shake_intensidade, shake_intensidade)
             oy = random.randint(-shake_intensidade, shake_intensidade)
 
