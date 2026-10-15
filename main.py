@@ -18,11 +18,43 @@ except Exception:
 
 
 def disparar_vibracao(duracao=0.2, vibracao_ligada=True):
+    """Dispara uma vibracao curta; no Android tenta primeiro a API nativa."""
     if not vibracao_ligada:
         return
+    try:
+        duracao = max(0.01, min(float(duracao), 2.0))
+    except (TypeError, ValueError):
+        duracao = 0.2
+
+    # O Plyer pode estar instalado mas falhar silenciosamente em algumas builds.
+    # PyJNIus acessa diretamente o servico Vibrator do Android.
+    if E_ANDROID:
+        try:
+            import importlib
+            autoclass = importlib.import_module("jnius").autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            Context = autoclass('android.content.Context')
+            BuildVersion = autoclass('android.os.Build$VERSION')
+            atividade = PythonActivity.mActivity
+            servico_vibracao = atividade.getSystemService(Context.VIBRATOR_SERVICE)
+            if servico_vibracao is not None and servico_vibracao.hasVibrator():
+                duracao_ms = int(duracao * 1000)
+                if int(BuildVersion.SDK_INT) >= 26:
+                    VibrationEffect = autoclass('android.os.VibrationEffect')
+                    efeito = VibrationEffect.createOneShot(
+                        duracao_ms, VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+                    servico_vibracao.vibrate(efeito)
+                else:
+                    servico_vibracao.vibrate(duracao_ms)
+                return
+        except Exception:
+            # Continua para o Plyer como alternativa.
+            pass
+
     if SUPORTE_VIBRADOR:
         try:
-            vibrator.vibrate(duracao)
+            vibrator.vibrate(time=duracao)
         except Exception:
             pass
 
@@ -45,7 +77,7 @@ def init_audio():
 init_audio()
 
 # Versão do Jogo
-VERSAO = "v3.4.0"
+VERSAO = "v3.9.1"
 
 # Resolução lógica interna do jogo (Proporção Vertical 450x800)
 LARGURA_VIRTUAL = 450
@@ -98,9 +130,9 @@ relogio = pygame.time.Clock()
 CINZA_CHAO = (90, 90, 90)
 VERDE_GRAMA = (34, 139, 34)
 VERMELHO_OBSTACULO = (210, 40, 40)
-VERDE_CACTO = (46, 150, 70)
-VERDE_CACTO_ESCURO = (25, 100, 45)
-VERDE_CACTO_CLARO = (180, 230, 140)
+VERDE_CACTO = (54, 183, 66)
+VERDE_CACTO_ESCURO = (17, 88, 35)
+VERDE_CACTO_CLARO = (191, 245, 126)
 ROXO_VOADOR = (160, 50, 240)
 AMARELO_NEON = (255, 255, 0)
 AMARELO_MOEDA = (255, 215, 0)
@@ -116,6 +148,283 @@ CINZA_BOTAO = (70, 70, 90)
 
 COR_DIA = [135, 206, 235]
 COR_NOITE = [18, 24, 50]
+
+
+def _suavizar_intervalo(inicio, fim, valor):
+    """Smoothstep barato para transicoes graduais do ciclo dia/noite."""
+    if fim <= inicio:
+        return 1.0 if valor >= fim else 0.0
+    x = max(0.0, min(1.0, (valor - inicio) / float(fim - inicio)))
+    return x * x * (3.0 - 2.0 * x)
+
+
+def calcular_ciclo_ceu(metros):
+    """Retorna fase, cor do ceu, peso da noite e indicador noturno.
+
+    Um ciclo completo leva 4800 metros: dia, por do sol, noite e amanhecer
+    ficam mais tempo visiveis sem depender da taxa de quadros do aparelho.
+    """
+    fase = (max(0, int(metros)) % 4800) / 4800.0
+    paleta = (
+        (0.00, (135, 206, 235)),  # dia claro
+        (0.30, (112, 187, 232)),  # azul diurno mais profundo
+        (0.36, (226, 190, 151)),  # luz dourada
+        (0.43, (255, 155, 91)),   # por do sol alaranjado
+        (0.50, (126, 83, 119)),   # crepusculo violeta
+        (0.58, (24, 31, 66)),     # entrada da noite
+        (0.80, (20, 27, 58)),     # noite estavel
+        (0.87, (74, 65, 111)),    # alvorada violeta
+        (0.94, (250, 143, 100)),  # nascer do sol
+        (1.00, (135, 206, 235)),  # retorno ao dia
+    )
+    cor = paleta[0][1]
+    for idx in range(len(paleta) - 1):
+        p0, c0 = paleta[idx]
+        p1, c1 = paleta[idx + 1]
+        if p0 <= fase <= p1:
+            t = (fase - p0) / (p1 - p0)
+            cor = tuple(int(c0[ch] + (c1[ch] - c0[ch]) * t) for ch in range(3))
+            break
+
+    entrada_noite = _suavizar_intervalo(0.48, 0.60, fase)
+    saida_noite = 1.0 - _suavizar_intervalo(0.81, 0.96, fase)
+    intensidade_noite = max(0.0, min(1.0, entrada_noite * saida_noite))
+    return fase, cor, intensidade_noite, intensidade_noite >= 0.5
+
+
+def sortear_proximo_cenario(cenario_atual):
+    """Escolhe aleatoriamente um bioma diferente do atual."""
+    return random.choice([nome for nome in ("cidade", "deserto", "neve") if nome != cenario_atual])
+
+
+def nome_cenario(cenario):
+    return {"cidade": "CIDADE", "deserto": "DESERTO", "neve": "CIDADE NEVADA"}.get(cenario, "CIDADE")
+
+
+def misturar_cores(cor_a, cor_b, proporcao):
+    """Mistura duas cores RGB sem superfícies alpha (compatível com SDL/Android)."""
+    t = max(0.0, min(1.0, float(proporcao)))
+    return tuple(max(0, min(255, int(cor_a[i] + (cor_b[i] - cor_a[i]) * t))) for i in range(3))
+
+
+class SistemaClima:
+    """Clima aleatorio com janelas longas, céu reativo e custo visual limitado."""
+    def __init__(self):
+        self.cenario = "cidade"
+        self.tipo = "limpo"
+        self.timer = random.randint(35, 65) * 60  # pausa seca longa antes do primeiro evento
+        self.tempo = 0
+        self.particulas = []
+        self.cooldown_raio = random.randint(240, 480)
+        self.raio_timer = 0
+        self.flash_timer = 0
+        self.raio_pontos = []
+        self._overlay_flash = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL)).convert()
+        self._overlay_flash.fill((232, 244, 255))
+        self._overlay_flash.set_alpha(0)
+        self._overlay_areia = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL)).convert()
+        self._overlay_areia.fill((197, 137, 61))
+        self._overlay_areia.set_alpha(0)
+        self._criar_particulas()
+
+    def _criar_particulas(self):
+        # Pool fixo: não aloca sprites durante o jogo e funciona bem em Android antigo.
+        self.particulas = []
+        for _ in range(64):
+            self.particulas.append({
+                "x": random.uniform(0, LARGURA_VIRTUAL),
+                "y": random.uniform(0, ALTURA_VIRTUAL),
+                "vel": random.uniform(8.0, 16.0),
+                "deriva": random.uniform(-2.4, 2.4),
+                "tam": random.choice((1, 1, 2, 2, 3)),
+                "comprimento": random.randint(12, 22),
+            })
+
+    def trocar_cenario(self, cenario, inicial=False):
+        if cenario == self.cenario and not inicial:
+            return
+        self.cenario = cenario
+        # O clima anterior não é transferido de forma instantânea ao novo bioma.
+        self.tipo = "limpo"
+        self.timer = random.randint(32, 58) * 60
+        self.cooldown_raio = random.randint(240, 480)
+        self.raio_timer = 0
+        self.flash_timer = 0
+        self.raio_pontos = []
+        self._criar_particulas()
+
+    def _sortear_clima(self):
+        # Tempestades são menos comuns, mas todo bioma pode ter um evento extremo.
+        if self.cenario == "cidade":
+            return random.choices(("chuva", "tempestade"), weights=(76, 24), k=1)[0]
+        if self.cenario == "deserto":
+            return random.choices(("areia", "tempestade_areia"), weights=(75, 25), k=1)[0]
+        return random.choices(("neve", "nevasca"), weights=(75, 25), k=1)[0]
+
+    def aplicar_ceu(self, cor_base):
+        """Deixa o céu visivelmente nublado/empoeirado conforme a meteorologia atual."""
+        ajustes = {
+            "chuva": ((85, 108, 132), 0.48),
+            "tempestade": ((49, 61, 82), 0.72),
+            "areia": ((197, 147, 79), 0.40),
+            "tempestade_areia": ((154, 104, 48), 0.68),
+            "neve": ((142, 166, 189), 0.43),
+            "nevasca": ((87, 111, 143), 0.67),
+        }
+        ajuste = ajustes.get(self.tipo)
+        if ajuste is None:
+            return cor_base
+        cor_clima, peso = ajuste
+        return misturar_cores(cor_base, cor_clima, peso)
+
+    def _preparar_raio(self, x_inicio, y_fim):
+        pontos = [(int(x_inicio), -6)]
+        x = int(x_inicio)
+        y = 0
+        while y < y_fim:
+            y = min(y_fim, y + random.randint(24, 43))
+            x = max(8, min(LARGURA_VIRTUAL - 8, x + random.randint(-22, 22)))
+            pontos.append((x, y))
+        self.raio_pontos = pontos
+        self.raio_timer = 10
+        self.flash_timer = 2
+
+    def update(self, obstaculos, rect_jogador=None):
+        """Atualiza clima; retorna eventual obstáculo atingido por raio."""
+        self.tempo += 1
+        if self.raio_timer > 0:
+            self.raio_timer -= 1
+        if self.flash_timer > 0:
+            self.flash_timer -= 1
+
+        if self.tipo == "limpo":
+            self.timer -= 1
+            if self.timer <= 0:
+                # A checagem ocorre somente depois de uma pausa longa; falhar a rolagem
+                # adiciona outro intervalo aleatório, não uma alternância chuva/seco rápida.
+                if random.random() < 0.78:
+                    self.tipo = self._sortear_clima()
+                    self.timer = random.randint(22, 40) * 60
+                    self.cooldown_raio = random.randint(240, 480)
+                    for part in self.particulas:
+                        part["x"] = random.uniform(0, LARGURA_VIRTUAL)
+                        part["y"] = random.uniform(-ALTURA_VIRTUAL, 0)
+                else:
+                    self.timer = random.randint(35, 65) * 60
+        else:
+            self.timer -= 1
+            if self.timer <= 0:
+                self.tipo = "limpo"
+                self.timer = random.randint(35, 70) * 60
+                self.raio_timer = 0
+                self.raio_pontos = []
+
+        # As partículas têm quantidade fixa e comprimento/velocidade variáveis por clima.
+        for part in self.particulas:
+            if self.tipo in ("chuva", "tempestade"):
+                intens = 1.0 if self.tipo == "chuva" else 1.45
+                part["x"] -= (2.8 + part["deriva"] * 0.3) * intens
+                part["y"] += (part["vel"] + 4.0) * intens
+                if part["y"] > ALTURA_VIRTUAL + 24 or part["x"] < -24:
+                    part["x"] = random.uniform(0, LARGURA_VIRTUAL + 30)
+                    part["y"] = random.uniform(-100, -8)
+            elif self.tipo in ("areia", "tempestade_areia"):
+                intens = 1.0 if self.tipo == "areia" else 1.8
+                part["x"] -= part["vel"] * (0.9 if intens == 1.0 else 1.5)
+                part["y"] += part["deriva"] * intens
+                if part["x"] < -24:
+                    part["x"] = LARGURA_VIRTUAL + random.randint(0, 35)
+                    part["y"] = random.randint(30, ALTURA_VIRTUAL - 80)
+                if part["y"] < 20 or part["y"] > ALTURA_VIRTUAL - 70:
+                    part["y"] = random.randint(30, ALTURA_VIRTUAL - 80)
+            elif self.tipo in ("neve", "nevasca"):
+                fator = 1.0 if self.tipo == "neve" else 1.75
+                part["y"] += max(1.4, part["vel"] * 0.42) * fator
+                part["x"] += math.sin((self.tempo + part["y"]) * 0.025) * (1.2 if fator == 1.0 else 3.0)
+                if part["y"] > ALTURA_VIRTUAL + 8:
+                    part["y"] = random.uniform(-80, -8)
+                    part["x"] = random.uniform(0, LARGURA_VIRTUAL)
+
+        alvo_raio = None
+        if self.tipo == "tempestade":
+            self.cooldown_raio -= 1
+            if self.cooldown_raio <= 0:
+                self.cooldown_raio = random.randint(240, 480)
+                candidatos = []
+                limite_x = rect_jogador.right + 24 if rect_jogador else 30
+                for obs in obstaculos:
+                    if obs.rect.centerx > limite_x and obs.rect.left < LARGURA_VIRTUAL - 8:
+                        candidatos.append(obs)
+                if candidatos and random.random() < 0.68:
+                    alvo_raio = random.choice(candidatos)
+                    alvo_x = alvo_raio.rect.centerx
+                    alvo_y = max(90, alvo_raio.rect.top + 2)
+                else:
+                    alvo_x = random.randint(45, LARGURA_VIRTUAL - 45)
+                    alvo_y = random.randint(390, 690)
+                self._preparar_raio(alvo_x, alvo_y)
+        return alvo_raio
+
+    def _desenhar_nuvens_clima(self, superficie, cor_base):
+        """Nuvens em blocos pixelados no alto; poucos primitives por quadro."""
+        if self.tipo == "chuva":
+            sombra, luz = (60, 77, 98), (104, 126, 146)
+        elif self.tipo == "tempestade":
+            sombra, luz = (28, 37, 56), (63, 78, 99)
+        elif self.tipo in ("areia", "tempestade_areia"):
+            sombra, luz = ((123, 82, 37), (178, 128, 66)) if self.tipo == "areia" else ((91, 59, 28), (144, 99, 45))
+        else:
+            sombra, luz = ((105, 132, 157), (172, 194, 213)) if self.tipo == "neve" else ((61, 83, 112), (118, 143, 171))
+        drift = int((self.tempo // 5) % (LARGURA_VIRTUAL + 160))
+        for idx, base_x in enumerate((-55, 45, 155, 270, 375)):
+            x = ((base_x - drift + 60) % (LARGURA_VIRTUAL + 160)) - 60
+            y = 28 + (idx % 2) * 18
+            pygame.draw.rect(superficie, sombra, (x + 8, y + 18, 112, 22))
+            pygame.draw.rect(superficie, sombra, (x + 24, y + 5, 30, 34))
+            pygame.draw.rect(superficie, sombra, (x + 50, y - 2, 38, 41))
+            pygame.draw.rect(superficie, sombra, (x + 78, y + 8, 26, 31))
+            pygame.draw.rect(superficie, luz, (x + 15, y + 17, 87, 7))
+            pygame.draw.rect(superficie, luz, (x + 29, y + 8, 23, 8))
+            pygame.draw.rect(superficie, luz, (x + 55, y + 2, 25, 9))
+
+    def draw(self, superficie):
+        tempo_chuvoso = self.tipo in ("chuva", "tempestade")
+        if self.tipo != "limpo":
+            self._desenhar_nuvens_clima(superficie, None)
+
+        if tempo_chuvoso:
+            tempestade = self.tipo == "tempestade"
+            cor = (178, 218, 248) if not tempestade else (220, 236, 255)
+            limite = 48 if not tempestade else 64
+            tamanho_min = 15 if not tempestade else 20
+            for part in self.particulas[:limite]:
+                x, y = int(part["x"]), int(part["y"])
+                comprimento = max(tamanho_min, int(part["comprimento"] * (1.0 if not tempestade else 1.35)))
+                pygame.draw.line(superficie, cor, (x, y), (x - 7, y + comprimento), 2 if tempestade else 1)
+        elif self.tipo in ("areia", "tempestade_areia"):
+            tempestade = self.tipo == "tempestade_areia"
+            self._overlay_areia.set_alpha(28 if not tempestade else 48)
+            superficie.blit(self._overlay_areia, (0, 0))
+            cor = (231, 187, 119) if not tempestade else (244, 202, 135)
+            for part in self.particulas[:38 if not tempestade else 64]:
+                x, y = int(part["x"]), int(part["y"])
+                pygame.draw.line(superficie, cor, (x, y), (x - (8 if tempestade else 5), y + 1), 2 if tempestade else 1)
+        elif self.tipo in ("neve", "nevasca"):
+            nevasca = self.tipo == "nevasca"
+            cor = (225, 240, 255) if not nevasca else (250, 253, 255)
+            for part in self.particulas[:38 if not nevasca else 64]:
+                x, y = int(part["x"]), int(part["y"])
+                tam = 2 if part["tam"] > 1 else 1
+                pygame.draw.rect(superficie, cor, (x, y, tam, tam))
+                if nevasca and part["tam"] >= 2:
+                    pygame.draw.line(superficie, cor, (x - 3, y + 1), (x + 4, y + 1), 1)
+
+        if self.flash_timer > 0:
+            self._overlay_flash.set_alpha(105 if self.flash_timer == 2 else 65)
+            superficie.blit(self._overlay_flash, (0, 0))
+        if self.raio_timer > 0 and len(self.raio_pontos) >= 2:
+            pygame.draw.lines(superficie, (83, 167, 255), False, self.raio_pontos, 6)
+            pygame.draw.lines(superficie, (245, 251, 255), False, self.raio_pontos, 2)
 
 # --- EVENTOS DE CICLO DE VIDA DO ANDROID ---
 APP_WILLENTERBACKGROUND = getattr(pygame, 'APP_WILLENTERBACKGROUND', None)
@@ -175,7 +484,8 @@ TEXTOS = {
         "up_turbo": "Turbo Mode",
         "up_escudo": "Shield Barrier",
         "up_mult": "2x Multiplier",
-        "up_slow": "Slow Motion"
+        "up_slow": "Slow Motion",
+        "up_jetpack": "Jetpack"
     },
     "pt_BR": {
         "titulo": "PIXEL RUSH",
@@ -227,7 +537,8 @@ TEXTOS = {
         "up_turbo": "Modo Turbo",
         "up_escudo": "Escudo Protetor",
         "up_mult": "Multiplicador 2x",
-        "up_slow": "Câmera Lenta"
+        "up_slow": "Câmera Lenta",
+        "up_jetpack": "Jetpack"
     }
 }
 
@@ -256,8 +567,25 @@ UPGRADES_CONFIG = {
     "MULT_2X": {"nome_key": "up_mult", "cor": ROSA_MULT, "duracao_base": 300, "bonus_por_nivel": 60, "max_nivel": 5,
                 "preco_base": 3000, "preco_multiplicador": 1800},
     "SLOW": {"nome_key": "up_slow", "cor": VERDE_SLOW, "duracao_base": 240, "bonus_por_nivel": 60, "max_nivel": 3,
-             "preco_base": 4200, "preco_multiplicador": 3000}
+             "preco_base": 4200, "preco_multiplicador": 3000},
+    "JETPACK": {"nome_key": "up_jetpack", "cor": (255, 135, 35), "duracao_base": 480, "bonus_por_nivel": 120,
+                "max_nivel": 4, "preco_base": 5250, "preco_multiplicador": 3750}
 }
+
+def calcular_custo_upgrade(chave, nivel_atual):
+    """Custo consistente para a loja; jetpack custa 25% acima do upgrade mais caro por nível."""
+    nivel_atual = max(0, int(nivel_atual))
+    if chave == "JETPACK":
+        # Em cada tier, custa exatamente 25% acima do upgrade mais caro ainda
+        # disponível nesse mesmo tier entre os demais power-ups.
+        custos_disponiveis = [conf["preco_base"] + nivel_atual * conf["preco_multiplicador"]
+                              for nome, conf in UPGRADES_CONFIG.items()
+                              if nome != "JETPACK" and nivel_atual < conf["max_nivel"]]
+        base_mais_cara = max(custos_disponiveis) if custos_disponiveis else 4200
+        return int(base_mais_cara * 1.25)
+    conf = UPGRADES_CONFIG[chave]
+    return conf["preco_base"] + nivel_atual * conf["preco_multiplicador"]
+
 
 # Fontes
 # No Windows, mantemos Arial exatamente como antes.
@@ -627,7 +955,7 @@ ARQUIVO_SAVE = "savegame.json"
 def carregar_dados():
     dados_padrao = {
         "recorde": 0, "moedas_totais": 0, "skin_equipada": "AZUL", "skins_desbloqueadas": ["AZUL"],
-        "upgrades": {"IMA": 0, "TURBO": 0, "ESCUDO": 0, "MULT_2X": 0, "SLOW": 0},
+        "upgrades": {"IMA": 0, "TURBO": 0, "ESCUDO": 0, "MULT_2X": 0, "SLOW": 0, "JETPACK": 0},
         "vol_sfx": 0.7, "vol_musica": 0.5, "idioma": "pt_BR", "vibracao": True
     }
     if os.path.exists(ARQUIVO_SAVE):
@@ -675,6 +1003,12 @@ def desenhar_icone_powerup(surface, tipo, x, y):
     elif tipo == "MULT_2X":
         txt = render_texto_cacheado(fonte_pequena, "2X", BRANCO)
         surface.blit(txt, (x - txt.get_width() // 2, y - txt.get_height() // 2))
+    elif tipo == "JETPACK":
+        pygame.draw.rect(surface, (42, 48, 61), (x - 7, y - 8, 14, 17), border_radius=3)
+        pygame.draw.rect(surface, (235, 105, 32), (x - 5, y - 6, 10, 13), border_radius=2)
+        pygame.draw.rect(surface, (185, 205, 220), (x - 3, y - 4, 6, 4), border_radius=1)
+        pygame.draw.polygon(surface, (255, 222, 88), [(x - 4, y + 8), (x, y + 14), (x + 4, y + 8)])
+        pygame.draw.polygon(surface, (255, 126, 25), [(x - 2, y + 8), (x, y + 11), (x + 2, y + 8)])
 
 
 # --- DESENHADOR DE PREVIEWS DE SKINS ---
@@ -944,8 +1278,9 @@ class ParallaxBackground:
             for _ in range(6)
         ]
         self.estrelas = [
-            {"x": random.randint(0, LARGURA_VIRTUAL), "y": random.randint(0, 350),
-             "blink": random.uniform(0.02, 0.08), "offset": random.uniform(0, math.pi * 2)}
+            {"x": random.randint(4, LARGURA_VIRTUAL - 4), "y": random.randint(12, 355),
+             "blink": random.uniform(0.035, 0.095), "offset": random.uniform(0, math.pi * 2),
+             "brilho": random.uniform(0.68, 1.0), "tamanho": random.choice((1, 1, 2))}
             for _ in range(40)
         ]
         self.predios = ((20, 600, 60, 200), (120, 650, 40, 150),
@@ -963,15 +1298,35 @@ class ParallaxBackground:
         self._cache_montanhas = None
         self._cache_predios_key = None
         self._cache_predios = None
+        self._cache_chao = {}
+        self.desloc_chao = 0.0
+        self.fase_ciclo = 0.0
+        self.peso_noite = 0.0
+        self.cenario = "cidade"
 
-    def update(self, velocidade_jogo=1.0):
+    def set_cenario(self, cenario):
+        if cenario == self.cenario:
+            return
+        self.cenario = cenario
+        self._cache_montanhas_key = None
+        self._cache_predios_key = None
+        self._cache_montanhas = None
+        self._cache_predios = None
+
+    def update(self, velocidade_jogo=1.0, metros_atuais=None):
         self.tempo_animacao += 1
+        if metros_atuais is not None:
+            self.fase_ciclo, _cor_alvo, self.peso_noite, _noite = calcular_ciclo_ceu(metros_atuais)
         self.camada_longe -= velocidade_jogo * 0.1
         if self.camada_longe <= -LARGURA_VIRTUAL:
             self.camada_longe += LARGURA_VIRTUAL
         self.camada_perto -= velocidade_jogo * 0.3
         if self.camada_perto <= -LARGURA_VIRTUAL:
             self.camada_perto += LARGURA_VIRTUAL
+        # O piso representa o mesmo plano dos obstaculos terrestres: deve deslizar
+        # exatamente na mesma velocidade horizontal para parecer parte do mundo,
+        # e nao uma animacao independente. O tile mais comprido reduz repeticoes visiveis.
+        self.desloc_chao = (self.desloc_chao + max(0.0, float(velocidade_jogo))) % 900.0
         for nuvem in self.nuvens:
             nuvem["x"] -= nuvem["vel"] + (velocidade_jogo * 0.05)
             if nuvem["x"] < -80:
@@ -979,85 +1334,343 @@ class ParallaxBackground:
                 nuvem["y"] = random.randint(20, 200)
 
     def _obter_tile_montanhas(self, cor_ceu):
-        cor_montanha = (max(30, cor_ceu[0] // 2 - 10),
-                        max(40, cor_ceu[1] // 2), max(60, cor_ceu[2] // 2 + 10))
-        if self._cache_montanhas is not None and self._cache_montanhas_key == cor_montanha:
+        # Quantizar ligeiramente a cor evita recriar o tile a cada mudanca minima
+        # do ciclo dia/noite, poupando CPU em aparelhos mais antigos.
+        ceu_q = tuple(max(0, min(255, (int(c) // 12) * 12)) for c in cor_ceu)
+        cor_montanha = (max(24, ceu_q[0] // 2 - 10),
+                        max(32, ceu_q[1] // 2), max(48, ceu_q[2] // 2 + 10))
+        chave_cache = (self.cenario, cor_montanha)
+        if self._cache_montanhas is not None and self._cache_montanhas_key == chave_cache:
             return self._cache_montanhas
 
         tile = pygame.Surface((LARGURA_VIRTUAL * 2, self.H_MONTANHAS)).convert()
         chave = self.CHAVE_TRANSPARENCIA
         tile.fill(chave)
         y_base_local = ALTURA_VIRTUAL - self.Y_MONTANHAS
+
+        if self.cenario == "deserto":
+            # Dunas em duas camadas, com linhas de areia; cada tile e gerado uma vez por paleta.
+            areia_longe = (max(100, cor_ceu[0] - 16), max(75, cor_ceu[1] - 60), max(48, cor_ceu[2] - 88))
+            areia_perto = (max(112, cor_ceu[0] + 12), max(82, cor_ceu[1] - 38), max(42, cor_ceu[2] - 68))
+            sombra_duna = (max(78, areia_perto[0] - 28), max(57, areia_perto[1] - 27), max(34, areia_perto[2] - 20))
+            for i in range(2):
+                xb = i * LARGURA_VIRTUAL
+                pygame.draw.polygon(tile, areia_longe,
+                    [(xb - 20, 270), (xb + 75, 204), (xb + 160, 238), (xb + 260, 185),
+                     (xb + 365, 235), (xb + 470, 200), (xb + 510, 270), (xb + 510, 320), (xb - 20, 320)])
+                pygame.draw.polygon(tile, areia_perto,
+                    [(xb - 20, 310), (xb + 70, 266), (xb + 165, 292), (xb + 270, 238),
+                     (xb + 370, 284), (xb + 460, 248), (xb + 510, 290), (xb + 510, 320), (xb - 20, 320)])
+                pygame.draw.line(tile, sombra_duna, (xb + 10, 290), (xb + 128, 306), 2)
+                pygame.draw.line(tile, sombra_duna, (xb + 250, 260), (xb + 340, 278), 2)
+                # Rochas pixeladas no perfil distante.
+                pygame.draw.polygon(tile, sombra_duna, [(xb + 92, 276), (xb + 112, 246), (xb + 130, 276)])
+                pygame.draw.polygon(tile, sombra_duna, [(xb + 330, 291), (xb + 348, 265), (xb + 365, 291)])
+            tile.set_colorkey(chave)
+            self._cache_montanhas = tile
+            self._cache_montanhas_key = chave_cache
+            return tile
+
+        # Cordilheira distante: cria profundidade sem sprites ou trabalho por frame.
+        cor_distante = (max(18, cor_montanha[0] - 18),
+                        max(24, cor_montanha[1] - 17), max(38, cor_montanha[2] - 10))
+        for i in range(2):
+            xb = i * LARGURA_VIRTUAL
+            pygame.draw.polygon(tile, cor_distante,
+                                [(xb - 35, y_base_local), (xb + 72, 105),
+                                 (xb + 142, 235), (xb + 230, 130),
+                                 (xb + 300, 250), (xb + 390, 150),
+                                 (xb + 475, y_base_local)])
+
+        # Montanhas principais com face sombreada, contorno e detalhes de neve.
+        cor_face = (max(12, cor_montanha[0] - 22),
+                    max(18, cor_montanha[1] - 20), max(30, cor_montanha[2] - 14))
+        cor_crista = (min(255, cor_montanha[0] + 24),
+                      min(255, cor_montanha[1] + 24), min(255, cor_montanha[2] + 20))
         for i in range(2):
             x_base = i * LARGURA_VIRTUAL
             for x_offset, w, h in ((-50, 200, 300), (100, 240, 240), (280, 220, 320)):
                 x = x_base + x_offset
                 top_y = ALTURA_VIRTUAL - h
-                pts_montanha = [(x, y_base_local), (x + w // 2, top_y - self.Y_MONTANHAS),
-                                (x + w, y_base_local)]
-                pygame.draw.polygon(tile, cor_montanha, pts_montanha)
-                sn_h = h * 0.25
                 py = top_y - self.Y_MONTANHAS
                 px = x + w // 2
+                base_pts = [(x, y_base_local), (px, py), (x + w, y_base_local)]
+                pygame.draw.polygon(tile, cor_montanha, base_pts)
+                # Face direita mais escura para dar volume em estilo low-poly.
+                pygame.draw.polygon(tile, cor_face,
+                                    [(px, py), (x + w, y_base_local), (px + int(w * 0.12), y_base_local)])
+                pygame.draw.line(tile, cor_crista, (x + 8, y_base_local - 1), (px, py + 3), 2)
+
+                sn_h = max(18, int(h * 0.25))
                 lx = px - int((w // 2) * (sn_h / h))
                 rx = px + int((w // 2) * (sn_h / h))
                 pts_neve = [(px, py), (lx, py + sn_h), (px - 10, py + sn_h + 10),
                             (px + 10, py + sn_h + 5), (rx, py + sn_h)]
-                pygame.draw.polygon(tile, BRANCO, pts_neve)
+                pygame.draw.polygon(tile, (226, 239, 248), pts_neve)
+                pygame.draw.polygon(tile, (174, 202, 222),
+                                    [(px, py + 1), (px + 10, py + sn_h + 5),
+                                     (rx, py + sn_h), (px + 5, py + sn_h // 2)])
+                # Pequenas fendas rochosas fixas, rasterizadas apenas quando o tile muda.
+                pygame.draw.line(tile, cor_face, (px - 24, py + sn_h + 24),
+                                 (px - 12, py + sn_h + 42), 2)
+                pygame.draw.line(tile, cor_face, (px + 28, py + sn_h + 42),
+                                 (px + 18, py + sn_h + 58), 2)
+
         tile.set_colorkey(chave)
         self._cache_montanhas = tile
-        self._cache_montanhas_key = cor_montanha
+        self._cache_montanhas_key = chave_cache
         return tile
 
     def _obter_tile_predios(self, cor_ceu, e_noite):
-        cor_perto = (max(20, cor_ceu[0] // 3), max(20, cor_ceu[1] // 3), max(30, cor_ceu[2] // 3))
-        luz_cor = (255, 255, 120) if e_noite else (160, 200, 240)
-        chave_cache = (cor_perto, luz_cor)
+        ceu_q = tuple(max(0, min(255, (int(c) // 12) * 12)) for c in cor_ceu)
+        cor_perto = (max(14, ceu_q[0] // 3), max(18, ceu_q[1] // 3), max(26, ceu_q[2] // 3))
+        luz_cor = (255, 218, 112) if e_noite else (176, 218, 246)
+        chave_cache = (self.cenario, cor_perto, luz_cor, bool(e_noite))
         if self._cache_predios is not None and self._cache_predios_key == chave_cache:
             return self._cache_predios
 
         tile = pygame.Surface((LARGURA_VIRTUAL * 2, self.H_PREDIOS)).convert()
         chave = self.CHAVE_TRANSPARENCIA
         tile.fill(chave)
+        cor_lateral = (max(8, cor_perto[0] - 16), max(10, cor_perto[1] - 17), max(16, cor_perto[2] - 15))
+        cor_borda = (min(255, cor_perto[0] + 25), min(255, cor_perto[1] + 24), min(255, cor_perto[2] + 26))
+        cor_telhado = (max(12, cor_perto[0] - 6), max(16, cor_perto[1] - 6), max(22, cor_perto[2] - 4))
+
+        if self.cenario == "deserto":
+            # Mesas rochosas, pequenos cactos e rochas no horizonte do deserto.
+            areia_rocha = (max(112, cor_ceu[0] - 5), max(70, cor_ceu[1] - 52), max(35, cor_ceu[2] - 62))
+            sombra_rocha = (max(75, areia_rocha[0] - 32), max(48, areia_rocha[1] - 18), max(28, areia_rocha[2] - 8))
+            for i in range(2):
+                xb = i * LARGURA_VIRTUAL
+                for rx, top, rw, rh in ((12, 42, 68, 128), (102, 83, 44, 91), (190, 30, 88, 140), (320, 61, 76, 113)):
+                    pygame.draw.rect(tile, sombra_rocha, (xb + rx + 5, top + 5, rw, rh))
+                    pygame.draw.rect(tile, areia_rocha, (xb + rx, top, rw, rh))
+                    pygame.draw.rect(tile, (min(255, areia_rocha[0] + 20), min(255, areia_rocha[1] + 12), areia_rocha[2]),
+                                     (xb + rx, top, rw, 7))
+                    pygame.draw.line(tile, sombra_rocha, (xb + rx + 8, top + 20),
+                                     (xb + rx + rw - 9, top + 20), 2)
+                for cx, basey in ((58, 178), (250, 178), (400, 178)):
+                    cx += xb
+                    by = basey
+                    pygame.draw.rect(tile, (29, 101, 45), (cx - 3, by - 18, 6, 20))
+                    pygame.draw.rect(tile, (29, 101, 45), (cx - 10, by - 14, 7, 4))
+                    pygame.draw.rect(tile, (29, 101, 45), (cx - 10, by - 19, 4, 8))
+                    pygame.draw.rect(tile, (29, 101, 45), (cx + 3, by - 10, 7, 4))
+                    pygame.draw.rect(tile, (29, 101, 45), (cx + 6, by - 17, 4, 11))
+            tile.set_colorkey(chave)
+            self._cache_predios = tile
+            self._cache_predios_key = chave_cache
+            return tile
+
+        if self.cenario == "neve":
+            cor_perto = (42, 61, 86) if e_noite else (83, 105, 128)
+            cor_lateral = (31, 46, 67)
+            cor_borda = (135, 165, 190)
+            cor_telhado = (202, 226, 241)
+            luz_cor = (255, 226, 144) if e_noite else (196, 224, 244)
+
         for i in range(2):
             x_base = i * LARGURA_VIRTUAL
-            for bx, by, bw, bh in self.predios:
+            for predio_idx, (bx, by, bw, bh) in enumerate(self.predios):
                 real_x = x_base + bx
                 y_local = by - self.Y_PREDIOS
+                # Sombra, fachada, lateral e telhado em degraus.
+                pygame.draw.rect(tile, (12, 15, 23), (real_x + 4, y_local + 4, bw, bh))
                 pygame.draw.rect(tile, cor_perto, (real_x, y_local, bw, bh))
+                pygame.draw.rect(tile, cor_lateral, (real_x + bw - 5, y_local + 2, 5, bh - 2))
+                pygame.draw.rect(tile, cor_borda, (real_x, y_local, 3, bh))
+                pygame.draw.rect(tile, cor_telhado, (real_x - 3, y_local, bw + 6, 7))
+                pygame.draw.line(tile, cor_borda, (real_x + 4, y_local + 9),
+                                (real_x + bw - 7, y_local + 9), 1)
+
+                # Faixas de concreto e juntas verticais da fachada.
+                for yy in range(y_local + 22, y_local + bh - 5, 42):
+                    pygame.draw.line(tile, cor_lateral, (real_x + 4, yy), (real_x + bw - 6, yy), 1)
+                if bw >= 55:
+                    pygame.draw.line(tile, cor_lateral, (real_x + bw // 2, y_local + 12),
+                                    (real_x + bw // 2, y_local + bh - 5), 1)
+
                 for wx_local, wy in self.janelas_por_predio[(bx, by, bw, bh)]:
-                    pygame.draw.rect(tile, luz_cor,
-                                     (real_x + wx_local, wy - self.Y_PREDIOS, 8, 12))
+                    # A janela permanece dentro do predio; o cache original incluia
+                    # algumas posicoes abaixo do pe-direito em edificios baixos.
+                    if wy < by + bh - 9:
+                        wx = real_x + wx_local
+                        wy_local = wy - self.Y_PREDIOS
+                        pygame.draw.rect(tile, cor_lateral, (wx - 1, wy_local - 1, 10, 14))
+                        pygame.draw.rect(tile, luz_cor, (wx, wy_local, 7, 10))
+                        pygame.draw.line(tile, cor_perto, (wx + 3, wy_local), (wx + 3, wy_local + 9), 1)
+                        pygame.draw.line(tile, cor_perto, (wx, wy_local + 5), (wx + 6, wy_local + 5), 1)
+
+                # Detalhes de telhado variam por predio, sem animacao/custo por frame.
+                if predio_idx in (0, 2):
+                    pygame.draw.rect(tile, cor_lateral, (real_x + 8, y_local - 8, 12, 8))
+                    pygame.draw.line(tile, cor_borda, (real_x + 14, y_local - 18),
+                                     (real_x + 14, y_local - 8), 2)
+                if predio_idx == 2:
+                    pygame.draw.rect(tile, cor_lateral, (real_x + bw - 21, y_local - 13, 10, 13))
+                # Base e pequena entrada/porta.
+                pygame.draw.rect(tile, cor_lateral, (real_x + bw // 2 - 5, y_local + bh - 18, 10, 18))
+                pygame.draw.rect(tile, cor_borda, (real_x + bw // 2 - 4, y_local + bh - 17, 2, 16))
+                if self.cenario == "neve":
+                    # Beiral de neve sobre cada telhado e pequenas acumulações.
+                    pygame.draw.rect(tile, (218, 237, 248), (real_x - 4, y_local - 2, bw + 8, 5))
+                    pygame.draw.rect(tile, (174, 204, 224), (real_x + bw - 10, y_local + 2, 10, 4))
+
+            if self.cenario == "neve":
+                # Pinheiros estilizados, 2D e baratos, na linha do horizonte.
+                for tx, base_y, h in ((62, 178, 55), (172, 180, 43), (282, 177, 62), (422, 179, 48)):
+                    tx += x_base
+                    topo = base_y - h
+                    pygame.draw.rect(tile, (82, 64, 48), (tx - 2, base_y - 10, 4, 12))
+                    for nivel in range(3):
+                        yy = topo + nivel * 15
+                        largura = 16 - nivel * 3
+                        pygame.draw.polygon(tile, (30, 91, 77),
+                                            [(tx, yy), (tx - largura, yy + 22), (tx + largura, yy + 22)])
+                        pygame.draw.line(tile, (211, 235, 246), (tx, yy + 1), (tx - largura + 4, yy + 18), 2)
+
         tile.set_colorkey(chave)
         self._cache_predios = tile
         self._cache_predios_key = chave_cache
         return tile
 
-    def draw(self, superficie, cor_ceu, e_noite):
-        superficie.fill(cor_ceu)
-        intensidade_noite = max(0, 255 - cor_ceu[0] * 2)
-        if intensidade_noite > 0:
-            for est in self.estrelas:
-                alpha = int(100 + 100 * math.sin(self.tempo_animacao * est["blink"] + est["offset"]))
-                alpha = min(255, max(0, alpha)) * (intensidade_noite / 255.0)
-                if alpha > 10:
-                    pygame.draw.circle(superficie, (255, 255, 255, int(alpha)),
-                                       (int(est["x"]), int(est["y"])), 1)
-                    if alpha > 150:
-                        pygame.draw.circle(superficie, (255, 255, 255, int(alpha // 2)),
-                                           (int(est["x"]), int(est["y"])), 2)
+    def _cor_ceu_na_altura(self, cor_ceu, y):
+        """Retorna a cor aproximada do gradiente de fundo na altura do astro."""
+        faixa = max(0, min(7, int(y) // (ALTURA_VIRTUAL // 8)))
+        fator = 0.78 + faixa * 0.035
+        return tuple(max(0, min(255, int(c * fator))) for c in cor_ceu)
 
-        if cor_ceu[0] > 60:
+    def _desenhar_sol(self, superficie, x, y, cor_ceu):
+        """Sol pixel-art com brilho em camadas; sem alpha blending nem assets."""
+        centro = (int(x), int(y))
+        cor_glow = misturar_cores(cor_ceu, (255, 135, 48), 0.24)
+        cor_glow_interno = misturar_cores(cor_ceu, (255, 171, 61), 0.46)
+        pygame.draw.circle(superficie, cor_glow, centro, 39)
+        pygame.draw.circle(superficie, cor_glow_interno, centro, 29)
+        pygame.draw.circle(superficie, (255, 183, 63), centro, 20)
+
+        # Raios curtos com variacao sutil, como pixels pulsantes.
+        pulso = (self.tempo_animacao // 7) % 2
+        for angulo in range(0, 360, 45):
+            rad = math.radians(angulo)
+            raio_in = 23
+            raio_out = 30 + pulso
+            p1 = (int(x + math.cos(rad) * raio_in), int(y + math.sin(rad) * raio_in))
+            p2 = (int(x + math.cos(rad) * raio_out), int(y + math.sin(rad) * raio_out))
+            pygame.draw.line(superficie, (255, 218, 112), p1, p2, 2)
+
+        pygame.draw.circle(superficie, (255, 221, 103), centro, 15)
+        pygame.draw.circle(superficie, (255, 243, 184), (int(x - 4), int(y - 4)), 8)
+        pygame.draw.rect(superficie, (255, 255, 224), (int(x - 7), int(y - 6), 5, 2))
+        pygame.draw.rect(superficie, (255, 249, 210), (int(x + 1), int(y + 2), 4, 2))
+
+    def _desenhar_lua(self, superficie, x, y, cor_ceu, intensidade):
+        """Lua crescente luminosa em pixel art, com halo e crateras discretas."""
+        if intensidade <= 0.03:
+            return
+        centro = (int(x), int(y))
+        halo_ext = misturar_cores(cor_ceu, (146, 184, 255), 0.18 * intensidade)
+        halo_int = misturar_cores(cor_ceu, (184, 209, 255), 0.35 * intensidade)
+        pygame.draw.circle(superficie, halo_ext, centro, 34)
+        pygame.draw.circle(superficie, halo_int, centro, 25)
+        pygame.draw.circle(superficie, (224, 237, 255), centro, 17)
+        # O recorte escuro produz uma crescente sem texturas nem mascaras caras.
+        pygame.draw.circle(superficie, cor_ceu, (int(x + 7), int(y - 4)), 15)
+        cor_cratera = misturar_cores(cor_ceu, (161, 188, 225), 0.48 * intensidade)
+        pygame.draw.rect(superficie, cor_cratera, (int(x - 8), int(y - 2), 3, 3))
+        pygame.draw.rect(superficie, cor_cratera, (int(x - 3), int(y + 5), 2, 2))
+        # Brilho em cruz aparece e desaparece discretamente, nao fica congelado.
+        if (self.tempo_animacao // 9) % 3 != 0:
+            cor_brilho = misturar_cores(cor_ceu, (255, 255, 255), 0.78 * intensidade)
+            pygame.draw.rect(superficie, cor_brilho, (int(x + 17), int(y - 17), 2, 6))
+            pygame.draw.rect(superficie, cor_brilho, (int(x + 15), int(y - 15), 6, 2))
+
+    def draw(self, superficie, cor_ceu, e_noite):
+        # Gradiente em faixas pixel-friendly: custo fixo e sem novas superficies.
+        fase = self.fase_ciclo
+        peso_noite = max(0.0, min(1.0, self.peso_noite))
+        for faixa in range(8):
+            fator = 0.78 + faixa * 0.035
+            cor_faixa = tuple(max(0, min(255, int(c * fator))) for c in cor_ceu)
+            y0 = faixa * (ALTURA_VIRTUAL // 8)
+            y1 = (faixa + 1) * (ALTURA_VIRTUAL // 8)
+            pygame.draw.rect(superficie, cor_faixa, (0, y0, LARGURA_VIRTUAL, y1 - y0 + 1))
+
+        # Faixas quentes no horizonte durante o por/nascer do sol.
+        peso_por_sol = max(0.0, 1.0 - abs(fase - 0.42) / 0.12)
+        peso_nascer = max(0.0, 1.0 - abs(fase - 0.96) / 0.07)
+        peso_crepusculo = max(peso_por_sol, peso_nascer)
+        if peso_crepusculo > 0.01:
+            cor_horizonte = (255, 105, 66)
+            for idx, (y, altura, fator) in enumerate(((322, 22, 0.11), (344, 26, 0.17),
+                                                       (370, 30, 0.22), (400, 25, 0.17),
+                                                       (425, 22, 0.10))):
+                cor_faixa = misturar_cores(cor_ceu, cor_horizonte, peso_crepusculo * fator)
+                pygame.draw.rect(superficie, cor_faixa, (0, y, LARGURA_VIRTUAL, altura))
+
+        # Sol atravessa uma curva alta durante o dia e desce abaixo do horizonte.
+        if fase <= 0.50:
+            if fase <= 0.42:
+                u = fase / 0.42
+                sun_x = 28 + (LARGURA_VIRTUAL - 56) * u
+                sun_y = 204 - math.sin(math.pi * u) * 119
+            else:
+                u = (fase - 0.42) / 0.08
+                sun_x = LARGURA_VIRTUAL - 26 + 68 * u
+                sun_y = 204 + 134 * u
+            if -45 <= sun_x <= LARGURA_VIRTUAL + 45:
+                self._desenhar_sol(superficie, sun_x, sun_y, self._cor_ceu_na_altura(cor_ceu, sun_y))
+        elif fase >= 0.94:
+            # Retorno pelo horizonte oposto no nascer do sol.
+            u = (fase - 0.94) / 0.06
+            sun_x = -22 + 50 * u
+            sun_y = 338 - 134 * u
+            self._desenhar_sol(superficie, sun_x, sun_y, self._cor_ceu_na_altura(cor_ceu, sun_y))
+
+        # Lua se desloca durante a noite; o brilho acompanha a transicao do ceu.
+        if 0.48 <= fase <= 0.94:
+            u = max(0.0, min(1.0, (fase - 0.48) / 0.44))
+            moon_x = -20 + (LARGURA_VIRTUAL + 40) * u
+            moon_y = 166 - math.sin(math.pi * u) * 63
+            self._desenhar_lua(superficie, moon_x, moon_y,
+                               self._cor_ceu_na_altura(cor_ceu, moon_y), peso_noite)
+
+        # Estrelas com brilho graduado e twinkle de pixel; aparecem ao anoitecer.
+        if peso_noite > 0.015:
+            for est in self.estrelas:
+                osc = (math.sin(self.tempo_animacao * est["blink"] + est["offset"]) + 1.0) * 0.5
+                brilho = (0.42 + 0.58 * osc) * est["brilho"] * peso_noite
+                if brilho < 0.10:
+                    continue
+                cor_estrela = misturar_cores(cor_ceu, (218, 235, 255), min(0.96, brilho))
+                px, py = int(est["x"]), int(est["y"])
+                tam = est["tamanho"] if brilho > 0.48 else 1
+                pygame.draw.rect(superficie, cor_estrela, (px, py, tam, tam))
+                if brilho > 0.74 and osc > 0.78:
+                    # Pequenos reflexos cruzados em algumas estrelas mais fortes.
+                    pygame.draw.line(superficie, cor_estrela, (px - 2, py), (px + 3, py), 1)
+                    pygame.draw.line(superficie, cor_estrela, (px, py - 2), (px, py + 3), 1)
+
+        # Nuvens continuam presentes no crepusculo e ficam azuladas na noite.
+        visibilidade_nuvens = max(0.12, 1.0 - peso_noite * 0.82)
+        cor_base_nuvem = (244, 247, 255) if peso_noite < 0.25 else (81, 94, 133)
+        if peso_crepusculo > 0.01:
+            cor_base_nuvem = misturar_cores(cor_base_nuvem, (255, 181, 142), peso_crepusculo * 0.85)
+        cor_nuvem = misturar_cores(cor_ceu, cor_base_nuvem, 0.58 * visibilidade_nuvens)
+        cor_sombra_nuvem = misturar_cores(cor_ceu, (94, 114, 150) if peso_noite < 0.45 else (30, 38, 74),
+                                           0.72 * visibilidade_nuvens)
+        if visibilidade_nuvens > 0.10:
             for nuvem in self.nuvens:
                 x, y, t = int(nuvem["x"]), int(nuvem["y"]), nuvem["tam"]
-                cor_nuvem = (min(255, cor_ceu[0] + 100), min(255, cor_ceu[1] + 100),
-                             min(255, cor_ceu[2] + 100))
+                pygame.draw.ellipse(superficie, cor_sombra_nuvem, (x - t, y - t // 3 + 7, t * 3, t))
                 pygame.draw.circle(superficie, cor_nuvem, (x, y), t)
                 pygame.draw.circle(superficie, cor_nuvem, (int(x + t // 1.2), int(y + t // 3)), int(t // 1.2))
                 pygame.draw.circle(superficie, cor_nuvem, (int(x - t // 1.2), int(y + t // 3)), int(t // 1.2))
+                if peso_noite < 0.35:
+                    cor_reflexo = misturar_cores(cor_nuvem, (255, 230, 197), peso_crepusculo * 0.45)
+                    pygame.draw.ellipse(superficie, cor_reflexo,
+                                        (x - t // 2, y - t // 2, t, max(3, t // 3)))
 
-        # As montanhas comecam abaixo da area das nuvens/estrelas. Tiles com color-key
-        # evitam o custo de alpha blending de superficies transparentes grandes.
         tile_montanhas = self._obter_tile_montanhas(cor_ceu)
         offset_longe = int(-self.camada_longe) % LARGURA_VIRTUAL
         superficie.blit(tile_montanhas, (0, self.Y_MONTANHAS),
@@ -1067,6 +1680,209 @@ class ParallaxBackground:
         offset_perto = int(-self.camada_perto) % LARGURA_VIRTUAL
         superficie.blit(tile_predios, (0, self.Y_PREDIOS),
                         (offset_perto, 0, LARGURA_VIRTUAL, self.H_PREDIOS))
+
+    def _obter_tile_chao(self):
+        """Textura de piso por bioma, gerada uma vez e reaproveitada."""
+        tile_pronto = self._cache_chao.get(self.cenario)
+        if tile_pronto is not None:
+            return tile_pronto
+
+        # Tile longo para reduzir o padrao repetitivo sem custo por frame significativo.
+        largura_tile = 900
+        altura_chao = 70
+        tile = pygame.Surface((largura_tile, altura_chao)).convert()
+        rng = random.Random(6138 if self.cenario == "cidade" else (9152 if self.cenario == "deserto" else 3721))
+
+        if self.cenario == "deserto":
+            tile.fill((173, 120, 54))
+            pygame.draw.rect(tile, (194, 143, 66), (0, 0, largura_tile, 22))
+            pygame.draw.rect(tile, (211, 158, 76), (0, 0, largura_tile, 14))
+            pygame.draw.line(tile, (238, 193, 105), (0, 1), (largura_tile - 1, 1), 2)
+            pygame.draw.rect(tile, (155, 101, 48), (0, 20, largura_tile, 3))
+            pygame.draw.rect(tile, (126, 90, 49), (0, 24, largura_tile, 46))
+            pygame.draw.rect(tile, (143, 103, 54), (0, 25, largura_tile, 25))
+            for idx in range(largura_tile // 7):
+                x = rng.randrange(2, largura_tile - 2)
+                y = rng.randrange(5, altura_chao - 2)
+                cor = rng.choice(((226, 179, 91), (191, 137, 65), (117, 83, 47), (234, 192, 116)))
+                pygame.draw.rect(tile, cor, (x, y, rng.choice((2, 3, 5)), 1))
+            for x, y in ((28, 31), (94, 47), (146, 36)):
+                pygame.draw.line(tile, (232, 190, 112), (x, y), (x + 10, y - 2), 1)
+                pygame.draw.line(tile, (110, 78, 47), (x + 8, y - 1), (x + 16, y + 2), 1)
+            # Tufos secos esparsos para manter a silhueta de pixel art.
+            for x in (18, 72, 127, 164):
+                pygame.draw.line(tile, (81, 111, 49), (x, 17), (x - 3, 11), 1)
+                pygame.draw.line(tile, (98, 130, 56), (x, 17), (x + 3, 10), 1)
+
+        elif self.cenario == "neve":
+            tile.fill((112, 133, 151))
+            pygame.draw.rect(tile, (169, 190, 205), (0, 0, largura_tile, 20))
+            pygame.draw.rect(tile, (224, 238, 247), (0, 0, largura_tile, 13))
+            pygame.draw.line(tile, (248, 252, 255), (0, 0), (largura_tile - 1, 0), 2)
+            pygame.draw.line(tile, (128, 162, 185), (0, 15), (largura_tile - 1, 15), 2)
+            pygame.draw.rect(tile, (67, 87, 108), (0, 21, largura_tile, 49))
+            pygame.draw.rect(tile, (81, 105, 126), (0, 24, largura_tile, 24))
+            pygame.draw.line(tile, (140, 168, 188), (0, 25), (largura_tile - 1, 25), 1)
+            pygame.draw.line(tile, (46, 64, 83), (0, 68), (largura_tile - 1, 68), 2)
+            for idx in range(largura_tile // 18):
+                x = rng.randrange(2, largura_tile - 12)
+                y = rng.randrange(27, 67)
+                cor = rng.choice(((130, 158, 178), (58, 78, 99), (177, 202, 220)))
+                pygame.draw.line(tile, cor, (x, y), (min(largura_tile - 1, x + rng.randrange(3, 12)), y - 1), 1)
+            for x in (31, 83, 143):
+                pygame.draw.rect(tile, (226, 241, 250), (x, 7, 5, 2))
+                pygame.draw.rect(tile, (190, 219, 237), (x + 3, 9, 4, 2))
+
+        else:
+            tile.fill((43, 47, 57))
+            # Asfalto e faixa verde da cidade.
+            pygame.draw.rect(tile, (34, 38, 47), (0, 19, largura_tile, 51))
+            pygame.draw.rect(tile, (50, 54, 64), (0, 21, largura_tile, 25))
+            pygame.draw.rect(tile, (40, 44, 54), (0, 46, largura_tile, 24))
+            pygame.draw.line(tile, (65, 69, 79), (0, 22), (largura_tile - 1, 22), 1)
+            pygame.draw.line(tile, (27, 30, 38), (0, 68), (largura_tile - 1, 68), 2)
+            pygame.draw.rect(tile, (25, 101, 43), (0, 0, largura_tile, 18))
+            pygame.draw.rect(tile, (38, 143, 52), (0, 0, largura_tile, 13))
+            pygame.draw.rect(tile, (64, 173, 64), (0, 1, largura_tile, 3))
+            pygame.draw.line(tile, (133, 211, 91), (0, 0), (largura_tile - 1, 0), 1)
+            pygame.draw.line(tile, (21, 81, 37), (0, 13), (largura_tile - 1, 13), 2)
+            pygame.draw.rect(tile, (74, 99, 49), (0, 15, largura_tile, 3))
+            pygame.draw.line(tile, (113, 132, 62), (0, 15), (largura_tile - 1, 15), 1)
+            for x in range(4, largura_tile - 4, 7):
+                altura = rng.randint(2, 6)
+                dx = rng.choice((-2, -1, 1, 2))
+                cor_folha = rng.choice(((30, 112, 42), (44, 151, 48), (91, 184, 64)))
+                pygame.draw.line(tile, cor_folha, (x, 12), (x + dx, 12 - altura), 1)
+                if x % 3 == 1:
+                    pygame.draw.rect(tile, (66, 166, 57), (x + 1, 10, 2, 3))
+            # Flores pequenas e irregulares ao longo de toda a faixa verde.
+            for fx in range(24, largura_tile - 18, 58):
+                fx += rng.randint(-10, 10)
+                fy = rng.choice((4, 6, 8, 9))
+                cor_flor = rng.choice(((255, 221, 92), (255, 146, 183),
+                                       (244, 245, 255), (255, 217, 90), (248, 157, 192)))
+                pygame.draw.line(tile, (24, 91, 39), (fx, fy + 4), (fx - 1, 13), 1)
+                pygame.draw.rect(tile, cor_flor, (fx - 2, fy, 2, 2))
+                pygame.draw.rect(tile, cor_flor, (fx + 1, fy, 2, 2))
+                pygame.draw.rect(tile, cor_flor, (fx - 1, fy - 2, 2, 2))
+                pygame.draw.rect(tile, (255, 232, 126), (fx, fy, 1, 1))
+            for idx in range(largura_tile // 45):
+                x = (idx * 47 + 13) % (largura_tile - 12)
+                py = 23 + ((idx * 17) % 43)
+                cor_pedra = (77, 81, 91) if idx % 2 else (29, 33, 42)
+                pygame.draw.rect(tile, cor_pedra, (x, py, 2 + (idx % 3), 1 + (idx % 2)))
+                if idx % 3 == 0:
+                    pygame.draw.line(tile, (29, 33, 42), (x + 3, py + 5), (x + 8, py + 4), 1)
+                    pygame.draw.line(tile, (57, 61, 70), (x + 4, py + 6), (x + 7, py + 5), 1)
+            for _ in range(largura_tile // 70):
+                x = rng.randrange(8, largura_tile - 22)
+                y = rng.choice((28, 34, 41, 49, 56, 63))
+                comprimento = rng.randint(4, 10)
+                pygame.draw.rect(tile, (62, 66, 76), (x, y, comprimento, 1))
+                pygame.draw.rect(tile, (31, 35, 43), (x + 2, y + 1, max(2, comprimento - 2), 1))
+                if rng.random() < 0.35:
+                    pygame.draw.rect(tile, (82, 86, 96), (x + 4, y + 3, 2, 1))
+
+        self._cache_chao[self.cenario] = tile
+        return tile
+
+    def draw_chao(self, superficie):
+        """Desenha o piso rolando junto dos obstaculos, como um plano de mundo coerente."""
+        y = ALTURA_VIRTUAL - 70
+        tile = self._obter_tile_chao()
+        largura_tile = tile.get_width()
+        # pygame.Rect converte x flutuante para pixel inteiro; usar ceil aqui faz
+        # o padrao do piso alinhar com o deslocamento visivel dos sprites terrestres.
+        desloc = int(math.ceil(self.desloc_chao)) % largura_tile
+        x = -desloc
+        while x < LARGURA_VIRTUAL:
+            superficie.blit(tile, (x, y))
+            x += largura_tile
+
+
+def desenhar_cenario_jetpack(superficie, cor_ceu, fase_ciclo, peso_noite, frame, estrelas):
+    """Fundo exclusivo do voo: apenas camadas de céu, nuvens e astros, sem chão/cidade."""
+    base = tuple(max(0, min(255, int(c))) for c in cor_ceu)
+    for faixa in range(10):
+        fator = 0.76 + faixa * 0.032
+        cor_faixa = tuple(max(0, min(255, int(c * fator))) for c in base)
+        y0 = faixa * (ALTURA_VIRTUAL // 10)
+        y1 = (faixa + 1) * (ALTURA_VIRTUAL // 10)
+        pygame.draw.rect(superficie, cor_faixa, (0, y0, LARGURA_VIRTUAL, y1 - y0 + 1))
+
+    noite = max(0.0, min(1.0, float(peso_noite)))
+    # Faixa luminosa distante, mantida também durante o crepúsculo.
+    quente = max(0.0, 1.0 - abs(float(fase_ciclo) - 0.45) / 0.16)
+    if quente > 0.01:
+        cor_horizonte = misturar_cores(base, (255, 122, 65), 0.45 * quente)
+        pygame.draw.rect(superficie, cor_horizonte, (0, 535, LARGURA_VIRTUAL, 90))
+        pygame.draw.rect(superficie, misturar_cores(base, (255, 177, 104), 0.22 * quente),
+                         (0, 565, LARGURA_VIRTUAL, 44))
+
+    # Sol pixelado a acompanhar o ciclo existente.
+    fase = float(fase_ciclo) % 1.0
+    sol_visivel = fase < 0.49 or fase > 0.94
+    if sol_visivel and noite < 0.82:
+        if fase < 0.42:
+            u = fase / 0.42
+            sx = int(24 + (LARGURA_VIRTUAL - 48) * u)
+            sy = int(205 - math.sin(math.pi * u) * 118)
+        else:
+            u = (fase - 0.42) / 0.08 if fase <= 0.50 else (fase - 0.94) / 0.06
+            sx = int(LARGURA_VIRTUAL - 20 + 46 * u) if fase <= 0.50 else int(-18 + 48 * u)
+            sy = int(205 + 125 * u) if fase <= 0.50 else int(330 - 120 * u)
+        brilho = misturar_cores(base, (255, 199, 76), 0.90)
+        pygame.draw.rect(superficie, misturar_cores(base, (255, 142, 35), 0.5), (sx - 18, sy - 18, 36, 36))
+        pygame.draw.rect(superficie, brilho, (sx - 13, sy - 13, 26, 26))
+        pygame.draw.rect(superficie, (255, 245, 173), (sx - 8, sy - 8, 16, 16))
+        pygame.draw.rect(superficie, (255, 255, 223), (sx - 4, sy - 4, 8, 8))
+        if frame % 16 < 8:
+            pygame.draw.rect(superficie, (255, 218, 111), (sx - 2, sy - 24, 4, 8))
+            pygame.draw.rect(superficie, (255, 218, 111), (sx - 2, sy + 16, 4, 8))
+            pygame.draw.rect(superficie, (255, 218, 111), (sx - 24, sy - 2, 8, 4))
+            pygame.draw.rect(superficie, (255, 218, 111), (sx + 16, sy - 2, 8, 4))
+
+    # Lua pixelada; o recorte usa a cor local aproximada do céu.
+    if noite > 0.16:
+        u = max(0.0, min(1.0, (fase - 0.48) / 0.44))
+        mx = int(-8 + (LARGURA_VIRTUAL + 16) * u)
+        my = int(168 - math.sin(math.pi * u) * 66)
+        lum = misturar_cores(base, (222, 237, 255), 0.88 * noite)
+        pygame.draw.circle(superficie, misturar_cores(base, (157, 192, 255), 0.42 * noite), (mx, my), 24)
+        pygame.draw.circle(superficie, lum, (mx, my), 17)
+        pygame.draw.circle(superficie, base, (mx + 7, my - 5), 14)
+        pygame.draw.rect(superficie, (238, 246, 255), (mx - 10, my - 4, 4, 3))
+        pygame.draw.rect(superficie, (205, 224, 249), (mx - 2, my + 5, 3, 2))
+
+    # Estrelas reutilizam a lista já criada no cenário principal.
+    if noite > 0.025:
+        for estrela in estrelas:
+            brilho = (math.sin(frame * estrela["blink"] + estrela["offset"]) + 1.0) * 0.5
+            intensidade = (0.22 + brilho * 0.78) * estrela["brilho"] * noite
+            if intensidade < 0.08:
+                continue
+            cor = misturar_cores(base, (231, 243, 255), min(0.98, intensidade))
+            x, y = int(estrela["x"]), int(estrela["y"])
+            tam = max(1, int(estrela["tamanho"])) if intensidade > 0.55 else 1
+            pygame.draw.rect(superficie, cor, (x, y, tam, tam))
+            if intensidade > 0.78 and brilho > 0.7:
+                pygame.draw.line(superficie, cor, (x - 3, y), (x + 3, y), 1)
+                pygame.draw.line(superficie, cor, (x, y - 3), (x, y + 3), 1)
+
+    # Nuvens em camadas pixeladas, deslizando em velocidades distintas.
+    for idx, (base_x, y, escala) in enumerate(((-30, 145, 1.0), (88, 252, 0.82),
+                                                (240, 185, 0.94), (365, 380, 1.12),
+                                                (20, 555, 0.72), (280, 625, 0.9))):
+        largura = int(92 * escala)
+        x = int((base_x - frame * (0.24 + idx * 0.035)) % (LARGURA_VIRTUAL + 130) - 65)
+        sombra = misturar_cores(base, (65, 82, 116) if noite > 0.3 else (94, 129, 164), 0.64)
+        luz = misturar_cores(base, (117, 142, 177) if noite > 0.3 else (220, 235, 246), 0.60)
+        pygame.draw.rect(superficie, sombra, (x + 8, y + 13, largura, 18))
+        pygame.draw.rect(superficie, sombra, (x + 22, y + 2, int(22 * escala), 28))
+        pygame.draw.rect(superficie, sombra, (x + 47, y - 4, int(30 * escala), 35))
+        pygame.draw.rect(superficie, luz, (x + 14, y + 12, largura - 14, 7))
+        pygame.draw.rect(superficie, luz, (x + 25, y + 4, int(18 * escala), 7))
+        pygame.draw.rect(superficie, luz, (x + 52, y, int(23 * escala), 8))
 
 
 # --- JOGADOR ---
@@ -1104,6 +1920,16 @@ class Jogador(Sprite):
         self.tempo_turbo = 0
         self.tempo_mult = 0
         self.tempo_slow = 0
+        self.tempo_jetpack = 0
+        self.jetpack_pousando = 0
+        self.jetpack_fase = None  # subindo, voando, descendo
+        self.jetpack_transicao_timer = 0
+        self.jetpack_subida_duracao = 45
+        self.jetpack_descida_duracao = 48
+        self.jetpack_bottom_origem = self.chao_y
+        self.jetpack_nivel = 1  # 0 baixa, 1 media, 2 alta
+        self.jetpack_indice_moeda = 0
+        self.morte_por_buraco = False
         self.escudo_hits = 0
         self.escudo_max = 0
 
@@ -1269,6 +2095,15 @@ class Jogador(Sprite):
             pygame.draw.lines(surf, (218, 165, 32), False, [(28, 42), (40, 56), (52, 42)], 3)
             pygame.draw.rect(surf, (218, 165, 32), (38, 56, 6, 8), border_radius=2)
 
+        if self.tempo_jetpack > 0 or self.jetpack_pousando > 0:
+            # Mochila compacta e chama pixelada; desenhada no sprite existente, sem asset extra.
+            pygame.draw.rect(surf, (30, 36, 48), (7, 27, 16, 29), border_radius=3)
+            pygame.draw.rect(surf, (215, 225, 232), (10, 30, 10, 19), 2, border_radius=2)
+            pygame.draw.rect(surf, (238, 112, 31), (12, 34, 6, 12), border_radius=1)
+            chama = 4 + (frame_contador % 3) * 2
+            pygame.draw.polygon(surf, (255, 116, 25), [(12, 55), (20, 55), (18, 55 + chama), (14, 55 + chama)])
+            pygame.draw.polygon(surf, (255, 225, 95), [(14, 55), (18, 55), (17, 55 + chama // 2), (15, 55 + chama // 2)])
+
         if self.tempo_ima > 0 and not self.morrendo:
             self.desenhar_raios_ima(surf, frame_contador)
 
@@ -1294,6 +2129,20 @@ class Jogador(Sprite):
             elif tipo == "SLOW":
                 self.tempo_slow = duracao
                 self.slow_ativados += 1
+            elif tipo == "JETPACK":
+                self.tempo_jetpack = duracao
+                self.jetpack_pousando = 0
+                self.jetpack_fase = "subindo"
+                self.jetpack_transicao_timer = self.jetpack_subida_duracao
+                self.jetpack_bottom_origem = self.rect.bottom
+                self.jetpack_nivel = 1
+                self.jetpack_indice_moeda = 0
+                self.no_chao = False
+                self.descida_rapida = False
+                self.agachado = False
+                self.velocidade_y = 0
+                self._visual_dirty = True
+                disparar_vibracao(0.25, vibracao_ligada)
 
         if gerenciador_sons:
             gerenciador_sons.tocar_som("powerup", self.tempo_slow > 0, vol_sfx)
@@ -1301,6 +2150,27 @@ class Jogador(Sprite):
                 gerenciador_sons.tocar_som("turbo", self.tempo_slow > 0, vol_sfx)
             elif tipo == "IMA":
                 gerenciador_sons.tocar_som("ima", self.tempo_slow > 0, vol_sfx)
+
+    def mover_jetpack(self, direcao):
+        """No trecho de voo, direcao -1 sobe e +1 desce uma faixa."""
+        if self.jetpack_fase != "voando" or self.morrendo:
+            return
+        if direcao < 0:
+            self.jetpack_nivel = min(2, self.jetpack_nivel + 1)
+        elif direcao > 0:
+            self.jetpack_nivel = max(0, self.jetpack_nivel - 1)
+        self._visual_dirty = True
+
+    def obter_bottom_jetpack(self, nivel=None):
+        """Posição inferior do personagem nas três faixas do céu."""
+        if nivel is None:
+            nivel = self.jetpack_nivel
+        bottoms = (self.chao_y - 175, self.chao_y - 295, self.chao_y - 415)
+        return bottoms[max(0, min(2, int(nivel)))]
+
+    def obter_y_moeda_jetpack(self, nivel=None):
+        """Centro das moedas na mesma altura das três faixas de voo."""
+        return int(self.obter_bottom_jetpack(nivel) - self.base_h / 2)
 
     def pular(self, gerenciador_sons=None, vol_sfx=1.0):
         if self.morrendo: return
@@ -1339,16 +2209,29 @@ class Jogador(Sprite):
             if ativacao:
                 self.iniciar_descida_rapida(gerenciador_sons, vol_sfx)
 
-    def iniciar_morte(self):
+    def iniciar_morte(self, por_buraco=False):
         self.morrendo = True
-        self.velocidade_y = -12
-        self.tempo_morte = 60
+        self.morte_por_buraco = bool(por_buraco)
+        self.velocidade_y = 1.5 if por_buraco else -12
+        self.tempo_morte = 70 if por_buraco else 60
         self.tempo_turbo = 0
+        self.tempo_jetpack = 0
+        self.jetpack_pousando = 0
+        self.jetpack_fase = None
+        self.jetpack_transicao_timer = 0
         self.escudo_hits = 0
         self.agachado = False
         self._visual_dirty = True
 
     def update_morte(self, particulas, pool_manager):
+        # Queda em buraco: o personagem cai para baixo, em vez da animação de ser atingido.
+        if self.morte_por_buraco:
+            self.velocidade_y += 0.72
+            self.rect.y += self.velocidade_y
+            self.angulo_rotacao += 5
+            self.tempo_morte -= 1
+            self._visual_dirty = True
+            return
         # Apenas atualiza a simulacao. A rotacao real da imagem e feita uma vez
         # por frame renderizado, nunca em cada passo de recuperacao.
         self.velocidade_y += 0.8
@@ -1395,12 +2278,20 @@ class Jogador(Sprite):
         self._visual_dirty = False
 
     def update(self, vel_jogo, frame_contador=0, segurando_pulo=False, segurando_baixo=False, particulas=None,
-               pool_manager=None, gerenciador_sons=None, vol_sfx=1.0):
+               pool_manager=None, gerenciador_sons=None, vol_sfx=1.0, pode_pousar=True):
         if self.morrendo:
             self.update_morte(particulas, pool_manager)
             return
 
-        self.agachar(segurando_baixo, gerenciador_sons, vol_sfx)
+        if self.jetpack_fase is None and self.no_chao and not pode_pousar:
+            self.iniciar_morte(por_buraco=True)
+            self.update_morte(particulas, pool_manager)
+            return
+
+        if self.jetpack_fase is None:
+            self.agachar(segurando_baixo, gerenciador_sons, vol_sfx)
+        else:
+            self.agachado = False
         self.anim_pernas += vel_jogo * 0.08
 
         if self.tempo_ima > 0: self.tempo_ima -= 1
@@ -1420,7 +2311,51 @@ class Jogador(Sprite):
             self._visual_cor_atual = self.cor_base
         self._visual_dirty = True
 
-        if self.descida_rapida:
+        if self.jetpack_fase == "subindo":
+            # O personagem ganha altitude enquanto o fundo é gradualmente trocado pelo céu.
+            self.no_chao = False
+            self.descida_rapida = False
+            self.jetpack_transicao_timer = max(0, self.jetpack_transicao_timer - 1)
+            progresso = 1.0 - self.jetpack_transicao_timer / float(max(1, self.jetpack_subida_duracao))
+            suave = progresso * progresso * (3.0 - 2.0 * progresso)
+            destino = self.obter_bottom_jetpack(1)
+            self.rect.bottom = int(self.jetpack_bottom_origem + (destino - self.jetpack_bottom_origem) * suave)
+            self.velocidade_y = 0
+            if self.jetpack_transicao_timer <= 0:
+                self.jetpack_fase = "voando"
+                self.rect.bottom = destino
+
+        elif self.jetpack_fase == "voando":
+            self.no_chao = False
+            self.descida_rapida = False
+            self.tempo_jetpack = max(0, self.tempo_jetpack - 1)
+            destino = self.obter_bottom_jetpack(self.jetpack_nivel)
+            diferenca = destino - self.rect.bottom
+            self.rect.bottom += int(diferenca * 0.22) if abs(diferenca) > 2 else int(diferenca)
+            self.velocidade_y = 0
+            if self.tempo_jetpack <= 0:
+                self.jetpack_fase = "descendo"
+                self.jetpack_pousando = self.jetpack_descida_duracao
+                self.jetpack_transicao_timer = self.jetpack_descida_duracao
+                self.jetpack_bottom_origem = self.rect.bottom
+
+        elif self.jetpack_fase == "descendo":
+            self.no_chao = False
+            self.descida_rapida = False
+            self.jetpack_pousando = max(0, self.jetpack_pousando - 1)
+            self.jetpack_transicao_timer = max(0, self.jetpack_transicao_timer - 1)
+            progresso = 1.0 - self.jetpack_transicao_timer / float(max(1, self.jetpack_descida_duracao))
+            suave = progresso * progresso * (3.0 - 2.0 * progresso)
+            self.rect.bottom = int(self.jetpack_bottom_origem + (self.chao_y - self.jetpack_bottom_origem) * suave)
+            self.velocidade_y = 0
+            if self.jetpack_transicao_timer <= 0:
+                self.rect.bottom = self.chao_y
+                self.jetpack_pousando = 0
+                self.jetpack_fase = None
+                self.no_chao = True
+                self.velocidade_y = 0
+
+        elif self.descida_rapida:
             self.velocidade_y += 2.2
             self.rect.y += self.velocidade_y
         else:
@@ -1439,11 +2374,18 @@ class Jogador(Sprite):
         w_alvo, h_alvo = self.base_w, self.base_h
         if self.agachado and self.no_chao:
             w_alvo, h_alvo = 80, 80
+        elif self.jetpack_fase is not None or self.jetpack_pousando > 0:
+            w_alvo, h_alvo = 80, 80
         elif not self.no_chao:
             if not self.descida_rapida:
                 w_alvo, h_alvo = 71, 86
 
-        if self.rect.bottom >= self.chao_y:
+        if self.jetpack_fase is None and self.rect.bottom >= self.chao_y:
+            if not pode_pousar:
+                self.rect.bottom = self.chao_y
+                self.iniciar_morte(por_buraco=True)
+                self.update_morte(particulas, pool_manager)
+                return
             if not self.no_chao and not self.agachado:
                 self.w_atual, self.h_atual = 100, 65
             self.rect.bottom = self.chao_y
@@ -1465,6 +2407,162 @@ class Jogador(Sprite):
 
 
 _CACHE_VISUAIS_VOADORES = {}
+
+
+class Buraco(Sprite):
+    """Fenda no terreno com paredes em perspectiva e bordas de terra texturizadas."""
+    LARGURAS = {
+        "pequeno": (48, 66),
+        "medio": (92, 122),
+        "grande": (154, 196),
+    }
+
+    def __init__(self, x_pos, cenario="cidade", tamanho="pequeno"):
+        super().__init__()
+        self.cenario = cenario
+        self.tamanho = tamanho
+        self.largura = random.randint(*self.LARGURAS.get(tamanho, self.LARGURAS["pequeno"]))
+        altura = 82
+        self.image = pygame.Surface((self.largura, altura)).convert()
+        self.image.fill(CHAVE_TRANSPARENCIA_SPRITES)
+        self.image.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
+        w = self.largura
+        mid = w // 2
+
+        if cenario == "deserto":
+            # Areia quebrada no topo e camadas ocre/vermelhas nas paredes.
+            contorno = (93, 57, 31)
+            aro_sombra = (122, 77, 39)
+            aro_luz = (241, 190, 103)
+            parede = (127, 78, 43)
+            parede_luz = (174, 113, 58)
+            fenda = (61, 42, 31)
+            fundo = (43, 35, 31)
+            detalhe = (218, 157, 78)
+        elif cenario == "neve":
+            # Crosta de neve irregular envolvendo uma fenda de rocha/gelada.
+            contorno = (37, 57, 75)
+            aro_sombra = (72, 101, 125)
+            aro_luz = (238, 249, 255)
+            parede = (54, 82, 107)
+            parede_luz = (117, 156, 184)
+            fenda = (31, 47, 66)
+            fundo = (19, 31, 49)
+            detalhe = (189, 222, 242)
+        else:
+            # Asfalto rachado, terra exposta e pequenas raizes na borda.
+            contorno = (22, 25, 31)
+            aro_sombra = (52, 56, 61)
+            aro_luz = (112, 139, 78)
+            parede = (103, 66, 48)
+            parede_luz = (146, 94, 64)
+            fenda = (52, 40, 38)
+            fundo = (31, 30, 38)
+            detalhe = (180, 121, 79)
+
+        # A boca tem recortes e assimetria. As bordas inferiores convergem para
+        # o centro, criando uma leitura de profundidade em vez de um retangulo preto.
+        silhueta = [
+            (1, 9), (w // 8, 5), (w // 4, 7), (w // 3, 3),
+            (mid - 5, 6), (mid + w // 5, 3), (w - w // 5, 6),
+            (w - 8, 4), (w - 1, 10), (w - 4, 20), (w - 10, 31),
+            (mid + max(7, w // 5), 51), (mid + max(4, w // 7), 75),
+            (mid - max(4, w // 7), 75), (mid - max(7, w // 5), 51),
+            (10, 31), (4, 20)
+        ]
+        pygame.draw.polygon(self.image, contorno, silhueta)
+
+        aro = [
+            (3, 9), (w // 8 + 2, 7), (w // 4, 9), (w // 3, 6),
+            (mid - 3, 8), (mid + w // 5 - 2, 6), (w - w // 5, 8),
+            (w - 7, 7), (w - 3, 11), (w - 7, 19), (w - 13, 30),
+            (mid + max(5, w // 5 - 2), 50), (mid + max(3, w // 7 - 2), 72),
+            (mid - max(3, w // 7 - 2), 72), (mid - max(5, w // 5 - 2), 50),
+            (13, 30), (7, 19)
+        ]
+        pygame.draw.polygon(self.image, aro_sombra, aro)
+
+        # Faixas da parede interna, ligeiramente assimetricas.
+        parede_pts = [
+            (6, 12), (w // 5, 13), (w // 3, 11), (w - w // 4, 12),
+            (w - 7, 12), (w - 14, 29), (mid + max(4, w // 6), 49),
+            (mid + max(2, w // 9), 69), (mid - max(2, w // 9), 69),
+            (mid - max(4, w // 6), 49), (14, 29)
+        ]
+        pygame.draw.polygon(self.image, parede, parede_pts)
+
+        # Faces iluminadas nas laterais dão a sensação de um buraco que desce.
+        pygame.draw.polygon(self.image, parede_luz, [
+            (7, 13), (w // 4, 14), (mid - max(5, w // 7), 42),
+            (mid - max(2, w // 10), 67), (mid - max(6, w // 5), 52), (13, 29)
+        ])
+        pygame.draw.polygon(self.image, fenda, [
+            (w - 9, 13), (w - w // 4, 14), (mid + max(5, w // 7), 42),
+            (mid + max(2, w // 10), 67), (mid + max(6, w // 5), 52), (w - 13, 29)
+        ])
+
+        cavidade = [
+            (12, 17), (w // 4, 18), (mid, 19), (w - w // 4, 18),
+            (w - 12, 17), (w - 17, 31), (mid + max(5, w // 7), 49),
+            (mid + max(2, w // 12), 68), (mid - max(2, w // 12), 68),
+            (mid - max(5, w // 7), 49), (17, 31)
+        ]
+        pygame.draw.polygon(self.image, fenda, cavidade)
+        fundo_pts = [
+            (mid - max(3, w // 8), 55), (mid + max(3, w // 8), 55),
+            (mid + max(2, w // 12), 68), (mid - max(2, w // 12), 68)
+        ]
+        pygame.draw.polygon(self.image, fundo, fundo_pts)
+
+        # Estratos pixelados e fragmentos nas paredes: nunca se usa preto puro.
+        for idx, y in enumerate((30, 39, 48, 57)):
+            margem = max(10, w // 5 + idx * 2)
+            cor_estrato = parede_luz if idx % 2 == 0 else contorno
+            if margem < mid - 4:
+                pygame.draw.line(self.image, cor_estrato,
+                                 (margem, y), (max(margem, mid - 9 - idx), y + 2), 2)
+                pygame.draw.line(self.image, contorno,
+                                 (min(w - margem, mid + 8 + idx), y + 3), (w - margem, y + 1), 2)
+
+        # Boca superior irregular com reflexos curtos, rachaduras e material do bioma.
+        pygame.draw.line(self.image, aro_luz, (5, 8), (max(8, w // 4), 8), 2)
+        pygame.draw.line(self.image, aro_luz, (w // 2 + 5, 7), (w - 12, 8), 1)
+        pygame.draw.line(self.image, contorno, (8, 12), (12, 17), 2)
+        pygame.draw.line(self.image, contorno, (w - 9, 12), (w - 14, 18), 2)
+        pygame.draw.rect(self.image, detalhe, (w // 4, 10, max(2, w // 12), 2))
+        pygame.draw.rect(self.image, detalhe, (w - w // 3, 11, max(2, w // 14), 1))
+
+        # Pedaços de terra, grama ou gelo desprendidos na borda, determinísticos por buraco.
+        rng = random.Random((w * 31) + (7 if cenario == "cidade" else 13 if cenario == "deserto" else 19))
+        for _ in range(max(3, w // 18)):
+            px = rng.choice((rng.randint(3, max(4, w // 6)), rng.randint(max(3, w - w // 6), w - 4)))
+            py = rng.randint(3, 12)
+            tam = rng.choice((1, 2, 3))
+            pygame.draw.rect(self.image, detalhe, (px, py, tam, 1))
+        if cenario == "cidade":
+            # Alguns tufos curtos permanecem apenas na borda superior do terreno.
+            pygame.draw.line(self.image, (44, 119, 43), (8, 6), (6, 2), 2)
+            pygame.draw.line(self.image, (71, 158, 57), (11, 7), (13, 3), 2)
+            pygame.draw.line(self.image, (44, 119, 43), (w - 8, 6), (w - 6, 2), 2)
+        elif cenario == "neve":
+            pygame.draw.rect(self.image, (255, 255, 255), (5, 5, 6, 2))
+            pygame.draw.rect(self.image, (220, 241, 252), (w - 12, 6, 7, 2))
+
+        # Desenha a borda próxima por último para separar claramente terreno e queda.
+        pygame.draw.line(self.image, contorno, (2, 10), (5, 18), 2)
+        pygame.draw.line(self.image, aro_luz, (5, 9), (max(8, w // 5), 10), 1)
+
+        self.rect = self.image.get_rect()
+        self.rect.x = int(x_pos)
+        # Desloca só alguns pixels para cima para que a borda se sobreponha à superfície
+        # do terreno. A largura do rect permanece a mesma, sem alterar a área horizontal.
+        self.rect.y = ALTURA_VIRTUAL - 75
+
+    def update(self, velocidade_jogo):
+        # Acompanha exatamente a velocidade de rolagem do terreno, parecendo escavado nele.
+        self.rect.x -= max(0.0, float(velocidade_jogo))
+        if self.rect.right < -10:
+            self.kill()
 
 # --- OBSTÁCULOS E ITENS ---
 class ObstaculoTerrestre(Sprite):
@@ -1490,20 +2588,29 @@ class ObstaculoTerrestre(Sprite):
         self.desenhar_grupo_cactos()
 
     def desenhar_grupo_cactos(self):
+        # Sombras no solo e espinhos sao apenas decorativos: hitboxes nao mudam.
         for rel_x, w, h in self.cactos_info:
             y_offset = self.altura - h
             tronco_w = max(10, w // 2)
             tronco_x = rel_x + (w - tronco_w) // 2
+            pygame.draw.ellipse(self.image, (22, 70, 34),
+                                (rel_x + 2, self.altura - 8, max(8, w - 1), 8))
             pygame.draw.rect(self.image, VERDE_CACTO, (tronco_x, y_offset, tronco_w, h),
                              border_top_left_radius=tronco_w // 2, border_top_right_radius=tronco_w // 2)
-            pygame.draw.rect(self.image, VERDE_CACTO_ESCURO, (tronco_x + 2, y_offset + 2, max(2, tronco_w - 4), h - 2),
-                             border_top_left_radius=tronco_w // 2, border_top_right_radius=tronco_w // 2)
+            pygame.draw.rect(self.image, VERDE_CACTO_ESCURO,
+                             (tronco_x + max(2, tronco_w // 2), y_offset + 2,
+                              max(2, tronco_w - max(2, tronco_w // 2)), max(1, h - 2)),
+                             border_top_right_radius=max(2, tronco_w // 4))
+            pygame.draw.line(self.image, VERDE_CACTO_CLARO, (tronco_x + 3, y_offset + 8),
+                             (tronco_x + 3, y_offset + h - 7), 2)
 
             if h > 50:
                 arm_y = y_offset + int(h * 0.4)
                 pygame.draw.rect(self.image, VERDE_CACTO, (rel_x, arm_y, tronco_x - rel_x, 8), border_top_left_radius=4)
                 pygame.draw.rect(self.image, VERDE_CACTO, (rel_x, arm_y - 12, 7, 15), border_top_left_radius=4,
                                  border_top_right_radius=4)
+                pygame.draw.line(self.image, VERDE_CACTO_ESCURO, (rel_x + 2, arm_y - 8),
+                                 (rel_x + 2, arm_y + 4), 1)
 
                 arm_y2 = y_offset + int(h * 0.25)
                 right_x = tronco_x + tronco_w
@@ -1511,9 +2618,21 @@ class ObstaculoTerrestre(Sprite):
                                  border_top_right_radius=4)
                 pygame.draw.rect(self.image, VERDE_CACTO, (rel_x + w - 7, arm_y2 - 12, 7, 15), border_top_left_radius=4,
                                  border_top_right_radius=4)
+                pygame.draw.line(self.image, VERDE_CACTO_ESCURO, (rel_x + w - 3, arm_y2 - 8),
+                                 (rel_x + w - 3, arm_y2 + 4), 1)
 
-            for sy in range(y_offset + 10, y_offset + h - 10, 12):
-                pygame.draw.line(self.image, VERDE_CACTO_CLARO, (tronco_x + 2, sy), (tronco_x + tronco_w - 2, sy), 1)
+            # Nervuras claras e espinhos laterais em padrao fixo.
+            for sy in range(y_offset + 10, y_offset + h - 8, 12):
+                pygame.draw.line(self.image, VERDE_CACTO_CLARO, (tronco_x + 2, sy),
+                                 (tronco_x + tronco_w - 2, sy), 1)
+                if (sy // 12) % 2 == 0:
+                    pygame.draw.line(self.image, (210, 239, 170), (tronco_x - 2, sy + 2),
+                                     (tronco_x + 1, sy + 1), 1)
+                    pygame.draw.line(self.image, (210, 239, 170), (tronco_x + tronco_w - 1, sy + 6),
+                                     (tronco_x + tronco_w + 2, sy + 5), 1)
+            if h > 60:
+                pygame.draw.circle(self.image, (224, 180, 105), (tronco_x + tronco_w // 2, y_offset + 5), 3)
+                pygame.draw.circle(self.image, (255, 222, 142), (tronco_x + tronco_w // 2, y_offset + 4), 1)
 
     def update(self, velocidade_jogo):
         self.rect.x -= velocidade_jogo
@@ -1555,11 +2674,21 @@ class ObstaculoVoador(Sprite):
                 pygame.draw.ellipse(imagem, CIANO_ESCUDO, (16, 12, 52, 28))
                 pygame.draw.circle(imagem, AMARELO_NEON, (22, 24), 6)
             pygame.draw.ellipse(imagem, cor_ptero, (20, 16, 44, 24))
+            # Bico, cauda e marcas do corpo para uma silhueta mais definida.
             pygame.draw.polygon(imagem, cor_ptero, [(20, 24), (0, 30), (20, 34)])
+            pygame.draw.polygon(imagem, (105, 30, 175), [(20, 25), (6, 30), (20, 29)])
             pygame.draw.polygon(imagem, cor_ptero, [(40, 24), (20, 8 + asa_offset), (60, 8 + asa_offset)])
+            pygame.draw.polygon(imagem, (118, 42, 189),
+                                [(40, 24), (24, 10 + asa_offset), (35, 20), (45, 19), (56, 10 + asa_offset)])
             pygame.draw.polygon(imagem, BRANCO, [(40, 24), (20, 8 + asa_offset), (25, 8 + asa_offset)], 2)
+            pygame.draw.line(imagem, (218, 188, 255), (31, 22), (54, 12 + asa_offset), 1)
+            pygame.draw.line(imagem, (218, 188, 255), (35, 25), (59, 18), 1)
+            pygame.draw.ellipse(imagem, (125, 35, 180), (33, 30, 24, 5))
+            pygame.draw.line(imagem, (60, 25, 91), (33, 35), (31, 42), 2)
+            pygame.draw.line(imagem, (60, 25, 91), (48, 36), (50, 42), 2)
             cor_olho = AMARELO_NEON if self.e_noite else PRETO
             pygame.draw.circle(imagem, cor_olho, (18, 24), 3)
+            pygame.draw.circle(imagem, BRANCO, (19, 23), 1)
             _CACHE_VISUAIS_VOADORES[chave] = imagem
         self.image = imagem
 
@@ -1567,9 +2696,13 @@ class ObstaculoVoador(Sprite):
 class ObstaculoPulaPula(Sprite):
     def __init__(self, x_pos):
         super().__init__()
-        self.image = pygame.Surface((35, 35))
+        self.image = pygame.Surface((35, 35)).convert()
         self.image.fill(ROXO_VOADOR)
-        pygame.draw.rect(self.image, BRANCO, (5, 5, 25, 25), 2)
+        pygame.draw.rect(self.image, (91, 28, 145), (0, 27, 35, 8))
+        pygame.draw.rect(self.image, (205, 135, 255), (3, 3, 29, 29), 2)
+        pygame.draw.rect(self.image, (242, 220, 255), (6, 6, 23, 23), 1)
+        pygame.draw.line(self.image, (242, 220, 255), (8, 9), (26, 9), 2)
+        pygame.draw.line(self.image, (91, 28, 145), (8, 25), (26, 25), 2)
         self.rect = self.image.get_rect()
         self.rect.x = x_pos
         self.chao_y = ALTURA_VIRTUAL - 70
@@ -1588,6 +2721,94 @@ class ObstaculoPulaPula(Sprite):
             self.rect.bottom = self.chao_y
             self.velocidade_y = random.choice([-15, -17, -19])
         if self.rect.x < -100: self.kill()
+
+
+class ObstaculoDeBioma(Sprite):
+    """Obstaculos decorados por bioma; comparten la colision basica del runner."""
+    def __init__(self, x_pos, cenario, tipo):
+        super().__init__()
+        self.cenario = cenario
+        self.tipo = tipo
+        self.qtd_cactos = 0  # no cuenta para la mision exclusiva de cactos
+        self.anim = 0
+        self.frames = []
+        if tipo == "maleza":
+            self.largura, self.altura = 38, 38
+            for ang in range(4):
+                img = pygame.Surface((38, 38)).convert()
+                img.fill(CHAVE_TRANSPARENCIA_SPRITES)
+                img.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
+                pygame.draw.circle(img, (91, 58, 29), (19, 19), 16)
+                pygame.draw.circle(img, (170, 115, 53), (19, 19), 12)
+                for a in range(0, 360, 45):
+                    rad = math.radians(a + ang * 11)
+                    p1 = (int(19 + math.cos(rad) * 4), int(19 + math.sin(rad) * 4))
+                    p2 = (int(19 + math.cos(rad) * 15), int(19 + math.sin(rad) * 15))
+                    pygame.draw.line(img, (104, 68, 34), p1, p2, 2)
+                pygame.draw.circle(img, (228, 174, 83), (14, 13), 3)
+                self.frames.append(img)
+            self.image = self.frames[0]
+            self.rect = self.image.get_rect()
+            self.rect.bottom = ALTURA_VIRTUAL - 70
+        elif tipo == "escorpiao":
+            self.largura, self.altura = 60, 32
+            for fase in range(2):
+                img = pygame.Surface((60, 32)).convert()
+                img.fill(CHAVE_TRANSPARENCIA_SPRITES)
+                img.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
+                # Patas movidas dois pixels entre quadros; o corpo permanece igual.
+                for i in range(4):
+                    off = 2 if ((i + fase) % 2) else -1
+                    x = 12 + i * 9
+                    pygame.draw.line(img, (74, 43, 40), (x, 22), (x - 3, 28 + off), 2)
+                    pygame.draw.line(img, (74, 43, 40), (x + 2, 22), (x + 5, 28 - off), 2)
+                pygame.draw.ellipse(img, (101, 53, 43), (9, 12, 39, 14))
+                pygame.draw.ellipse(img, (177, 86, 55), (13, 12, 29, 9))
+                pygame.draw.circle(img, (237, 185, 93), (15, 17), 2)
+                pygame.draw.circle(img, (237, 185, 93), (42, 17), 2)
+                pygame.draw.circle(img, (30, 21, 20), (16, 17), 1)
+                pygame.draw.circle(img, (30, 21, 20), (43, 17), 1)
+                pygame.draw.lines(img, (91, 46, 37), False, [(43, 14), (49, 8), (50, 4), (46, 2)], 3)
+                pygame.draw.circle(img, (227, 90, 57), (46, 3), 3)
+                self.frames.append(img)
+            self.image = self.frames[0]
+            self.rect = self.image.get_rect()
+            self.rect.bottom = ALTURA_VIRTUAL - 70
+        elif tipo == "espinho_gelo":
+            self.largura, self.altura = 48, 58
+            self.image = pygame.Surface((48, 58)).convert()
+            self.image.fill(CHAVE_TRANSPARENCIA_SPRITES)
+            self.image.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
+            pygame.draw.ellipse(self.image, (103, 139, 167), (2, 48, 44, 8))
+            pygame.draw.polygon(self.image, (76, 135, 178), [(2, 56), (10, 31), (17, 43), (24, 7), (32, 40), (39, 25), (46, 56)])
+            pygame.draw.polygon(self.image, (188, 229, 250), [(2, 56), (10, 31), (17, 43), (24, 7), (24, 56)])
+            pygame.draw.polygon(self.image, (226, 246, 255), [(24, 7), (32, 40), (39, 25), (46, 56), (24, 56)])
+            pygame.draw.line(self.image, (245, 252, 255), (24, 10), (18, 36), 2)
+            self.rect = self.image.get_rect()
+            self.rect.bottom = ALTURA_VIRTUAL - 70
+        else:  # bola de neve cruzando a pista
+            self.largura, self.altura = 40, 36
+            self.image = pygame.Surface((40, 36)).convert()
+            self.image.fill(CHAVE_TRANSPARENCIA_SPRITES)
+            self.image.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
+            pygame.draw.ellipse(self.image, (87, 119, 148), (2, 7, 36, 27))
+            pygame.draw.circle(self.image, (190, 222, 242), (20, 18), 15)
+            pygame.draw.circle(self.image, (242, 250, 255), (15, 12), 7)
+            pygame.draw.rect(self.image, (215, 236, 249), (20, 20, 9, 3))
+            self.rect = self.image.get_rect()
+            self.rect.y = random.choice((ALTURA_VIRTUAL - 205, ALTURA_VIRTUAL - 175, ALTURA_VIRTUAL - 145))
+        self.rect.x = x_pos
+        self._y_base = self.rect.y
+
+    def update(self, velocidade_jogo):
+        self.rect.x -= velocidade_jogo + (0.45 if self.tipo in ("maleza", "escorpiao", "bola_neve") else 0.0)
+        self.anim += 1
+        if self.tipo in ("maleza", "escorpiao") and self.frames:
+            self.image = self.frames[(self.anim // 4) % len(self.frames)]
+        elif self.tipo == "bola_neve":
+            self.rect.y = self._y_base + int(math.sin(self.anim * 0.12) * 3)
+        if self.rect.right < -60:
+            self.kill()
 
 
 class AvisoLaser(Sprite):
@@ -1801,18 +3022,21 @@ def gerar_padrao_moedas(x_base, y_base, formato, todos_sprites, moedas, pool_man
 cooldown_laser = 0
 
 
-def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups, metros, pool_manager):
+def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups, metros, pool_manager,
+                 cenario="cidade", buracos=None):
     global cooldown_laser
+    if buracos is None:
+        buracos = pygame.sprite.Group()
     x_inicial = LARGURA_VIRTUAL + 20
 
     if cooldown_laser > 0:
         cooldown_laser -= 1
 
-    for obs in list(obstaculos) + list(perigos_especiais):
+    for obs in list(obstaculos) + list(perigos_especiais) + list(buracos):
         if obs.rect.right > LARGURA_VIRTUAL - 140:
             return
 
-    if len(obstaculos) + len(perigos_especiais) >= 3:
+    if len(obstaculos) + len(perigos_especiais) + len(buracos) >= 3:
         return
 
     if metros >= 600 and cooldown_laser <= 0 and random.random() < 0.15:
@@ -1823,14 +3047,42 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
         cooldown_laser = 12
         return
 
+    # Buracos surgem como obstáculo de terreno independente; larguras distintas
+    # incentivam o jogador a escolher salto curto ou manter o botão para saltar mais longe.
+    if metros >= 120 and random.random() < 0.18:
+        tamanho_buraco = random.choices(("pequeno", "medio", "grande"), weights=(4, 4, 2), k=1)[0]
+        buraco = Buraco(x_inicial, cenario, tamanho_buraco)
+        buracos.add(buraco)
+        if random.random() < 0.52:
+            qtd = max(5, min(9, buraco.largura // 18 + 3))
+            span = buraco.largura + 42
+            inicio = x_inicial - 18
+            y_base = ALTURA_VIRTUAL - 150
+            for idx in range(qtd):
+                proporcao = idx / float(max(1, qtd - 1))
+                x_moeda = inicio + int(span * proporcao)
+                y_moeda = int(y_base - math.sin(math.pi * proporcao) * 46)
+                moeda_arco = pool_manager.obter_moeda(x_moeda, y_moeda)
+                todos_sprites.add(moeda_arco)
+                moedas.add(moeda_arco)
+        return
+
     opcoes = ["normal"]
     if metros >= 200: opcoes.append("agrupado_colado")
     if metros >= 200: opcoes.append("voador")
     if metros >= 600: opcoes.append("pulador")
+    if cenario == "deserto":
+        opcoes.extend(("maleza", "escorpiao"))
+    elif cenario == "neve":
+        opcoes.extend(("espinho_gelo", "bola_neve"))
 
     tipo_obs = random.choice(opcoes)
 
-    if tipo_obs == "voador":
+    if tipo_obs in ("maleza", "escorpiao", "espinho_gelo", "bola_neve"):
+        obs = ObstaculoDeBioma(x_inicial, cenario, tipo_obs)
+        todos_sprites.add(obs)
+        obstaculos.add(obs)
+    elif tipo_obs == "voador":
         obs = ObstaculoVoador(x_inicial)
         todos_sprites.add(obs);
         obstaculos.add(obs)
@@ -1839,17 +3091,25 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
         todos_sprites.add(obs);
         obstaculos.add(obs)
     elif tipo_obs == "agrupado_colado":
-        qtd_cactos = random.randint(2, 4)
-        obs = ObstaculoTerrestre(x_inicial, qtd_cactos=qtd_cactos)
+        if cenario == "neve":
+            obs = ObstaculoDeBioma(x_inicial, cenario, "espinho_gelo")
+        else:
+            qtd_cactos = random.randint(2, 4)
+            obs = ObstaculoTerrestre(x_inicial, qtd_cactos=qtd_cactos)
         todos_sprites.add(obs);
         obstaculos.add(obs)
     else:
-        obs = ObstaculoTerrestre(x_inicial, qtd_cactos=1)
+        if cenario == "neve":
+            obs = ObstaculoDeBioma(x_inicial, cenario, "espinho_gelo")
+        else:
+            obs = ObstaculoTerrestre(x_inicial, qtd_cactos=1)
         todos_sprites.add(obs);
         obstaculos.add(obs)
 
-    if random.random() < 0.07:
-        tipo_powerup = random.choice(list(UPGRADES_CONFIG.keys()))
+    if random.random() < 0.11:
+        tipos_powerup = list(UPGRADES_CONFIG.keys())
+        # Jetpack é um pouco menos raro por ser um power-up de voo especial.
+        tipo_powerup = random.choices(tipos_powerup, weights=(1, 1, 1, 1, 1, 1.4), k=1)[0]
         p = PowerUp(x_inicial + 160, random.choice([ALTURA_VIRTUAL - 140, ALTURA_VIRTUAL - 220]), tipo_powerup)
         todos_sprites.add(p);
         powerups.add(p)
@@ -1882,12 +3142,20 @@ def main():
     todos_sprites = pygame.sprite.Group()
     obstaculos = pygame.sprite.Group()
     perigos_especiais = pygame.sprite.Group()
+    buracos = pygame.sprite.Group()
     moedas = pygame.sprite.Group()
     powerups = pygame.sprite.Group()
     textos_flut = pygame.sprite.Group()
     particulas = pygame.sprite.Group()
 
     bg_parallax = ParallaxBackground()
+    clima = SistemaClima()
+    cenario_atual = "cidade"
+    cenario_tempo_restante = random.randint(55, 100) * 60
+    transicao_cenario_timer = 0
+    cenario_transicao_nome = "CIDADE"
+    overlay_transicao = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL)).convert()
+    overlay_transicao.fill((10, 14, 27))
     missoes_atuais = gerar_missoes_rodada()
 
     jogador = None
@@ -1902,7 +3170,13 @@ def main():
 
     touch_start_pos = None
     touch_current_pos = None
+    touch_jetpack_anchor = None
     toque_ativo = False
+    jetpack_gesto_usado = False
+    mouse_drag_active = False
+    mouse_drag_anchor_pos = None
+    mouse_jetpack_gesto_usado = False
+    spawn_bloqueado_frames = 0
     segurando_baixo_touch = False
     input_pulo_ativo = False
     input_baixo_ativo = False
@@ -1919,6 +3193,7 @@ def main():
     EVENTO_GERAR = pygame.USEREVENT + 1
     tempo_spawn_atual = 1500
     superficies_escala = {}
+    jetpack_bg_surface = pygame.Surface((LARGURA_VIRTUAL, ALTURA_VIRTUAL)).convert()
 
     # Botões Centralizados do Menu Inicial
     btn_jogar = pygame.Rect(75, 390, 300, 50)
@@ -1945,15 +3220,17 @@ def main():
 
     def reiniciar_jogo():
         nonlocal jogador, pontuacao, moedas_coletadas, novo_recorde_alcançado, missoes_atuais, cor_atual_ceu, tempo_spawn_atual, estado
+        nonlocal cenario_atual, cenario_tempo_restante, transicao_cenario_timer, cenario_transicao_nome, spawn_bloqueado_frames
         # Mate os sprites, em vez de apenas esvaziar os grupos. Moedas e
         # particulas devolvem-se assim aos seus pools para serem reutilizadas
         # nas partidas seguintes, sem acumular objetos abandonados.
-        for grupo in (todos_sprites, obstaculos, perigos_especiais, moedas, powerups, textos_flut, particulas):
+        for grupo in (todos_sprites, obstaculos, perigos_especiais, buracos, moedas, powerups, textos_flut, particulas):
             for sprite_antigo in grupo.sprites():
                 sprite_antigo.kill()
         todos_sprites.empty()
         obstaculos.empty()
         perigos_especiais.empty()
+        buracos.empty()
         moedas.empty()
         powerups.empty()
         textos_flut.empty()
@@ -1969,7 +3246,14 @@ def main():
         novo_recorde_alcançado = False
         missoes_atuais = gerar_missoes_rodada()
         cor_atual_ceu = list(COR_DIA)
+        cenario_atual = "cidade"
+        cenario_tempo_restante = random.randint(55, 100) * 60
+        bg_parallax.set_cenario(cenario_atual)
+        clima.trocar_cenario(cenario_atual, inicial=True)
+        transicao_cenario_timer = 0
+        cenario_transicao_nome = nome_cenario(cenario_atual)
         tempo_spawn_atual = 1500
+        spawn_bloqueado_frames = 0
         pygame.time.set_timer(EVENTO_GERAR, tempo_spawn_atual)
         estado = "JOGANDO"
 
@@ -2057,7 +3341,7 @@ def main():
                         if rect_item.collidepoint(pos):
                             nivel_atual = dados["upgrades"].get(chave, 0)
                             if nivel_atual < conf["max_nivel"]:
-                                custo = conf["preco_base"] + (nivel_atual * conf["preco_multiplicador"])
+                                custo = calcular_custo_upgrade(chave, nivel_atual)
                                 if dados["moedas_totais"] >= custo:
                                     dados["moedas_totais"] -= custo
                                     dados["upgrades"][chave] = nivel_atual + 1
@@ -2067,6 +3351,7 @@ def main():
     def atualizar_simulacao():
         nonlocal frame_count, pontuacao, moedas_coletadas, novo_recorde_alcançado, estado
         nonlocal anim_menu_tempo, metros_atuais, e_slow, cor_jogador, e_noite, alvo_ceu, cor_ceu_tupla, shake_timer
+        nonlocal cenario_atual, cenario_tempo_restante, transicao_cenario_timer, cenario_transicao_nome, spawn_bloqueado_frames
 
         frame_count += 1
         if shake_timer > 0:
@@ -2076,9 +3361,24 @@ def main():
         skin_nome_atual = dados["skin_equipada"]
         cor_jogador = SKINS.get(skin_nome_atual, SKINS["AZUL"])["cor"]
         metros_atuais = pontuacao // 10
+        if estado == "JOGANDO":
+            if spawn_bloqueado_frames > 0:
+                spawn_bloqueado_frames -= 1
+            cenario_tempo_restante -= 1
+            if cenario_tempo_restante <= 0:
+                # Sorteio independente da distância, com intervalo de segurança longo.
+                cenario_desejado = sortear_proximo_cenario(cenario_atual)
+                cenario_atual = cenario_desejado
+                bg_parallax.set_cenario(cenario_atual)
+                clima.trocar_cenario(cenario_atual)
+                cenario_transicao_nome = nome_cenario(cenario_atual)
+                transicao_cenario_timer = 105  # cerca de 1,75 s a 60 Hz
+                cenario_tempo_restante = random.randint(55, 105) * 60
+        if transicao_cenario_timer > 0:
+            transicao_cenario_timer -= 1
         e_slow = (jogador.tempo_slow > 0) if jogador else False
-        e_noite = (metros_atuais >= 500 and (metros_atuais // 300) % 2 == 1)
-        alvo_ceu = COR_NOITE if e_noite else COR_DIA
+        fase_ciclo, cor_objetivo_ceu, peso_noite, e_noite = calcular_ciclo_ceu(metros_atuais)
+        alvo_ceu = list(cor_objetivo_ceu)
         for i in range(3):
             if cor_atual_ceu[i] < alvo_ceu[i]:
                 cor_atual_ceu[i] = min(cor_atual_ceu[i] + 1.2, alvo_ceu[i])
@@ -2087,7 +3387,8 @@ def main():
         cor_ceu_tupla = (int(cor_atual_ceu[0]), int(cor_atual_ceu[1]), int(cor_atual_ceu[2]))
 
         if estado == "JOGANDO":
-            vel_base = min(20.0, 6.0 + (metros_atuais / 35.0) * 0.35)
+            # Aceleração mais suave; o teto mais baixo aumenta a duração média das partidas.
+            vel_base = min(16.0, 6.0 + (metros_atuais / 100.0) * 0.18)
             if jogador.tempo_slow > 0:
                 vel_jogo = vel_base * 0.5
             elif jogador.tempo_turbo > 0:
@@ -2096,15 +3397,20 @@ def main():
                 vel_jogo = vel_base
 
             if not jogador.morrendo:
-                pontuacao += 2 if jogador.tempo_mult > 0 else 1
+                # Distância visualizada acumula aproximadamente 2x mais rápido.
+                pontuacao += 4 if jogador.tempo_mult > 0 else 2
 
                 if jogador.tempo_ima > 0 and frame_count % 18 == 0:
                     gerenciador_sons.tocar_som("eletricidade", e_slow, dados["vol_sfx"])
                 if jogador.tempo_turbo > 0 and frame_count % 12 == 0:
                     gerenciador_sons.tocar_som("chamas", e_slow, dados["vol_sfx"])
 
-            bg_parallax.update(vel_jogo)
+            bg_parallax.update(vel_jogo, metros_atuais)
+            for buraco in list(buracos):
+                buraco.update(vel_jogo)
 
+            centro_pe_jogador = jogador.rect.centerx
+            pode_pousar = not any(b.rect.left <= centro_pe_jogador <= b.rect.right for b in buracos)
             segurando_pulo = input_pulo_ativo or input_mouse_ativo or (
                 toque_ativo and not segurando_baixo_touch)
             segurando_baixo = input_baixo_ativo or segurando_baixo_touch
@@ -2113,7 +3419,17 @@ def main():
             prev_turbo = jogador.tempo_turbo
 
             jogador.update(vel_jogo, frame_count, segurando_pulo, segurando_baixo, particulas, pool_manager,
-                           gerenciador_sons, dados["vol_sfx"])
+                           gerenciador_sons, dados["vol_sfx"], pode_pousar=pode_pousar)
+
+            # Rota extensa de moedas em zigue-zague durante a fase de voo no céu.
+            if jogador.jetpack_fase == "voando" and frame_count % 8 == 0:
+                trilha_zigzag = (1, 1, 2, 2, 1, 1, 0, 0, 1, 2, 2, 1, 0, 0, 1, 2)
+                nivel_moeda = trilha_zigzag[jogador.jetpack_indice_moeda % len(trilha_zigzag)]
+                moeda_jetpack = pool_manager.obter_moeda(
+                    LARGURA_VIRTUAL + 24, jogador.obter_y_moeda_jetpack(nivel_moeda))
+                todos_sprites.add(moeda_jetpack)
+                moedas.add(moeda_jetpack)
+                jogador.jetpack_indice_moeda += 1
 
             if (prev_slow > 0 and jogador.tempo_slow == 0) or (prev_turbo > 0 and jogador.tempo_turbo == 0):
                 aplicar_shake(20, 10)
@@ -2158,6 +3474,19 @@ def main():
             textos_flut.update()
             particulas.update()
 
+            # Clima de baixa sobrecarga. Raios em tempestades podem remover um
+            # obstaculo adiante, sem tocar na hitbox ou na fisica do jogador.
+            alvo_raio = clima.update(obstaculos, jogador.rect if not jogador.morrendo else None)
+            if alvo_raio is not None and alvo_raio.alive():
+                raio_x, raio_y = alvo_raio.rect.centerx, alvo_raio.rect.centery
+                quantidade_cactos = max(0, getattr(alvo_raio, "qtd_cactos", 0))
+                alvo_raio.kill()
+                criar_explosao_particulas(raio_x, raio_y, (174, 224, 255), 10, particulas, pool_manager)
+                gerenciador_sons.tocar_som("disparo_laser", e_slow, dados["vol_sfx"])
+                for missao in missoes_atuais:
+                    if missao["tipo"] == "QUEBRAR":
+                        missao["atual"] += quantidade_cactos
+
             if not jogador.morrendo:
                 hitbox_jogador = jogador.obter_hitbox()
 
@@ -2173,16 +3502,35 @@ def main():
                             if missao["tipo"] == "MOEDAS": missao["atual"] += 1
 
                 for p in list(powerups):
-                    if hitbox_jogador.colliderect(p.rect):
+                    if p.alive() and hitbox_jogador.colliderect(p.rect):
                         p.kill()
                         jogador.ativar_powerup(p.tipo, gerenciador_sons, dados["vol_sfx"], dados.get("vibracao", True))
+                        if p.tipo == "JETPACK":
+                            # Libera a pista e garante alguns segundos sem novos perigos após o pouso.
+                            spawn_bloqueado_frames = (jogador.tempo_jetpack + jogador.jetpack_subida_duracao +
+                                                       jogador.jetpack_descida_duracao + 180)
+                            for obs in list(obstaculos):
+                                obs.kill()
+                            for perigo in list(perigos_especiais):
+                                perigo.kill()
+                            for buraco in list(buracos):
+                                buraco.kill()
+                            for moeda_antiga in list(moedas):
+                                moeda_antiga.kill()
+                            for powerup_antigo in list(powerups):
+                                powerup_antigo.kill()
                         nome_p = t(UPGRADES_CONFIG[p.tipo]["nome_key"], dados)
                         textos_flut.add(TextoFlutuante(jogador.rect.centerx, jogador.rect.top - 15, f"+ {nome_p}!",
                                                        UPGRADES_CONFIG[p.tipo]["cor"]))
 
-                hit_obs = [obs for obs in obstaculos if hitbox_jogador.colliderect(obs.rect)]
-                hit_laser = [l for l in perigos_especiais if
-                             hasattr(l, 'ativo') and l.ativo and hitbox_jogador.colliderect(l.rect)]
+                em_voo_jetpack = jogador.tempo_jetpack > 0 or jogador.jetpack_pousando > 0
+                if em_voo_jetpack:
+                    hit_obs = []
+                    hit_laser = []
+                else:
+                    hit_obs = [obs for obs in obstaculos if hitbox_jogador.colliderect(obs.rect)]
+                    hit_laser = [l for l in perigos_especiais if
+                                 hasattr(l, 'ativo') and l.ativo and hitbox_jogador.colliderect(l.rect)]
                 todos_hits = hit_obs + hit_laser
 
                 if todos_hits:
@@ -2242,6 +3590,8 @@ def main():
                         TextoFlutuante(LARGURA_VIRTUAL // 2, 280, f"+{m['recompensa']} {t('moedas_hud', dados)}",
                                        BRANCO))
         elif estado in ["INICIO", "LOJA", "UPGRADES", "CONFIG"]:
+            if bg_parallax.cenario != "cidade":
+                bg_parallax.set_cenario("cidade")
             bg_parallax.update(1.2)
 
     # A simulacao usa passo fixo de 60 Hz; a imagem e renderizada separadamente.
@@ -2249,6 +3599,22 @@ def main():
     MAX_TEMPO_ACUMULADO = 0.25
     MAX_PASSOS_POR_FRAME = 15
     sim_acumulado = 0.0
+
+    # Gera a arte animada do titulo antes do primeiro frame visivel. Em celulares
+    # lentos, o cache inicial de 125 quadros podia consumir tanto tempo que a
+    # animacao do menu ja terminava antes de aparecer. Os quadros continuam cacheados.
+    try:
+        superficie_preparacao_titulo = pygame.Surface(
+            (LARGURA_VIRTUAL, ALTURA_VIRTUAL), pygame.SRCALPHA
+        )
+        desenhar_titulo_pixel_art(
+            superficie_preparacao_titulo, LARGURA_VIRTUAL // 2, 95, 0
+        )
+        del superficie_preparacao_titulo
+    except Exception:
+        # Se a pre-renderizacao nao estiver disponivel, o titulo ainda desenha sob demanda.
+        pass
+
     ultimo_tempo_loop_ms = pygame.time.get_ticks()
 
     rodando = True
@@ -2298,13 +3664,15 @@ def main():
         gerenciador_sons.atualizar_musica(estado, e_slow, dados["vol_musica"])
 
         if estado == "JOGANDO":
-            novo_tempo_spawn = max(750, 1500 - (metros_atuais // 100) * 50)
+            novo_tempo_spawn = max(900, 1500 - (metros_atuais // 300) * 25)
             if novo_tempo_spawn != tempo_spawn_atual:
                 tempo_spawn_atual = novo_tempo_spawn
                 pygame.time.set_timer(EVENTO_GERAR, tempo_spawn_atual)
 
-        e_noite = (metros_atuais >= 500 and (metros_atuais // 300) % 2 == 1)
-        alvo_ceu = COR_NOITE if e_noite else COR_DIA
+        fase_ciclo, cor_objetivo_ceu, peso_noite, e_noite = calcular_ciclo_ceu(metros_atuais)
+        alvo_ceu = list(cor_objetivo_ceu)
+        bg_parallax.fase_ciclo = fase_ciclo
+        bg_parallax.peso_noite = peso_noite
 
         cor_ceu_tupla = (int(cor_atual_ceu[0]), int(cor_atual_ceu[1]), int(cor_atual_ceu[2]))
 
@@ -2352,7 +3720,9 @@ def main():
 
                 touch_start_pos = pos_touch
                 touch_current_pos = pos_touch
+                touch_jetpack_anchor = pos_touch
                 toque_ativo = True
+                jetpack_gesto_usado = False
 
                 if estado == "JOGANDO" and jogador:
                     if btn_pausa.collidepoint(pos_touch):
@@ -2360,12 +3730,26 @@ def main():
 
             elif evento.type == pygame.FINGERMOTION:
                 if toque_ativo:
+                    pos_anterior_touch = touch_current_pos
                     if E_ANDROID:
                         touch_current_pos = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
                     else:
                         px = evento.x * largura_atual_tela
                         py = evento.y * altura_atual_tela
                         touch_current_pos = screen_to_virtual(px, py)
+                    # Durante o voo, o ponto-âncora é atualizado a cada gesto para permitir
+                    # subir e descer várias vezes sem soltar o dedo.
+                    if (estado == "JOGANDO" and jogador and jogador.jetpack_fase == "voando" and
+                            touch_jetpack_anchor is not None):
+                        dy_jet = touch_current_pos[1] - touch_jetpack_anchor[1]
+                        if dy_jet <= -30:
+                            jogador.mover_jetpack(-1)
+                            touch_jetpack_anchor = touch_current_pos
+                            jetpack_gesto_usado = True
+                        elif dy_jet >= 30:
+                            jogador.mover_jetpack(1)
+                            touch_jetpack_anchor = touch_current_pos
+                            jetpack_gesto_usado = True
 
             elif evento.type == pygame.FINGERUP:
                 toque_ativo = False
@@ -2382,10 +3766,21 @@ def main():
                     dx = end_x - touch_start_pos[0]
 
                     if estado == "JOGANDO" and not btn_pausa.collidepoint(touch_start_pos):
-                        if dy < -40:
+                        if jogador.jetpack_fase is not None:
+                            # Swipe vertical controla altitude durante o voo; não aciona salto.
+                            if jogador.jetpack_fase == "voando" and not jetpack_gesto_usado and dy < -30:
+                                jogador.mover_jetpack(-1)
+                            elif jogador.jetpack_fase == "voando" and not jetpack_gesto_usado and dy > 30:
+                                jogador.mover_jetpack(1)
+                        elif dy < -40:
                             jogador.pular(gerenciador_sons, dados["vol_sfx"])
                         elif dy > 40:
-                            jogador.iniciar_descida_rapida(gerenciador_sons, dados["vol_sfx"])
+                            # No chao, o gesto e agachamento; no ar, continua sendo
+                            # descida rapida. Evita transformar um swipe de agachar em salto.
+                            if jogador.no_chao:
+                                jogador.agachar(False, gerenciador_sons, dados["vol_sfx"])
+                            else:
+                                jogador.iniciar_descida_rapida(gerenciador_sons, dados["vol_sfx"])
                         elif abs(dx) < 30 and abs(dy) < 30:
                             jogador.pular(gerenciador_sons, dados["vol_sfx"])
                     else:
@@ -2403,14 +3798,45 @@ def main():
 
                 touch_start_pos = None
                 touch_current_pos = None
+                touch_jetpack_anchor = None
+                jetpack_gesto_usado = False
 
             elif evento.type == pygame.MOUSEBUTTONDOWN:
-                if not touch_start_pos:
+                if evento.button == 1:
                     vx, vy = screen_to_virtual(evento.pos[0], evento.pos[1])
-                    if estado == "JOGANDO" and jogador and not btn_pausa.collidepoint((vx, vy)):
-                        jogador.pular(gerenciador_sons, dados["vol_sfx"])
-                    else:
-                        processar_clique_ui((vx, vy))
+                    mouse_drag_active = True
+                    mouse_drag_anchor_pos = (vx, vy)
+                    mouse_jetpack_gesto_usado = False
+                    if not touch_start_pos:
+                        if E_ANDROID and estado == "JOGANDO":
+                            # Eventos de mouse duplicados do toque Android não devem causar saltos.
+                            pass
+                        elif estado == "JOGANDO" and jogador and not btn_pausa.collidepoint((vx, vy)):
+                            if jogador.jetpack_fase is None:
+                                jogador.pular(gerenciador_sons, dados["vol_sfx"])
+                        else:
+                            processar_clique_ui((vx, vy))
+
+            elif evento.type == pygame.MOUSEMOTION:
+                if mouse_drag_active and estado == "JOGANDO" and jogador and jogador.jetpack_fase == "voando":
+                    if hasattr(evento, "buttons") and evento.buttons and evento.buttons[0]:
+                        mx, my = screen_to_virtual(evento.pos[0], evento.pos[1])
+                        if mouse_drag_anchor_pos is not None:
+                            dy_mouse = my - mouse_drag_anchor_pos[1]
+                            if dy_mouse <= -30:
+                                jogador.mover_jetpack(-1)
+                                mouse_drag_anchor_pos = (mx, my)
+                                mouse_jetpack_gesto_usado = True
+                            elif dy_mouse >= 30:
+                                jogador.mover_jetpack(1)
+                                mouse_drag_anchor_pos = (mx, my)
+                                mouse_jetpack_gesto_usado = True
+
+            elif evento.type == pygame.MOUSEBUTTONUP:
+                if evento.button == 1:
+                    mouse_drag_active = False
+                    mouse_drag_anchor_pos = None
+                    mouse_jetpack_gesto_usado = False
 
             elif evento.type == pygame.KEYDOWN:
                 if evento.key in (pygame.K_p, pygame.K_ESCAPE, getattr(pygame, "K_AC_BACK", pygame.K_ESCAPE)):
@@ -2422,12 +3848,18 @@ def main():
                         estado = "INICIO"
 
                 if jogador and estado == "JOGANDO":
-                    if evento.key in (pygame.K_SPACE, pygame.K_UP, pygame.K_w):
+                    if jogador.jetpack_fase == "voando":
+                        if evento.key == pygame.K_UP:
+                            jogador.mover_jetpack(-1)
+                        elif evento.key == pygame.K_DOWN:
+                            jogador.mover_jetpack(1)
+                    elif evento.key in (pygame.K_SPACE, pygame.K_UP, pygame.K_w):
                         jogador.pular(gerenciador_sons, dados["vol_sfx"])
 
-            if evento.type == EVENTO_GERAR and estado == "JOGANDO":
+            if (evento.type == EVENTO_GERAR and estado == "JOGANDO" and spawn_bloqueado_frames <= 0 and
+                    not (jogador and jogador.jetpack_fase is not None)):
                 gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups, metros_atuais,
-                             pool_manager)
+                             pool_manager, cenario_atual, buracos=buracos)
 
         # Guarda o estado atual dos controles para os proximos ticks fixos.
         teclas_atuais = pygame.key.get_pressed()
@@ -2454,9 +3886,27 @@ def main():
             # Todas as telas chamam bg_parallax.draw(), que já preenche o céu;
             # evitamos um segundo fill da superfície completa em todos os frames.
             if estado in ["JOGANDO", "PAUSA", "GAMEOVER"]:
-                bg_parallax.draw(display_surface, cor_ceu_tupla, e_noite)
-                pygame.draw.rect(display_surface, CINZA_CHAO, (0, ALTURA_VIRTUAL - 70, LARGURA_VIRTUAL, 70))
-                pygame.draw.rect(display_surface, VERDE_GRAMA, (0, ALTURA_VIRTUAL - 70, LARGURA_VIRTUAL, 10))
+                cor_ceu_render = clima.aplicar_ceu(cor_ceu_tupla) if estado in ("JOGANDO", "PAUSA", "GAMEOVER") else cor_ceu_tupla
+                bg_parallax.draw(display_surface, cor_ceu_render, e_noite)
+                bg_parallax.draw_chao(display_surface)
+
+                em_cena_jetpack = bool(jogador and jogador.jetpack_fase is not None and estado in ("JOGANDO", "PAUSA"))
+                if em_cena_jetpack:
+                    desenhar_cenario_jetpack(jetpack_bg_surface, cor_ceu_render, bg_parallax.fase_ciclo,
+                                              bg_parallax.peso_noite, frame_count, bg_parallax.estrelas)
+                    if jogador.jetpack_fase == "subindo":
+                        progresso_fundo = 1.0 - jogador.jetpack_transicao_timer / float(max(1, jogador.jetpack_subida_duracao))
+                        alpha_fundo = int(255 * max(0.0, min(1.0, progresso_fundo)) ** 1.15)
+                    elif jogador.jetpack_fase == "descendo":
+                        progresso_fundo = jogador.jetpack_transicao_timer / float(max(1, jogador.jetpack_descida_duracao))
+                        alpha_fundo = int(255 * max(0.0, min(1.0, progresso_fundo)) ** 1.15)
+                    else:
+                        alpha_fundo = 255
+                    jetpack_bg_surface.set_alpha(max(0, min(255, alpha_fundo)))
+                    display_surface.blit(jetpack_bg_surface, (0, 0))
+                    jetpack_bg_surface.set_alpha(None)
+                else:
+                    buracos.draw(display_surface)
 
                 if jogador is not None and estado in ("JOGANDO", "PAUSA", "GAMEOVER"):
                     jogador.renderizar_visual(frame_count)
@@ -2464,9 +3914,33 @@ def main():
                     if isinstance(sprite_visual, ObstaculoVoador):
                         sprite_visual.renderizar_visual()
 
+                # Pequeno balanço vertical apenas visual durante a corrida no chão.
+                # O rect é restaurado imediatamente: colisões e física permanecem intactas.
+                jogador_y_fisico = None
+                if (jogador is not None and estado == "JOGANDO" and not jogador.morrendo
+                        and jogador.no_chao and jogador.jetpack_fase is None and not jogador.agachado):
+                    jogador_y_fisico = jogador.rect.y
+                    jogador.rect.y += int(round(math.sin(jogador.anim_pernas * 2.0) * 1.8))
                 todos_sprites.draw(display_surface)
+                if jogador_y_fisico is not None:
+                    jogador.rect.y = jogador_y_fisico
                 particulas.draw(display_surface)
                 textos_flut.draw(display_surface)
+                clima.draw(display_surface)
+
+                if estado == "JOGANDO" and transicao_cenario_timer > 0:
+                    progresso_transicao = 1.0 - (transicao_cenario_timer / 105.0)
+                    alpha_transicao = int(105 * math.sin(math.pi * max(0.0, min(1.0, progresso_transicao))))
+                    overlay_transicao.set_alpha(max(0, alpha_transicao))
+                    display_surface.blit(overlay_transicao, (0, 0))
+                    y_faixa = int(progresso_transicao * (ALTURA_VIRTUAL + 120)) - 60
+                    pygame.draw.rect(display_surface, (28, 35, 59), (0, y_faixa, LARGURA_VIRTUAL, 76))
+                    pygame.draw.rect(display_surface, (106, 206, 239), (0, y_faixa, LARGURA_VIRTUAL, 3))
+                    pygame.draw.rect(display_surface, (234, 196, 89), (0, y_faixa + 72, LARGURA_VIRTUAL, 3))
+                    if 0.22 <= progresso_transicao <= 0.78:
+                        rotulo_cenario = render_texto_cacheado(fonte_grande, cenario_transicao_nome, BRANCO)
+                        display_surface.blit(rotulo_cenario,
+                            (LARGURA_VIRTUAL // 2 - rotulo_cenario.get_width() // 2, ALTURA_VIRTUAL // 2 - 18))
 
                 if jogador and jogador.tempo_slow > 0 and estado in ["JOGANDO", "PAUSA"]:
                     display_surface.blit(OVERLAY_SLOW, (0, 0))
@@ -2542,6 +4016,12 @@ def main():
                         tempo_restante = jogador.tempo_mult
                     elif pup_key == "SLOW":
                         tempo_restante = jogador.tempo_slow
+                    elif pup_key == "JETPACK":
+                        tempo_restante = jogador.tempo_jetpack
+                        if jogador.jetpack_fase == "subindo":
+                            tempo_restante += jogador.jetpack_transicao_timer
+                        elif jogador.jetpack_fase == "descendo":
+                            tempo_restante = jogador.jetpack_pousando
 
                     if tempo_restante > 0:
                         dur_max = pup_conf["duracao_base"] + (
@@ -2694,7 +4174,7 @@ def main():
                         desenhar_texto_com_sombra(display_surface, t("maximo", dados), fonte_pequena, VERDE_GRAMA, PRETO,
                                                   (270, y_base + 20))
                     else:
-                        custo = conf["preco_base"] + (nv_atual * conf["preco_multiplicador"])
+                        custo = calcular_custo_upgrade(chave, nv_atual)
                         desenhar_texto_com_sombra(display_surface, f"${custo}", fonte_pequena, AMARELO_MOEDA, PRETO,
                                                   (270, y_base + 20))
 
