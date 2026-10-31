@@ -20,13 +20,16 @@ import zipfile
 
 EXPECTED_BLOBS = {
     'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py': 'e3e343fa29778d81682469c84bec79148ca3870e',
-    'main.py': '82666a50b2d693ff64fa99d8c70ad184dc499170',
-    'VERSAO_ATUAL.txt': 'a769f555913244fabd2537f7ecc211d02fd1db8b',
+    'main.py': '77b3fb47fb1123eb71bed711c9cdf6312cd0a008',
+    'VERSAO_ATUAL.txt': '16b6d51b1370795c8e2ec3031044010b1368d980',
     'assets/atlas_prod_v32776/deserto.atlas': 'a35eb6e2cc2d1eb1069270e7ffb25c195201318d',
     'assets/buffers_prod_v32779/neve.pbuf': '2a9b535e25dc306f7adb24d8978cca8d7eefc2f4',
 }
 EXPECTED_CONFIG = {
-    'version': '3.277.11',
+    'version': '3.277.12',
+    'android.numeric_version': '327712',
+    'icon.filename': 'assets_android/icon_pixel_rush.png',
+    'presplash.filename': 'assets_android/splash_01_vermelho.png',
     'android.api': '36',
     'android.minapi': '26',
     'android.ndk': '28c',
@@ -38,6 +41,14 @@ EXPECTED_CONFIG = {
 }
 REQUIRED_EXTENSIONS = ('py', 'png', 'json', 'ttf', 'atlas', 'pbuf', 'tiles', 'rgbaz', 'pcmz')
 
+
+ANDROID_VISUAL_ASSETS = {
+    'assets_android/icon_pixel_rush.png': '5cc97d07346966734b0e16b080841d559078477009d3068932cb8f84c2ee1e76',
+    'assets_android/splash_01_vermelho.png': '5ac990f52e9724eb27cbfe8fbdb506f81d0fbd02678ca3fc491276a3c71483ac',
+    'assets_android/splash_02_laranja.png': '2429c4736f45ce7c9b5892d88d3310db7ce821a6f322a772c22a4bcdf0afd4e6',
+    'assets_android/splash_03_amarelo.png': '9bc945ec7c1bce8342bd6617a77819b8bd6e79b3c958724e2fa97664d4eb50ab',
+    'assets_android/splash_04_ciano.png': 'c1e778a439e660558f21da6d22d5fce090330427a9819071a33506f20c575322',
+}
 
 def check_preflight():
     conf = configparser.ConfigParser(interpolation=None)
@@ -65,10 +76,16 @@ def check_preflight():
         blob_hash = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
         if blob_hash != sha:
             raise AssertionError(f'fonte/asset RC diferente do original: {filename}')
-    if 'v3.277.11' not in Path('VERSAO_ATUAL.txt').read_text(encoding='utf-8'):
+    for filename, wanted in ANDROID_VISUAL_ASSETS.items():
+        raw = Path(filename).read_bytes()
+        if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
+            raise AssertionError(f'PNG visual Android invalido: {filename}')
+        if hashlib.sha256(raw).hexdigest() != wanted:
+            raise AssertionError(f'Asset visual Android alterado: {filename}')
+    if 'v3.277.12' not in Path('VERSAO_ATUAL.txt').read_text(encoding='utf-8'):
         raise AssertionError('arquivo de versao divergente')
     summary = {'resultado': 'APROVADO', 'pygame_ce_recipe': '2.5.8', 'numpy': 'p4a recipe', 'android_api': 36,
-               'android_ndk': '28c', 'ndk_api': 26, 'abi': 'arm64-v8a', 'assets_amostrados': len(EXPECTED_BLOBS)}
+               'android_ndk': '28c', 'ndk_api': 26, 'abi': 'arm64-v8a', 'assets_amostrados': len(EXPECTED_BLOBS), 'assets_visuais_android': len(ANDROID_VISUAL_ASSETS)}
     return summary
 
 

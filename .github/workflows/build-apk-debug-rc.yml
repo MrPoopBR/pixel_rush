@@ -10,6 +10,8 @@ on:
       - 'buildozer.spec'
       - 'p4a-recipes/**'
       - 'main.py'
+      - 'pixelrush_android_abertura_v327712.py'
+      - 'assets_android/**'
       - 'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'
   workflow_dispatch:
 
@@ -41,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/android_debug_audit.py preflight --report preflight-debug.json
-          python3 -m compileall -q main.py pixelrush_android_storage_v327711.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py p4a-recipes/pygame-ce/__init__.py
+          python3 -m compileall -q main.py pixelrush_android_abertura_v327712.py pixelrush_android_storage_v327711.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py p4a-recipes/pygame-ce/__init__.py
           if [ -n "$(find . -maxdepth 1 -name '*.aab' -print -quit)" ]; then
             echo 'Arquivo AAB inesperado na raiz.' >&2
             exit 1
