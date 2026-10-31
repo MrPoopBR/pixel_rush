@@ -3,6 +3,7 @@
 O processamento SDL permanece no thread principal. Retém unicamente os estados
 compactados das alternativas inativas e descarta cada buffer depois de usá-lo.
 O som, a geometria, shaders e a conversão convert_alpha() ficam inalterados.
+A entrada temporaria usa frombuffer para evitar copia RGBA antes da conversao.
 Não altera a ordem nem os tempos da escolha de cenários.
 """
 from collections import deque
@@ -159,13 +160,21 @@ class _Manager:
                 self._quality=light;self._epoch+=1
                 self._todo.clear();self._requested.clear();self._ready.clear();self._progress.clear()
         with self._lock:
+            novo_pedido=False
             for name in _BIOMAS:
                 key=name+('_lite' if light else '')
                 if (name!=biome and key not in self._visited and key not in self._ready
                         and (key,self._epoch) not in self._requested):
                     self._requested.add((key,self._epoch))
                     self._todo.append((key,self._epoch))
-            self._event.set()
+                    novo_pedido=True
+            # Acordar a thread apenas quando surgirem pedidos novos.
+            # O sinal anterior, a cada tick de simulacao, causava wakeups
+            # mesmo quando os atlas ja estavam preparados.
+            if novo_pedido:
+                self._event.set()
+            if not self._ready:
+                return
             # Um buffer compactado existe para cada superfície ainda não pronta.
             # Prepara apenas parte das três opções para limitar RAM.
             candidates=[(name, self._ready.get(name)) for name in (
@@ -180,7 +189,7 @@ class _Manager:
             if index>=desired:continue
             slot=buffers[index]
             raw=zlib.decompress(slot.raw)
-            slot.surface=pygame.image.frombytes(raw,slot.size,'RGBA').convert_alpha()
+            slot.surface=pygame.image.frombuffer(raw,slot.size,'RGBA').convert_alpha()
             slot.raw=None
             self._progress[key]=index+1
             self._cursor+=1
@@ -204,7 +213,7 @@ class _Manager:
                 if slot.surface is not None:continue
                 raw=zlib.decompress(slot.raw)
                 # Exatamente o mesmo resultado do _restore_surface original.
-                slot.surface=pygame.image.frombytes(raw,slot.size,'RGBA').convert_alpha()
+                slot.surface=pygame.image.frombuffer(raw,slot.size,'RGBA').convert_alpha()
                 slot.raw=None
             state=_replace(state)
             instance=atlas.ModularBiomeScene.__new__(atlas.ModularBiomeScene)

@@ -1,0 +1,13 @@
+PIXEL RUSH v3.277.22 - Android RC debug, nao homologada
+Base: v3.277.21, commit 6f99ee3db4a7eb8e70d849121cb0a348bad5d20f.
+
+Escopo: CPU/renderizacao e RAM/carregamento, preservando imagens e simulacao.
+- pixelrush_gamefeel_v3129.py: cache LRU de 32 rotulos do combo. Mesma fonte, cor, texto e desenho; evita repetir font.render para o mesmo numero.
+- pixelrush_buffers_prod_v327710.py: usar pygame.image.frombuffer antes de convert_alpha no preparo e ativacao dos atlas. Mantem o mesmo formato e pixels, eliminando a copia RGBA temporaria feita por frombytes.
+- pixelrush_buffers_prod_v327710.py: acordar o worker somente se novos pedidos foram enfileirados, e nao a cada update; nao alterar ritmo do preparo, fraction=0.38 nem sequencia de biomas.
+- Auditoria GPU somente leitura: AUDITORIA_GPU_ANDROID_v3.277.22.md. Sem habilitar GPU ou trocar shader.
+- Testes novos de paridade RGBA, UI e gerenciador de atlas: .github/scripts/test_pygame_perf_v327722.py; adicionados ao preflight exclusivo de APK debug.
+- VERSAO_ATUAL, versao interna, buildozer version/versionCode atualizados.
+Preservados: main, DEV, AAB, fisica 60 Hz, limite FPS Android, tutorial, gameplay, UI, efeitos, shaders, texturas, animacoes, pets, saves, recursos e atlas originais.
+
+Nota: desempenho real em Android/emulador exige FPS p95/p99 e uso de RAM do dispositivo. Nao aprovar homologacao sem evidencias.

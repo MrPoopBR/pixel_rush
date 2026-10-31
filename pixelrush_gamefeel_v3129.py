@@ -7,6 +7,7 @@ Nenhum posicionamento usado aqui altera hitboxes ou spawn.
 import array
 import math
 import random
+from collections import OrderedDict
 import pygame
 
 W, H = 450, 800
@@ -33,6 +34,8 @@ class GameFeel:
         self._cache_zoom_quadro = None
         self._cache_zoom_tamanho = None
         self._fonte_combo = pygame.font.Font(None, 20)
+        # Cache pequeno para evitar rasterizacao da mesma contagem a cada frame.
+        self._cache_rotulos_combo = OrderedDict()
 
     def _preparar_vinheta(self):
         s = self._vinheta
@@ -125,7 +128,15 @@ class GameFeel:
             y = max(175, jogador.rect.top - 7)
             pygame.draw.circle(surf, (30, 44, 65), (int(x + 17), int(y)), 17)
             pygame.draw.circle(surf, (245, 206, 85), (int(x + 17), int(y)), 16, 2)
-            texto = self._fonte_combo.render(str(min(999, combo)), True, (255, 240, 172))
+            chave_combo = str(min(999, combo))
+            texto = self._cache_rotulos_combo.get(chave_combo)
+            if texto is None:
+                texto = self._fonte_combo.render(chave_combo, True, (255, 240, 172))
+                self._cache_rotulos_combo[chave_combo] = texto
+                if len(self._cache_rotulos_combo) > 32:
+                    self._cache_rotulos_combo.popitem(last=False)
+            else:
+                self._cache_rotulos_combo.move_to_end(chave_combo)
             surf.blit(texto, (int(x + 17 - texto.get_width() / 2), int(y - texto.get_height() / 2)))
         surf.blit(self._vinheta, (0, 0))
 

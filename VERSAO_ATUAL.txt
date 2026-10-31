@@ -1,2 +1,2 @@
-Pixel Rush v3.277.21-PROD-ANDROID-RC (candidata nao homologada)
-Origem: v3.277.20-PROD-ANDROID-RC; somente reuso de buffers nos zooms de CameraCinematica e GameFeel
+Pixel Rush v3.277.22-PROD-ANDROID-RC (candidata nao homologada)
+Origem: v3.277.21; otimiza wakeups de pre-carregamento, conversao RGBA temporaria e rotulo de combo; auditoria GPU somente leitura
