@@ -103,7 +103,7 @@ def main() -> int:
     p = smoke()
     required = os.environ.get('P21_REQUIRE_SOURCE', 'false').lower() == 'true'
     success = t['estado'] == 'aprovado' and p['estado'] == 'aprovado' and a['estado'] not in ('falha', 'bloqueado') and (not required or a['estado'] == 'aprovado_estatico')
-    doc = {'schema': 'pixelrush.p21.branch_ci.v1', 'qa_version': '1.2.0',
+    doc = {'schema': 'pixelrush.p21.branch_ci.v1', 'qa_version': '1.3.0',
            'versao_do_jogo_referencia': VERSION, 'executado_em': datetime.now(timezone.utc).isoformat(),
            'python': platform.python_version(), 'sistema': platform.system(),
            'git_sha': os.getenv('GITHUB_SHA', ''), 'evento': os.getenv('GITHUB_EVENT_NAME', ''),
