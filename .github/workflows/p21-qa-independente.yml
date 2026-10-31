@@ -1,0 +1,64 @@
+name: PIXEL RUSH P21 - QA isolado
+
+on:
+  push:
+    branches:
+      - qa/p21-ci-isolado-v3.285.4
+  workflow_dispatch:
+    inputs:
+      source_root:
+        description: 'Pasta relativa das fontes LIMPA/DEV v3.285.4; vazia = nao testado'
+        required: false
+        default: ''
+        type: string
+      require_source:
+        description: 'Exigir fontes reais v3.285.4'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p21-qa-isolado-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  qa-independente:
+    name: QA ${{ matrix.os }} / Python 3.13.5
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+      PYGAME_HIDE_SUPPORT_PROMPT: '1'
+      P21_SOURCE_ROOT: ${{ inputs.source_root || '' }}
+      P21_REQUIRE_SOURCE: ${{ inputs.require_source || 'false' }}
+    steps:
+      - name: Checkout somente leitura
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Preparar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13.5'
+      - name: Instalar pygame-ce para QA
+        run: python -m pip install --disable-pip-version-check -r requirements-p21-qa.txt
+      - name: Regressao independente
+        run: python -m unittest discover -s qa_p21 -t . -p "test_*.py" -v
+      - name: Verificacoes e evidencia em JSON
+        run: python -m qa_p21.runner
+      - name: Publicar evidencias QA
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: p21-qa-${{ matrix.os }}
+          path: artifacts/
+          retention-days: 14
+          if-no-files-found: warn
