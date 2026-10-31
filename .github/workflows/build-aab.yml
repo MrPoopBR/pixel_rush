@@ -26,6 +26,37 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v7
 
+      # SEGURANCA: esta branch ainda NAO contem o jogo v3.277.11 completo.
+      # Nenhum AAB assinado deve ser gerado com main.py da v3.9.1.
+      - name: Verify exact Android RC source before using any signing secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          expected = {
+              "PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py": "444948921b59a72916d368616f82d33a3c82563bb1b933680449d960c181d7a2",
+              "main.py": "7e01d43c5f7fbc13f7e3594475a148b1551d48737c3e963cac235b6e6f56ccc1",
+              "VERSAO_ATUAL.txt": "aabb1ecdb85423f17eb52d471f174d62957e2ac6cd459b821aebd419654ed477",
+              "assets/atlas_prod_v32776/deserto.atlas": "6649945527fb7a844f97d8100e4b133699f884306eddd0758f1c6ccadc9770aa",
+              "assets/buffers_prod_v32779/neve.pbuf": "bf7fe8ca1763519987e673edc0e948dfb91fff703371eb280136e335dd1e950d",
+          }
+          errors = []
+          for filename, wanted in expected.items():
+              p = Path(filename)
+              if not p.is_file():
+                  errors.append(f"Falta arquivo da RC: {filename}")
+              elif hashlib.sha256(p.read_bytes()).hexdigest() != wanted:
+                  errors.append(f"Hash incorreto: {filename}")
+          for suffix in ("*.png", "*.ttf", "*.rgbaz", "*.pcmz", "*.tiles", "*.pbuf", "*.atlas"):
+              if not list(Path("assets").rglob(suffix)) and not list(Path("assets_i18n_v3247").rglob(suffix)):
+                  errors.append(f"Recurso esperado ausente: {suffix}")
+          if errors:
+              raise SystemExit("BUILD BLOQUEADO: fontes v3.277.11 incompletas ou divergentes.\\n" + "\\n".join(errors))
+          print("Fontes e recursos RC verificados antes de qualquer acesso a secrets.")
+          PY
+
       - name: Set up Java 17
         uses: actions/setup-java@v6
         with:
@@ -56,7 +87,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pixelrush-android-
             
-      - name: Clear previous Android native build outputs for Python 3.10 test
+      - name: Clear previous Android native build outputs for Python 3.12 test
         shell: bash
         run: |
           set -euxo pipefail
@@ -154,8 +185,8 @@ jobs:
               if not match or match.group(1) != value:
                   raise SystemExit(f'Configuration mismatch: {key}: expected {value}')
           
-          if 'python3==3.10.12,hostpython3==3.10.12,pygame-ce' not in spec:
-              raise SystemExit('For this diagnostic build, Python and hostpython requirements must match at 3.10.12.')
+          if 'python3==3.12.12,hostpython3==3.12.12,pygame-ce,numpy' not in spec:
+              raise SystemExit('For this diagnostic build, Python and hostpython requirements must match at 3.12.12.')
           
           if not Path('main.py').is_file():
               raise SystemExit('main.py is missing.')
