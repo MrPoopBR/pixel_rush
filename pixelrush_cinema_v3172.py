@@ -197,6 +197,9 @@ class CameraCinematica:
         self.zoom=0.
         self.foco_y=0.
         self._cache_size=(450,800)
+        # Mesmos pixels e interpolação; a Surface expandida só muda se o tamanho variar.
+        self._cache_zoom_tamanho = None
+        self._cache_zoom_expandido = None
 
     def aplicar(self, imagem, jogador=None, velocidade=6, momento=False, ativo=True):
         if not ativo or jogador is None:
@@ -210,7 +213,11 @@ class CameraCinematica:
             return imagem
         w,h=imagem.get_size()
         extra_x=max(1,int(w*self.zoom)); extra_y=max(1,int(h*self.zoom))
-        expanded=pygame.transform.smoothscale(imagem,(w+extra_x*2,h+extra_y*2))
+        tamanho=(w+extra_x*2,h+extra_y*2)
+        if self._cache_zoom_tamanho != tamanho or self._cache_zoom_expandido is None:
+            self._cache_zoom_expandido = pygame.Surface(tamanho).convert(imagem)
+            self._cache_zoom_tamanho = tamanho
+        expanded=pygame.transform.smoothscale(imagem,tamanho,self._cache_zoom_expandido)
         sx=extra_x; sy=max(0,min(2*extra_y,extra_y+int(self.foco_y)))
         return expanded.subsurface((sx,sy,w,h))
 

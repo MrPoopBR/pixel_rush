@@ -1,0 +1,13 @@
+PIXEL RUSH v3.277.21 — Android RC debug (nao homologada)
+Base: v3.277.20, commit e8c267f104bbc063f2e0e42e60de8e3624037271.
+
+Escopo EXCLUSIVO: desempenho dos zooms cinematograficos em Pygame/SDL.
+1. pixelrush_gamefeel_v3129.py: escala do GameFeel usa Surface de destino reaproveitada enquanto a dimensao de zoom for igual; mesmos parametros e pygame.transform.scale.
+2. pixelrush_cinema_v3172.py: CameraCinematica reutiliza a Surface expandida por dimensao; mantido pygame.transform.smoothscale, deslocamentos, limites e recorte.
+3. Sem alteracao de shaders, texturas, atlas, animacoes, efeitos, passos fisicos, colisao, tutorial, saves, pets, producao main, DEV ou workflows AAB.
+
+Diagnostico adicional (nao corrigido nesta revisao): Android usa caminho Pygame/SDL com PIXELRUSH_GPU='off' e alvo de 30 FPS. A restauracao incremental de superficies e gc.collect(0) periodico podem gerar quedas de frame; exigem perfilagem no dispositivo antes de reprogramar.
+
+Testes: paridade de pixels para zooms ativos, reuso de Surface, chamadas sem zoom e sintaxe com pygame-ce 2.5.8 em SDL headless; automacao adicionada apenas ao workflow de APK debug. Nao afirmar aceleracao de FPS em dispositivo sem telemetria real.
+
+Versao interna v3.277.21-PROD-ANDROID-RC; buildozer 3.277.21; versionCode debug 327721. AAB nao alterado, homologacao nao concedida.

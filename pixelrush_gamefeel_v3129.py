@@ -29,6 +29,9 @@ class GameFeel:
         self._vinheta = pygame.Surface((W, H), pygame.SRCALPHA)
         self._preparar_vinheta()
         self._buffer_zoom = pygame.Surface((W, H)).convert()
+        # Buffer de escala reutilizado; cada quadro mantém a mesma imagem, sem alocação SDL repetida.
+        self._cache_zoom_quadro = None
+        self._cache_zoom_tamanho = None
         self._fonte_combo = pygame.font.Font(None, 20)
 
     def _preparar_vinheta(self):
@@ -135,7 +138,11 @@ class GameFeel:
         dest_h = max(1, int(H * escala))
         destino = self._buffer_zoom
         destino.fill((13, 20, 40))
-        quadro = pygame.transform.scale(surf, (dest_w, dest_h))
+        tamanho = (dest_w, dest_h)
+        if self._cache_zoom_tamanho != tamanho or self._cache_zoom_quadro is None:
+            self._cache_zoom_quadro = pygame.Surface(tamanho).convert(surf)
+            self._cache_zoom_tamanho = tamanho
+        quadro = pygame.transform.scale(surf, tamanho, self._cache_zoom_quadro)
         destino.blit(quadro, ((W - dest_w) // 2, (H - dest_h) // 2))
         return destino
 
