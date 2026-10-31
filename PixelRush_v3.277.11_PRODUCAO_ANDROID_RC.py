@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.17-PROD-ANDROID-RC"
+VERSAO = "v3.277.18-PROD-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -11857,7 +11857,8 @@ def main():
             if tutorial_corrida.contagem_coletas > letras_antes and (tutorial_corrida.etapa == 'letras' or terminou_tutorial):
                 palavra_hud_ate = frame_count + 300
                 criar_explosao_particulas(jogador.rect.centerx + 22, jogador.rect.y, (255, 220, 85), 12, particulas, pool_manager)
-            pontuacao += 2  # distância normal avança: é a mesma corrida contínua.
+            # Durante as seis licoes a pontuacao permanece em zero.
+            # Apenas a corrida normal, no bloco abaixo, passa a contar pontos.
             if terminou_tutorial:
                 dados["tutorial_inicial_concluido"] = True
                 tutorial_concluido_ate = frame_count + 150
