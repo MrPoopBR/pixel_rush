@@ -1,0 +1,26 @@
+PIXEL RUSH v3.277.23 — Android RC debug (nao homologada)
+Base: v3.277.22, commit 6c067b13b0db6a2fc5c2990d92921676fb12c6c1.
+
+1. Preparo dos atlas: expandir antecipacao de 38% para 56% das superficies de
+   cada bioma inativo, com 1 superficie por tick e teto estrito de 26 MiB
+   somados aos buffers preparados (pixelrush_buffers_prod_v327710.py).
+   Liberar contabilizacao na ativacao e mudanca de qualidade. Mesmos RGBA,
+   biomas, hashes, convert_alpha e fallback. Maximo de RAM adicional para
+   esse cache frente aos ~21,7 MiB anteriores: aproximadamente 4,3 MiB.
+   Meta: reduzir numero de superficies processadas sincronamente ao trocar
+   de bioma; nao garante ganho real de FPS sem telemetria do dispositivo.
+2. Modo automatico: limiares proporcionais ao alvo Android 30 FPS (24,5
+   para reduzir; 27,5 para recuperar), com suavizacao inicial em 30 FPS.
+   Desktop continua 49/55 FPS, inicializando em 60. Sem mudanca de fisica.
+3. Corrigir preflight de buildozer + versionCode e hashes somente dos
+   dois arquivos versionados de producao; preservar hashes dos recursos
+   e do launcher original, recipe, API36, 16KB, pygame-ce e NumPy.
+4. Testes pygame de 30/60 FPS, decadencia/recuperacao, cor RGBA identica,
+   teto de RAM, compatibilidade e CI exclusivo de APK debug.
+5. Instrumentacao QA em branch separada qa/android-telemetria-v3.277.23,
+   nunca no launcher de producao. Compilacao QA deve usar ID de app separado,
+   preservar saves e produzir arquivos JSON na pasta privada QA.
+
+Escopo preservado: main e DEV de producao, AAB, física, comandos,
+jogabilidade, pontuacao, shaders, texturas, atlas, animações, audio, pets e saves.
+Nenhum gate de producao aprovado sem evidencias de CI e APK real.

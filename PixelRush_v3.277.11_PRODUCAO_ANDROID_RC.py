@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.22-PROD-ANDROID-RC"
+VERSAO = "v3.277.23-PROD-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -2576,7 +2576,7 @@ class MonitorQualidadeVisual:
     """Histerese evita flicker ao alternar detalhes, sem mudar o passo fixo."""
     def __init__(self):
         self.reduzido = False
-        self.fps_suavizado = 60.0
+        self.fps_suavizado = 30.0 if E_ANDROID else 60.0
         self.tempo_baixo = 0.0
         self.tempo_recuperacao = 0.0
 
@@ -2591,10 +2591,13 @@ class MonitorQualidadeVisual:
         dt = max(0.0, min(0.12, float(dt)))
         self.fps_suavizado += (fps - self.fps_suavizado) * min(1.0, dt * 3.0)
         fps = self.fps_suavizado
-        if fps < 49.0:
+        # Proporcao identica dos limiares 49/55 FPS de desktop,
+        # mas sobre alvo de apresentacao 30 FPS no Android.
+        alvo_fps = 30.0 if E_ANDROID else 60.0
+        if fps < alvo_fps * (49.0 / 60.0):
             self.tempo_baixo += dt
             self.tempo_recuperacao = 0.0
-        elif fps > 55.0:
+        elif fps > alvo_fps * (55.0 / 60.0):
             self.tempo_recuperacao += dt
             self.tempo_baixo = 0.0
         else:

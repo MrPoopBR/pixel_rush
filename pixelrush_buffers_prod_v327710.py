@@ -98,7 +98,11 @@ class _Manager:
         # aqui aloca centenas de MB em arenas nativas sem ganho de fluidez.
         self._visited=set()
         self._cursor=0
-        self._fraction=0.38
+        # Preparacao adicional em 1 superficie/tick, limitada por RAM.
+        # Reduz a parte sincrona na ativacao sem reter todos os 3 biomas.
+        self._fraction=0.56
+        self._prepared_budget_bytes=26 * 1048576
+        self._prepared_bytes=0
         self._ticks_since_trim=0
         try:
             # O descarte de Surface libera referências, mas o alocador nativo
@@ -159,6 +163,7 @@ class _Manager:
             with self._lock:
                 self._quality=light;self._epoch+=1
                 self._todo.clear();self._requested.clear();self._ready.clear();self._progress.clear()
+                self._prepared_bytes=0
         with self._lock:
             novo_pedido=False
             for name in _BIOMAS:
@@ -188,9 +193,14 @@ class _Manager:
             index=self._progress.get(key,0)
             if index>=desired:continue
             slot=buffers[index]
+            # Os buffers .pbuf sao RGBA; respeitar o limite antes de expandir.
+            tamanho_estimado=slot.size[0] * slot.size[1] * 4
+            if self._prepared_bytes + tamanho_estimado > self._prepared_budget_bytes:
+                continue
             raw=zlib.decompress(slot.raw)
             slot.surface=pygame.image.frombuffer(raw,slot.size,'RGBA').convert_alpha()
             slot.raw=None
+            self._prepared_bytes+=slot.surface.get_pitch() * slot.surface.get_height()
             self._progress[key]=index+1
             self._cursor+=1
             # No máximo uma superfície por atualização; inclui overhead SDL.
@@ -202,6 +212,10 @@ class _Manager:
         with self._lock:
             stage=self._ready.pop(key,None)
             self._progress.pop(key,None)
+            if stage is not None:
+                self._prepared_bytes=max(0,self._prepared_bytes-sum(
+                    slot.surface.get_pitch()*slot.surface.get_height()
+                    for slot in stage[1] if slot.surface is not None))
             self._visited.add(key)
         if stage is None:
             self.stats['fallback'].append(key)

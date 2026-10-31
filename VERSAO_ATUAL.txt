@@ -1,2 +1,2 @@
-Pixel Rush v3.277.22-PROD-ANDROID-RC (candidata nao homologada)
-Origem: v3.277.21; otimiza wakeups de pre-carregamento, conversao RGBA temporaria e rotulo de combo; auditoria GPU somente leitura
+Pixel Rush v3.277.23-PROD-ANDROID-RC (candidata nao homologada)
+Origem: v3.277.22; preparacao incremental limitada a 26 MiB, qualidade automatica calibrada para 30 FPS Android, preflight atualizado e telemetria QA isolada.
