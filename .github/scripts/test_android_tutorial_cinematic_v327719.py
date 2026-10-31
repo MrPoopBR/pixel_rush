@@ -57,6 +57,9 @@ class Base:
         self.jogador=jogador
         self.ativo=True
         self.etapa='pular'
+        self.etapa_indice=0
+        self.contagem_coletas=0
+        self._avancar_etapa=False
         self.ticks=0
         self.ticks_etapa=0
         self.sucesso=False
@@ -70,9 +73,18 @@ class Base:
         self.largura=450
         self.altura=800
         self.idioma='pt_BR'
-        self.textos_ui={'textos':{'pular':('PULO','Pule')},
-                        'dicas':{'pular':('ESPAÇO','TOQUE PARA PULAR')},
-                        'modos':{'teclado':'TECLADO'}}
+        self.textos_ui={
+            'textos':{
+                'pular':('PULO','Pule'), 'pular_longo':('PULO LONGO','Segure'),
+                'agachar':('AGACHAR','Abaixe'), 'swipe_down':('DESCIDA','Deslize'),
+                'moedas':('MOEDAS','Colete')},
+            'dicas':{
+                'pular':('ESPAÇO','TOQUE PARA PULAR'),
+                'pular_longo':('SEGURE','TOQUE E SEGURE'),
+                'agachar':('BAIXO','SEGURE BAIXO'),
+                'swipe_down':('BAIXO','ARRASTE PARA BAIXO'),
+                'moedas':('COLETAR','COLETAR')},
+            'modos':{'teclado':'TECLADO'}}
     def _preparar(self,todos,letras,palavra):
         for obj in self.objetos:obj.kill()
         self.objetos=[Perigo(self.jogador.rect.right+165)]
@@ -84,6 +96,12 @@ class Base:
                   pool,som,volume,frame):
         self.ticks+=1
         self.ticks_etapa+=1
+        if self._avancar_etapa:
+            self.etapa_indice+=1
+            self.etapa=('pular','pular_longo','agachar',
+                        'swipe_down','moedas')[self.etapa_indice]
+            self._avancar_etapa=False
+            self._etapa_preparada=False
         return 0,False
     def fonte_tutorial(self,tamanho):
         return pygame.font.SysFont('arial',tamanho)
@@ -133,14 +151,31 @@ assert not t.jogador.morrendo and t.jogador.no_chao and t.jogador.tempo_morte==0
 assert t.objetos[0].rect.x == t.jogador.rect.right+230
 assert fundo.desloc_chao != pre_chao and t.aviso_erro_ate > t.ticks
 surface=pygame.Surface((450,800))
+inicio_alerta=t.ticks
+assert t._aviso_erro_inicio==inicio_alerta, 'Repeticao precisa reiniciar fase luminosa'
 pixels=[]
-for offs in (0,24):
-    t.ticks=(t.ticks//48)*48+offs
+for offs in (0,24,48):
+    t.ticks=inicio_alerta+offs
     surface.fill((0,0,0))
     t.desenhar(surface)
     pixels.append(pygame.image.tostring(
         surface.subsurface((12, 94, 426, 119)), 'RGB'))
-assert pixels[0]!=pixels[1], 'Texto de alerta deve piscar'
+assert pixels[0]!=pixels[1], 'Aviso deve comecar visivel e piscar depois'
+assert pixels[0]==pixels[2], 'A cada 48 ticks o comando deve reaparecer'
+t.ticks=inicio_alerta
+
+# Avancar cada uma das quatro licoes de obstaculos: limpar imediatamente
+# o erro pendente, mesmo que ainda faltem muitos ticks ate expirar.
+for proxima in ('pular_longo','agachar','swipe_down','moedas'):
+    t.aviso_erro_ate=t.ticks+130
+    t._avancar_etapa=True
+    passo()
+    assert t.etapa==proxima and t.aviso_erro_ate==-1, (
+        'Nao pode manter aviso de erro depois de mudar de licao: '+proxima)
+    surface.fill((0,0,0))
+    t.desenhar(surface)
+    assert surface.get_at((24,120))[:3]==(0,0,0), (
+        'O aviso nao pode aparecer na licao seguinte: '+proxima)
 assert t.jogador.deaths==1, 'Sem Game Over e sem nova morte no retrocesso'
-print('APROVADO: morte 24 ticks, camera em reverso 24 ticks, 230 px, 1 retry, comando bloqueado e aviso piscante')
+print('APROVADO: morte 24, reverso 24, 230px, pisca visivel na repeticao; erro some nas 4 transicoes')
 pygame.quit()

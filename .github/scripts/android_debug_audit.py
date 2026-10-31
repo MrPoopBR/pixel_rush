@@ -20,9 +20,9 @@ import tarfile
 import zipfile
 
 EXPECTED_BLOBS = {
-    'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py': '77eacf2dc7b15bda4275c2c2aa76e9d9b99281fc',
+    'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py': 'bd72562c7dbd5aeb092eba9a61f4803e2c35aef2',
     'main.py': '77b3fb47fb1123eb71bed711c9cdf6312cd0a008',
-    'VERSAO_ATUAL.txt': '3741d21767db6d32c459f283904c08b40597fde8',
+    'VERSAO_ATUAL.txt': 'ef099051c4f193b5191549f3cd0c4a44a7990fa7',
     'p4a-recipes/python3/__init__.py': 'fc7a21423b3eae737422d2da2d5a985a247aca81',
     '.github/scripts/test_android_p4a_patches.py': '07ce9c357d37fa99d9189cf03afa703d61b93977',
     '.github/scripts/test_android_stdlib_bootstrap.py': '8361723053d4ecddbf2cbc88d28ab0b20856eaf6',
@@ -31,8 +31,8 @@ EXPECTED_BLOBS = {
     'assets/buffers_prod_v32779/neve.pbuf': '2a9b535e25dc306f7adb24d8978cca8d7eefc2f4',
 }
 EXPECTED_CONFIG = {
-    'version': '3.277.19',
-    'android.numeric_version': '327719',
+    'version': '3.277.20',
+    'android.numeric_version': '327720',
     'icon.filename': 'assets_android/icon_pixel_rush.png',
     'presplash.filename': 'assets_android/splash_01_vermelho.png',
     'android.api': '36',
@@ -87,7 +87,7 @@ def check_preflight():
             raise AssertionError(f'PNG visual Android invalido: {filename}')
         if hashlib.sha256(raw).hexdigest() != wanted:
             raise AssertionError(f'Asset visual Android alterado: {filename}')
-    if 'v3.277.19' not in Path('VERSAO_ATUAL.txt').read_text(encoding='utf-8'):
+    if 'v3.277.20' not in Path('VERSAO_ATUAL.txt').read_text(encoding='utf-8'):
         raise AssertionError('arquivo de versao divergente')
     summary = {'resultado': 'APROVADO', 'pygame_ce_recipe': '2.5.8', 'numpy': 'p4a recipe', 'android_api': 36,
                'android_ndk': '28c', 'ndk_api': 26, 'abi': 'arm64-v8a', 'assets_amostrados': len(EXPECTED_BLOBS), 'assets_visuais_android': len(ANDROID_VISUAL_ASSETS)}

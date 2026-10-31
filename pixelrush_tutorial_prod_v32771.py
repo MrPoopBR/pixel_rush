@@ -40,6 +40,7 @@ class TutorialCorrida(_TutorialBase):
         self.modo_entrada = 'toque' if _USAR_GESTOS else 'teclado'
         self.tentativas = 0
         self.aviso_erro_ate = -1
+        self._aviso_erro_inicio = 0
         self.passo_obstaculo = 6
         self._cache_linhas = {}
         self._cache_textos = {}
@@ -112,6 +113,7 @@ class TutorialCorrida(_TutorialBase):
     def _iniciar_recuperacao(self, contato):
         """Colisao: morte visual, depois reverso; falha sem contato: so reverso."""
         self._reverso_teve_colisao = bool(contato)
+        self._aviso_erro_inicio = self.ticks
         self._rect_seguro_jogador = self.jogador.rect.copy()
         self.segurar_pulo = False
         self.segurar_baixo = False
@@ -220,6 +222,9 @@ class TutorialCorrida(_TutorialBase):
         self._reverso_teve_colisao = False
         self.ticks_etapa = 0
         self.aviso_erro_ate = self.ticks + 130
+        # Cada repeticao comeca mostrando o comando, sem depender do
+        # modulo do relogio acumulado nas tentativas anteriores.
+        self._aviso_erro_inicio = self.ticks
 
     @staticmethod
     def _atingiu_corpo(corpo, obstaculo):
@@ -259,6 +264,10 @@ class TutorialCorrida(_TutorialBase):
                 jogador, fundo, todos, letras, palavra,
                 particulas, pool, som, volume, frame)
 
+        # Apaga o erro assim que a licao avanca: nunca deixar
+        # "TENTE NOVAMENTE" visivel depois de acertar o comando.
+        if self.etapa != etapa_anterior:
+            self.aviso_erro_ate = -1
         if self.ativo and self.etapa == etapa_anterior and desafio:
             corpo = jogador.obter_hitbox() if hasattr(jogador, 'obter_hitbox') else jogador.rect
             contato = any(self._atingiu_corpo(corpo, obj) for obj in self.objetos
@@ -394,7 +403,7 @@ class TutorialCorrida(_TutorialBase):
             aviso = pygame.Rect(12, 94, w - 24, 119)
             pygame.draw.rect(tela, (34, 28, 45), aviso, border_radius=13)
             pygame.draw.rect(tela, (255, 198, 98), aviso, 3, border_radius=13)
-            if (self.ticks // 24) % 2 == 0:
+            if ((self.ticks - self._aviso_erro_inicio) // 24) % 2 == 0:
                 mensagem = mensagem_repetir(self.idioma)
                 instrucao = ui['dicas'][self.etapa][1 if _USAR_GESTOS else 0]
                 fm, lm, hm = self._encaixar_linhas(mensagem, aviso.width - 28, 42, 29)

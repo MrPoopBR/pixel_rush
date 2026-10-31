@@ -1,0 +1,12 @@
+PIXEL RUSH v3.277.20 — Android RC debug, nao homologada
+Base: v3.277.19, commit 22a95825266daad2f8e91d6a03e903bb4a5da25d.
+
+Alteracoes funcionais limitadas a dois ajustes na apresentacao do alerta de erro do tutorial:
+1. Assim que a etapa avanca para a proxima, o aviso "TENTE NOVAMENTE" e removido imediatamente (mesmo que o temporizador de 130 ticks ainda nao tenha expirado). Funciona nas quatro aulas de obstaculos, incluindo a transicao para moedas.
+2. O piscar do aviso agora e ancorado no inicio da recuperacao e reiniciado ao finalizar o rebobinamento. Cada nova tentativa inicia com o comando VISIVEL por 24 ticks e o alterna a cada 24 ticks. Mantem a mesma caixa, fontes, 13 idiomas, cores e tempo de alerta.
+
+QA: ajuste do dublê do teste cinematografico (etapa_indice e coletas) para corrigir falha comprovada da execucao GitHub #41236346167. Teste pygame-ce cobre render real do aviso no inicio, alternancia em 24/48 ticks, limpeza do HUD nas quatro transicoes. O mesmo workflow APK debug ja inclui este teste: nao foi alterado.
+
+Preservados: morte didatica, camera reversa, distancia segura, duracao das animacoes, tentativas infinitas, fisica, HUD fora do alerta, pontuacao zero no tutorial, moedas, letras, saves, pets, main, DEV, receitas p4a, pygame-ce e numpy, workflow AAB e geracao de release.
+Versao interna v3.277.20-PROD-ANDROID-RC; buildozer 3.277.20; versionCode debug 327720.
+Gates: testar no CI, compilar somente APK debug e avaliar em aparelho fisico antes de homologar.
