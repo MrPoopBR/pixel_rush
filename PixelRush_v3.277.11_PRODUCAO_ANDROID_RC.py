@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.11-PROD-ANDROID-RC"
+VERSAO = "v3.277.16-PROD-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -13122,7 +13122,10 @@ def main():
     # A simulacao usa passo fixo de 60 Hz; a imagem e renderizada separadamente.
     PASSO_FIXO = 1.0 / 60.0
     MAX_TEMPO_ACUMULADO = 0.25
-    MAX_PASSOS_POR_FRAME = 15
+    # Android: limitar o custo de quadros de recuperacao sem alterar a fisica
+    # de cada passo fixo (60 Hz) nem os temporizadores da corrida.
+    MAX_PASSOS_POR_FRAME = 4 if E_ANDROID else 15
+    FPS_RENDER = 30 if E_ANDROID else 60
     sim_acumulado = 0.0
 
     # Gera a arte animada do titulo antes do primeiro frame visivel. Em celulares
@@ -13228,6 +13231,10 @@ def main():
             atualizar_simulacao()
             sim_acumulado -= PASSO_FIXO
             passos_simulacao += 1
+        if E_ANDROID and passos_simulacao == MAX_PASSOS_POR_FRAME:
+            # Descartar backlog antigo evita a espiral de travamentos quando
+            # o celular nao consegue processar quinze ticks antes de desenhar.
+            sim_acumulado = min(sim_acumulado, PASSO_FIXO)
 
         _pro_marcar("entrada")
         for evento in _rep_eventos(pygame.event.get()):
@@ -15337,7 +15344,7 @@ def main():
                                             'leve' if PARTICULAS_VISUAIS_LIMITADAS else 'normal')
         _rep_fim(estado, cenario_atual, pontuacao // 10, frame_count, jogador)
         perf_biomas.antes_limitador()
-        relogio.tick(60)
+        relogio.tick(FPS_RENDER)
         _pro_fim()
         perf_biomas.fim()
 

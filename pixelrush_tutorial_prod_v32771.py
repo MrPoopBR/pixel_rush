@@ -41,6 +41,8 @@ class TutorialCorrida(_TutorialBase):
         self.tentativas = 0
         self.aviso_erro_ate = -1
         self.passo_obstaculo = 6
+        self._cache_linhas = {}
+        self._cache_textos = {}
 
     def fonte_tutorial(self, tamanho):
         if self.idioma in ('ja_JP', 'zh_CN', 'ko_KR', 'hi_IN'):
@@ -61,33 +63,91 @@ class TutorialCorrida(_TutorialBase):
                                 16 if self.etapa == 'pular_longo' else 6)
         return super()._preparar(todos, letras, palavra)
 
+    def _rebobinar_desafio(self, todos, letras, palavra):
+        """Repete somente a lição atual, ~28 ticks antes do contato, sem game over."""
+        self.tentativas += 1
+        self.aviso_erro_ate = self.ticks + 90
+        self._preparar(todos, letras, palavra)
+        jogador = self.jogador
+        jogador.velocidade_y = 0.0
+        jogador.rect.bottom = jogador.chao_y
+        jogador.no_chao = True
+        jogador.agachado = False
+        jogador.descida_rapida = False
+        jogador.morrendo = False
+        jogador.tempo_morte = 0
+        jogador.coyote_ticks = 0
+        jogador.buffer_pulo_ticks = 0
+        self.toque_ativo = False
+        self.ticks_etapa = 0
+
+    @staticmethod
+    def _atingiu_corpo(corpo, obstaculo):
+        partes = getattr(obstaculo, '_hitboxes_precisas_v342', None)
+        if partes:
+            return any(corpo.colliderect(parte.move(obstaculo.rect.topleft))
+                       for parte in partes)
+        return corpo.colliderect(obstaculo.rect)
+
     def atualizar(self, jogador, fundo, todos, letras, palavra, particulas,
                   pool, som, volume, frame):
         etapa_anterior = self.etapa
-        resposta = super().atualizar(jogador, fundo, todos, letras, palavra,
-                                    particulas, pool, som, volume, frame)
-        if (self.ativo and etapa_anterior == self.etapa and self.sucesso
-                and self.etapa in ('pular', 'pular_longo', 'agachar', 'swipe_down')):
-            # Desafio não fatal: se a pose não protegeu durante a passagem,
-            # recoloca o obstáculo ~28 quadros à frente e repete a lição.
-            corpo = jogador.obter_hitbox() if hasattr(jogador, 'obter_hitbox') else jogador.rect
-            em_contato = any(obj.alive() and corpo.colliderect(obj.rect) for obj in self.objetos)
-            defesa = ((self.etapa in ('pular', 'pular_longo') and not jogador.no_chao)
-                     or (self.etapa == 'agachar' and jogador.agachado)
-                     or (self.etapa == 'swipe_down' and getattr(jogador, 'descida_rapida', False)))
-            if em_contato and not defesa:
-                self.tentativas += 1
-                self.aviso_erro_ate = self.ticks + 90
+        desafio = etapa_anterior in ('pular', 'pular_longo', 'agachar', 'swipe_down')
+        if desafio:
+            if not self._etapa_preparada:
                 self._preparar(todos, letras, palavra)
-                # Reset tutorial apenas: a morte/gameover não é chamada.
-                jogador.velocidade_y = 0.0
-                jogador.rect.bottom = jogador.chao_y
-                jogador.no_chao = True
-                jogador.descida_rapida = False
-                self.ticks_etapa = 0
+            # Usar update() de cada perigo da Cidade em TODO tick, como na
+            # corrida normal: cone, hidrante e pombo nao aguardam um comando.
+            for obj in tuple(self.objetos):
+                if obj.alive():
+                    obj.update(6.0)
+            # O ancestral so desloca apos sucesso. Neutralizar seu segundo
+            # deslocamento para manter velocidade unica de 6 px/tick.
+            deslocamento_original = self.passo_obstaculo
+            self.passo_obstaculo = 0
+            try:
+                resposta = super().atualizar(
+                    jogador, fundo, todos, letras, palavra,
+                    particulas, pool, som, volume, frame)
+            finally:
+                self.passo_obstaculo = deslocamento_original
+        else:
+            resposta = super().atualizar(
+                jogador, fundo, todos, letras, palavra,
+                particulas, pool, som, volume, frame)
+
+        if self.ativo and self.etapa == etapa_anterior and desafio:
+            corpo = jogador.obter_hitbox() if hasattr(jogador, 'obter_hitbox') else jogador.rect
+            contato = any(self._atingiu_corpo(corpo, obj) for obj in self.objetos
+                          if obj.alive())
+            deixou_passar = (not self.sucesso and self.objetos
+                             and all(obj.rect.right < jogador.rect.left - 35
+                                     for obj in self.objetos))
+            if contato or deixou_passar or getattr(jogador, 'morrendo', False):
+                self._rebobinar_desafio(todos, letras, palavra)
         return resposta
 
+    def _render_texto(self, fonte, texto, cor):
+        chave = (id(fonte), str(texto), tuple(cor))
+        imagem = self._cache_textos.get(chave)
+        if imagem is None:
+            imagem = fonte.render(texto, True, cor)
+            if len(self._cache_textos) >= 96:
+                self._cache_textos.clear()
+            self._cache_textos[chave] = imagem
+        return imagem
+
     def _encaixar_linhas(self, texto, largura, altura_max, tamanho=17):
+        chave = (str(texto), int(largura), int(altura_max), int(tamanho))
+        resultado = self._cache_linhas.get(chave)
+        if resultado is None:
+            resultado = self._calcular_linhas(texto, largura, altura_max, tamanho)
+            if len(self._cache_linhas) >= 96:
+                self._cache_linhas.clear()
+            self._cache_linhas[chave] = resultado
+        return resultado
+
+    def _calcular_linhas(self, texto, largura, altura_max, tamanho=17):
         """Quebra palavras e CJK sem cortar ou extrapolar a borda do card."""
         texto = str(texto or '')
         for tam in range(tamanho, 9, -1):
@@ -142,13 +202,13 @@ class TutorialCorrida(_TutorialBase):
         ft, linhas_titulo, ha = self._encaixar_linhas(titulo, area.width, 28, 20)
         y = area.y
         for linha in linhas_titulo:
-            surf = ft.render(linha, True, (255, 235, 145))
+            surf = self._render_texto(ft, linha, (255, 235, 145))
             tela.blit(surf, (area.x, y))
             y += ha
         fy, linhas, hl = self._encaixar_linhas(explicacao, area.width, max(40, outer.bottom - 6 - y), 17)
         y += 5
         for linha in linhas:
-            tex = fy.render(linha, True, (246, 249, 255))
+            tex = self._render_texto(fy, linha, (246, 249, 255))
             tela.blit(tex, (area.x, y))
             y += hl
         # Única plataforma: teclado+cliques no PC, gestos no Android.
@@ -165,7 +225,7 @@ class TutorialCorrida(_TutorialBase):
         f_controle, linhas, h_controle = self._encaixar_linhas(controle, barra.width-24, 45, 17)
         start_y = barra.y + (barra.height - len(linhas)*h_controle)//2
         for linha in linhas:
-            texto = f_controle.render(linha, True, (255, 229, 142))
+            texto = self._render_texto(f_controle, linha, (255, 229, 142))
             tela.blit(texto, (barra.x + 12, start_y))
             start_y += h_controle
         # Feedback só após coleta ou sucesso e sem extrapolar o card.
@@ -181,7 +241,7 @@ class TutorialCorrida(_TutorialBase):
             else:
                 rotulo = mensagem_repetir(self.idioma)
             ff, _, _ = self._encaixar_linhas(rotulo, barra2.width-20, 33, 20)
-            surf = ff.render(rotulo, True, (255, 245, 195))
+            surf = self._render_texto(ff, rotulo, (255, 245, 195))
             if surf.get_width() <= barra2.width-20:
                 tela.blit(surf, surf.get_rect(center=barra2.center))
         if self.objetos and not self.sucesso:

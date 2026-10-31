@@ -1,0 +1,15 @@
+PIXEL RUSH v3.277.16 - Android RC debug nao homologada
+
+Base: commit ecffc4cdce50261046570bcb3afd87a1ce96f617, APK v3.277.15.
+Relato real: APK abre em Android 16, mas o desempenho fica lento e os obstaculos do tutorial permanecem a direita.
+
+Alteracoes solicitadas, limitadas a Android RC:
+1. Tutorial: perigos didaticos da Cidade (cone, hidrante e pombo) agora executam update(6.0) em cada passo de simulacao, inclusive antes do primeiro comando. Elimina a espera pelo gesto para movimentar obstaculos.
+2. Tutorial: anula apenas o deslocamento duplicado do ancestral apos acerto, preservando 6 px por tick e o comportamento normal da classe de cada perigo.
+3. Tutorial: ao colidir com hitbox didatica, errar ou deixar desafio passar, reconstitui o perigo ~28 passos antes do contato, reposiciona jogador no solo, limpa estados de salto/abaixamento e permite repeticoes ilimitadas, sem morte ou perda das etapas anteriores.
+4. Tutorial: cache limitado para quebra de linhas e superficies dos textos HUD; evita renderizar repetidamente as mesmas frases por quadro, sem alteracao visual.
+5. Android: tela limitada a 30 FPS de apresentacao; passo fixo da simulacao permanece 60 Hz, com maximo de quatro passos de recuperacao por quadro para evitar espirais de travamento. Desktop inalterado. E uma mitigacao; FPS real depende de teste em aparelho.
+6. buildozer.spec, auditoria preflight, testes isolados e numero Android atualizados para 3.277.16 (versionCode 327716). Workflow APK debug inclui novo teste. Workflow AAB nao modificado.
+
+Preservados: main, DEV, assets, pets, saves, economia, spawn normal, classes/fisica global e receitas Python/pygame-ce/NumPy/DT_NEEDED/ZIP_STORED. Outras features nao alteradas.
+Gates: sintaxe/QA CI a comprovar com logs da nova execucao; teste funcional e perfil em Android 16 pendentes.
