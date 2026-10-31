@@ -101,13 +101,14 @@ def main() -> int:
     a = sources(source)
     t = tests()
     p = smoke()
+    integridade = __import__('qa_p21.repo_snapshot', fromlist=['audit_checkout']).audit_checkout(ROOT)
     required = os.environ.get('P21_REQUIRE_SOURCE', 'false').lower() == 'true'
-    success = t['estado'] == 'aprovado' and p['estado'] == 'aprovado' and a['estado'] not in ('falha', 'bloqueado') and (not required or a['estado'] == 'aprovado_estatico')
-    doc = {'schema': 'pixelrush.p21.branch_ci.v1', 'qa_version': '1.3.0',
+    success = t['estado'] == 'aprovado' and p['estado'] == 'aprovado' and a['estado'] not in ('falha', 'bloqueado') and (not required or a['estado'] == 'aprovado_estatico') and integridade['estado'] == 'aprovado_estatico'
+    doc = {'schema': 'pixelrush.p21.branch_ci.v1', 'qa_version': '1.4.0',
            'versao_do_jogo_referencia': VERSION, 'executado_em': datetime.now(timezone.utc).isoformat(),
            'python': platform.python_version(), 'sistema': platform.system(),
            'git_sha': os.getenv('GITHUB_SHA', ''), 'evento': os.getenv('GITHUB_EVENT_NAME', ''),
-           'regressoes': t, 'pygame_dummy': p, 'fontes': a,
+           'regressoes': t, 'pygame_dummy': p, 'fontes': a, 'integridade_checkout': integridade,
            'resultado': 'QA_ISOLADO_APROVADO' if success else 'FALHA_OU_BLOQUEIO',
            'gates_p21': '1/4 (25%) — INALTERADOS',
            'limites': 'Não valida gameplay, 7 biomas, Android, hardware ou produção'}
