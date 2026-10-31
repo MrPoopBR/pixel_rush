@@ -4,6 +4,8 @@ Base: v3.277.22, commit 6c067b13b0db6a2fc5c2990d92921676fb12c6c1.
 1. Preparo dos atlas: expandir antecipacao de 38% para 56% das superficies de
    cada bioma inativo, com 1 superficie por tick e teto estrito de 26 MiB
    somados aos buffers preparados (pixelrush_buffers_prod_v327710.py).
+   Primeiro manter o piso antigo de 38% em cada bioma, apenas depois
+   gastar a margem de RAM para aumentar o cache ate 56%.
    Liberar contabilizacao na ativacao e mudanca de qualidade. Mesmos RGBA,
    biomas, hashes, convert_alpha e fallback. Maximo de RAM adicional para
    esse cache frente aos ~21,7 MiB anteriores: aproximadamente 4,3 MiB.

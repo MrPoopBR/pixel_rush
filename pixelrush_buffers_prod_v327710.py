@@ -184,28 +184,33 @@ class _Manager:
             # Prepara apenas parte das três opções para limitar RAM.
             candidates=[(name, self._ready.get(name)) for name in (
                 b+('_lite' if light else '') for b in _BIOMAS if b!=biome)]
-        start=time.perf_counter_ns()
-        for shift in range(len(candidates)):
-            key,stage=candidates[(self._cursor+shift)%len(candidates)]
-            if stage is None:continue
-            buffers=stage[1]
-            desired=int(len(buffers)*self._fraction + 0.999)
-            index=self._progress.get(key,0)
-            if index>=desired:continue
-            slot=buffers[index]
-            # Os buffers .pbuf sao RGBA; respeitar o limite antes de expandir.
-            tamanho_estimado=slot.size[0] * slot.size[1] * 4
-            if self._prepared_bytes + tamanho_estimado > self._prepared_budget_bytes:
-                continue
-            raw=zlib.decompress(slot.raw)
-            slot.surface=pygame.image.frombuffer(raw,slot.size,'RGBA').convert_alpha()
-            slot.raw=None
-            self._prepared_bytes+=slot.surface.get_pitch() * slot.surface.get_height()
-            self._progress[key]=index+1
-            self._cursor+=1
-            # No máximo uma superfície por atualização; inclui overhead SDL.
-            self.stats['max_buffer_mib']=max(self.stats['max_buffer_mib'],sum(x[2] for x in self._ready.values())/1048576)
-            break
+        # Primeiro garantir a cobertura antiga de 38% a todos os biomas.
+        # Apenas em seguida usar memoria ociosa para chegar a ate 56%.
+        # Isso impede que uma cena roube a reserva da proxima a carregar.
+        preparado=False
+        for limite in (0.38,self._fraction):
+            for shift in range(len(candidates)):
+                key,stage=candidates[(self._cursor+shift)%len(candidates)]
+                if stage is None:continue
+                buffers=stage[1]
+                desired=int(len(buffers)*limite + 0.999)
+                index=self._progress.get(key,0)
+                if index>=desired:continue
+                slot=buffers[index]
+                tamanho_estimado=slot.size[0] * slot.size[1] * 4
+                if self._prepared_bytes + tamanho_estimado > self._prepared_budget_bytes:
+                    continue
+                raw=zlib.decompress(slot.raw)
+                slot.surface=pygame.image.frombuffer(raw,slot.size,'RGBA').convert_alpha()
+                slot.raw=None
+                self._prepared_bytes+=slot.surface.get_pitch() * slot.surface.get_height()
+                self._progress[key]=index+1
+                self._cursor+=1
+                # No maximo uma Surface por update, como anteriormente.
+                self.stats['max_buffer_mib']=max(self.stats['max_buffer_mib'],sum(x[2] for x in self._ready.values())/1048576)
+                preparado=True
+                break
+            if preparado:break
 
     def get(self,biome,light):
         key=biome+('_lite' if light else '')
