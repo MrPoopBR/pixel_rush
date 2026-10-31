@@ -28,7 +28,10 @@ def _preparar_telemetria_qa():
     original = mod.PerfBiomas.fim
     def fim_qa(self):
         original(self)
-        if self.habilitado and self.quadros_jogando and self.quadros_jogando % 900 == 0:
+        if (self.habilitado and self.quadros_jogando
+                and self.quadros_jogando % 900 == 0
+                and getattr(self, "_qa_ultimo_salvo", -1) != self.quadros_jogando):
+            self._qa_ultimo_salvo = self.quadros_jogando
             self.salvar()
     mod.PerfBiomas.fim = fim_qa
     print("PIXEL_RUSH_QA_PERF_PATH:", caminho, flush=True)
