@@ -6,6 +6,7 @@ que as extensoes nativas possam ser importadas com confianca. Esta receita
 preserva a compilacao Python 3.12 original do p4a e altera APENAS a forma de
 armazenamento de stdlib.zip de DEFLATED para STORED.
 """
+from inspect import getfile
 from os import replace
 from pathlib import Path
 from zipfile import ZipFile, ZIP_STORED
@@ -21,6 +22,24 @@ REQUIRED_BOOT_MODULES = (
 class PixelRushPython3Recipe(UpstreamPython3Recipe):
     name = 'python3'
     version = '3.12.12'
+
+    def apply_patch(self, filename, arch, build_dir=None):
+        """Mantem os patches oficiais no diretorio do p4a, nao no overlay.
+
+        Recipe.apply_patch() faz join(self.get_recipe_dir(), filename).
+        Quando o python3 e uma receita local, get_recipe_dir aponta para
+        p4a-recipes/python3; os arquivos oficiais continuam na receita base.
+        Fornecer caminho absoluto preserva o metodo original de aplicacao.
+        """
+        if filename.startswith('patches/'):
+            upstream_recipe_dir = Path(getfile(UpstreamPython3Recipe)).resolve().parent
+            official_patch = (upstream_recipe_dir / filename).resolve()
+            if not official_patch.is_file():
+                raise FileNotFoundError(
+                    f'Patch oficial python-for-android ausente: {official_patch}'
+                )
+            filename = str(official_patch)
+        return super().apply_patch(filename, arch, build_dir=build_dir)
 
     def create_python_bundle(self, dirn, arch):
         result = super().create_python_bundle(dirn, arch)

@@ -1,0 +1,25 @@
+PIXEL RUSH v3.277.14 - Android RC nao homologada
+
+Base: v3.277.13, commit 296277820957984d3c9d5b7cb4f3731738676d68
+Evidencia: GitHub Actions #41224600410, passo APK debug falhou ao tentar
+p4a-recipes/python3/patches/pyconfig_detection.patch (nao existe).
+
+Correcao exclusiva:
+1. p4a-recipes/python3/__init__.py: resolve patches oficiais herdados a partir
+   do arquivo de classe UpstreamPython3Recipe do python-for-android, encaminhando
+   o caminho absoluto ao metodo original, preservando a aplicacao de patches.
+   Se o patch oficial estiver ausente, falha imediatamente com FileNotFoundError.
+2. Novo teste isolado de patches: quatro patches usados por Python 3.12 no p4a,
+   verificacao de caminhos absolutos, ausencia de arquivo e heranca da receita.
+3. Executa teste isolado no preflight do workflow APK debug.
+4. Auditoria atualizada com versao e hashes esperados sem afrouxar gates.
+5. Versao v3.277.14 / versionCode 327714.
+
+Preservado sem alteracoes: o metodo create_python_bundle e ZIP_STORED da v3.277.13,
+codigo do jogo e main.py, fisica, gameplay, interface, skins, saves, pets,
+recursos, recipe pygame-ce 2.5.8, NumPy, SDL2, API/NDK, workflow AAB,
+branch main e DEV. Nao ha alteracao de assinatura/publicacao Play.
+
+Validacoes: sintaxe, teste de patches (presente/ausente), ZIP_STORED e zlib
+isolado, preflight GitHub, compilacao APK debug e auditoria ELF/ZIP 16 KiB.
+Ultima verificacao Android real no celular: ainda pendente de APK homologavel.
