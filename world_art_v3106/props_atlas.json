@@ -1,0 +1,159 @@
+{
+  "format": "pixelrush-atlas-v1",
+  "sprites": {
+    "cidade_0.png": {
+      "x": 4,
+      "y": 4,
+      "w": 140,
+      "h": 215,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "cidade_1.png": {
+      "x": 148,
+      "y": 4,
+      "w": 140,
+      "h": 214,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "cidade_futurista_0.png": {
+      "x": 292,
+      "y": 4,
+      "w": 125,
+      "h": 260,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "cidade_futurista_1.png": {
+      "x": 421,
+      "y": 4,
+      "w": 125,
+      "h": 260,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "deserto_0.png": {
+      "x": 550,
+      "y": 4,
+      "w": 140,
+      "h": 175,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "deserto_1.png": {
+      "x": 694,
+      "y": 4,
+      "w": 130,
+      "h": 175,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "floresta_0.png": {
+      "x": 828,
+      "y": 4,
+      "w": 190,
+      "h": 435,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "floresta_1.png": {
+      "x": 4,
+      "y": 443,
+      "w": 187,
+      "h": 435,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "ilhas_celestes_0.png": {
+      "x": 195,
+      "y": 443,
+      "w": 178,
+      "h": 418,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "ilhas_celestes_1.png": {
+      "x": 377,
+      "y": 443,
+      "w": 175,
+      "h": 418,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "neve_0.png": {
+      "x": 556,
+      "y": 443,
+      "w": 105,
+      "h": 330,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "neve_1.png": {
+      "x": 665,
+      "y": 443,
+      "w": 104,
+      "h": 330,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "vulcao_0.png": {
+      "x": 773,
+      "y": 443,
+      "w": 110,
+      "h": 185,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    },
+    "vulcao_1.png": {
+      "x": 887,
+      "y": 443,
+      "w": 115,
+      "h": 190,
+      "pivot": [
+        0.5,
+        1.0
+      ],
+      "anchor": "foot_or_visual_base"
+    }
+  }
+}

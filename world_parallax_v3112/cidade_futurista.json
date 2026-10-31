@@ -1,0 +1,31 @@
+{
+  "biome": "cidade_futurista",
+  "sources_sha256": "c04f82ea5a60874a52870256e94691887404edbf5587fda05ebc45c811493bf0",
+  "base": "cidade_futurista_base.png",
+  "sprites": [
+    {
+      "file": "cidade_futurista_sprite_0.png",
+      "rect": [
+        594,
+        352,
+        29,
+        50
+      ],
+      "point_index": 3,
+      "sam_score": 0.9204,
+      "area": 906,
+      "relative_depth": 0.1804,
+      "parallax_speed": 0.24938,
+      "wind_pixels": 2
+    }
+  ],
+  "available_candidates": 1,
+  "composite_mae": 0.01379,
+  "composite_large_diff_fraction": 0.000196,
+  "masked_fraction": 0.002687,
+  "qa_automatic_passed": true,
+  "qa_manual_approved": false,
+  "note": "Modo experimental. Remocao de clareamento artificial nao equivale a aprovacao artistica.",
+  "reconstruction_method": "opencv_telea_radius3_mask_dilation2",
+  "reconstruction_version": "v3.114.0"
+}

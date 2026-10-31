@@ -1,0 +1,38 @@
+{
+  "neve": {
+    "sha256": "bf7fe8ca1763519987e673edc0e948dfb91fff703371eb280136e335dd1e950d",
+    "count": 75,
+    "source_sha256": "ac9bc12ec49d538469a0c3bc2ce2e073632f06c46a49534e9b691cd8a6eef574",
+    "bytes": 568402
+  },
+  "neve_lite": {
+    "sha256": "800e9d2d1da3bfbd8ad441fb73d12d750ede90f3c79507d7f9f2db5552aebb4a",
+    "count": 75,
+    "source_sha256": "de9f9eb6d54aac9a3ec900fc9917e72197238a21836f92c3ebb02a25b7ae1648",
+    "bytes": 513534
+  },
+  "cidade_futurista": {
+    "sha256": "35e27a1e6f4d8055bb2ad302804eb1cbec8c9933353bea27ae7b5f2e80e3e3d5",
+    "count": 78,
+    "source_sha256": "1605717719739e14916eec09a580686a6ac4469f959b5ba5d6fb49a9d861f5b9",
+    "bytes": 376897
+  },
+  "cidade_futurista_lite": {
+    "sha256": "724b00389248d27e55b32886b1d91b65d517339e6233232c336cebbd19c7bdaa",
+    "count": 78,
+    "source_sha256": "3a3dfbf8ef937892412ef028f7e38cad161b7c0dad6d5bf074661ab07b86f1d4",
+    "bytes": 331575
+  },
+  "deserto": {
+    "sha256": "488aca5fe255a1d13ea7a31969386300ffb92af6ccff64effbfeb210912473da",
+    "count": 108,
+    "source_sha256": "6649945527fb7a844f97d8100e4b133699f884306eddd0758f1c6ccadc9770aa",
+    "bytes": 593461
+  },
+  "deserto_lite": {
+    "sha256": "0868b902f0cf86b9711edbe2ad38d7fd4639da2c8ae88ee679c0097c87fc93cd",
+    "count": 108,
+    "source_sha256": "88b5c1432caee0a5ce42f8222bd0add5da7177332d5640a9c62ad93d6248584c",
+    "bytes": 537344
+  }
+}

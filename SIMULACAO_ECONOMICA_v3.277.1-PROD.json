@@ -1,0 +1,30 @@
+{
+  "versao": "v3.277.1-PROD",
+  "tipo": "modelo ilustrativo de 10000 corridas experientes, nao benchmark de jogadores reais",
+  "assumptions": {
+    "duracao_media_seg": 240,
+    "conjuntos_moedas_por_seg": "0.42 a 0.58",
+    "moedas_por_conjunto": "2 a 7",
+    "eficiencia_coleta": "57 a 83%",
+    "bonus_extra": "10 a 95 moedas",
+    "recompensa_missoes": "0 a 230 moedas (amostra discreta)"
+  },
+  "media_moedas_por_corrida": 555.0,
+  "mediana": 552.0,
+  "p10": 382,
+  "p90": 732,
+  "precos": {
+    "skin_padrao": 0,
+    "skin_dinossauro": 24000,
+    "skin_coelho": 48000,
+    "upgrade_ima_nivel_1": 10800,
+    "upgrade_jetpack_nivel_1": 36000,
+    "pet_bolha": 9600
+  },
+  "corridas_medias_para_comprar": {
+    "dinossauro": 43,
+    "coelho": 86,
+    "upgrade_ima_nivel_1": 19,
+    "pet_bolha": 17
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "neve": {
+    "arquivo": "neve.atlas",
+    "sha256": "ac9bc12ec49d538469a0c3bc2ce2e073632f06c46a49534e9b691cd8a6eef574",
+    "bytes": 17152607,
+    "tempo_original_ms": 303.14
+  },
+  "neve_lite": {
+    "arquivo": "neve_lite.atlas",
+    "sha256": "de9f9eb6d54aac9a3ec900fc9917e72197238a21836f92c3ebb02a25b7ae1648",
+    "bytes": 17152605,
+    "tempo_original_ms": 188.58
+  },
+  "cidade_futurista": {
+    "arquivo": "cidade_futurista.atlas",
+    "sha256": "1605717719739e14916eec09a580686a6ac4469f959b5ba5d6fb49a9d861f5b9",
+    "bytes": 12849760,
+    "tempo_original_ms": 496.74
+  },
+  "cidade_futurista_lite": {
+    "arquivo": "cidade_futurista_lite.atlas",
+    "sha256": "3a3dfbf8ef937892412ef028f7e38cad161b7c0dad6d5bf074661ab07b86f1d4",
+    "bytes": 12849758,
+    "tempo_original_ms": 188.21
+  },
+  "deserto": {
+    "arquivo": "deserto.atlas",
+    "sha256": "6649945527fb7a844f97d8100e4b133699f884306eddd0758f1c6ccadc9770aa",
+    "bytes": 24461815,
+    "tempo_original_ms": 1102.57
+  },
+  "deserto_lite": {
+    "arquivo": "deserto_lite.atlas",
+    "sha256": "88b5c1432caee0a5ce42f8222bd0add5da7177332d5640a9c62ad93d6248584c",
+    "bytes": 24461813,
+    "tempo_original_ms": 439.72
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "C1": {
+    "nome": "Rato Urbano",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      49,
+      30
+    ],
+    "sha256": "ecdfbed127913e2d0c685e50d96671cf18d746339808f4d9c1454118d4ffc87f"
+  },
+  "C2": {
+    "nome": "Pombo Atrapalhado",
+    "quadros": 9,
+    "fases": [
+      3,
+      3,
+      3
+    ],
+    "dimensoes": [
+      54,
+      42
+    ],
+    "sha256": "2a45883b4e48e0e19dd0e60c833e32e15ce1a629bec94a877dfc15b946fed96c"
+  },
+  "CF1": {
+    "nome": "Robo Patrulheiro",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      57,
+      50
+    ],
+    "sha256": "31bdb28e82b11ae2d26c4bf843929d8dd4171fed17cf78af5326544e3f827ca8"
+  },
+  "CF2": {
+    "nome": "Drone Sentinela",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      62,
+      40
+    ],
+    "sha256": "9284cfa07959865a7253487e705f06766d6f9325654df95f9c259e60978ebc7a"
+  },
+  "D1": {
+    "nome": "Serpente das Dunas",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      60,
+      39
+    ],
+    "sha256": "94607a3f147b61bc695e8279328a663014acb718c6375fa7f22f5e26a7112bcf"
+  },
+  "D2": {
+    "nome": "Besouro Rolador",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      58,
+      39
+    ],
+    "sha256": "abc70c79e784db3b8c22632285f91d8724ccd12833a660dbbc7cbc7302cfd6cb"
+  },
+  "F1": {
+    "nome": "Caracol Blindado",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      56,
+      42
+    ],
+    "sha256": "7e6a0becf67b8763ad0bd223d56b406e4cd52a48349e01b51f7d354b69b1b9e8"
+  },
+  "F2": {
+    "nome": "Tucano Travesso",
+    "quadros": 9,
+    "fases": [
+      3,
+      3,
+      3
+    ],
+    "dimensoes": [
+      58,
+      46
+    ],
+    "sha256": "d470befbd2b7c9c02a9aee6e816cd45991958809c189552b07b40e694f456337"
+  },
+  "IC1": {
+    "nome": "Besouro Luminoso",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      56,
+      42
+    ],
+    "sha256": "f5133b8871c2bbb5236786b288d735d0e4e6b1f522620ed917e2de267a2cd5e3"
+  },
+  "IC2": {
+    "nome": "Arraia Celestial",
+    "quadros": 9,
+    "fases": [
+      3,
+      3,
+      3
+    ],
+    "dimensoes": [
+      69,
+      40
+    ],
+    "sha256": "f3cb87c327edd92867d7c8a710fbc19e42c84504771c102f6265c67d64456c8e"
+  },
+  "N1": {
+    "nome": "Pinguim Deslizante",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      49,
+      35
+    ],
+    "sha256": "5f14ac327e017f82adc9da31aa2fadda72b5b4a4710a1a15bbe5ea8642a8937b"
+  },
+  "N2": {
+    "nome": "Coruja Invernal",
+    "quadros": 9,
+    "fases": [
+      3,
+      3,
+      3
+    ],
+    "dimensoes": [
+      58,
+      46
+    ],
+    "sha256": "b334da58b04d2ba1737b29e9223c568598526c0b75913cfbd090d8673b4b68e6"
+  },
+  "V1": {
+    "nome": "Salamandra Magmatica",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      60,
+      36
+    ],
+    "sha256": "953646f7e8ec582ce0e5466bf70f5172d06e4bf069616a79109e397ae7b936ae"
+  },
+  "V2": {
+    "nome": "Morcego Vulcanico",
+    "quadros": 9,
+    "fases": [
+      3,
+      3,
+      3
+    ],
+    "dimensoes": [
+      64,
+      44
+    ],
+    "sha256": "eeb8ace6c7bf6bdab427203f871788501df045f993e18f1f09f4bfcf1f01a9c7"
+  },
+  "V4": {
+    "nome": "Geiser de Vapor",
+    "quadros": 6,
+    "fases": [
+      2,
+      2,
+      2
+    ],
+    "dimensoes": [
+      58,
+      74
+    ],
+    "sha256": "b35d6d93b59601d9e64fb037f7ece30ccf722b843b760fa26b91174c9e28052e"
+  }
+}

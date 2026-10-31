@@ -1,0 +1,33 @@
+# CANDIDATO DE BUILD -- NAO HOMOLOGADO PARA GOOGLE PLAY
+# Renomeie para buildozer.spec APOS validar a receita de pygame-ce 2.5.8.
+# Ajuste package.domain, numeric_version e assinatura para seu aplicativo REAL.
+[app]
+title = Pixel Rush
+package.name = pixelrush
+package.domain = org.exemplo.substitua
+version = 3.277.11
+source.dir = .
+source.include_exts = py,png,json,ttf,atlas,pbuf,tiles,rgbaz,pcmz,txt
+source.exclude_patterns = NOTAS_DA_VERSAO_*,LEIA_ME_PUBLICACAO.md,JOGAR_WINDOWS.bat,JOGAR_LINUX.sh,requirements*.txt
+# REQUER validacao ou receita personalizada ARM64 de pygame-ce 2.5.8.
+# SDL2 da p4a nao equivale a pygame-ce para Python.
+requirements = python3,pygame-ce==2.5.8,numpy,pyjnius
+orientation = portrait
+fullscreen = 1
+
+# Somente os recursos efetivamente necessarios; nao habilitar INTERNET por padrao.
+android.permissions = VIBRATE
+android.api = 36
+android.minapi = 26
+android.ndk = 28c
+android.ndk_api = 26
+android.archs = arm64-v8a
+android.release_artifact = aab
+android.debug_artifact = apk
+android.numeric_version = 327711
+p4a.bootstrap = sdl2
+# Confirmar versao e compatibilidade p4a/AGP/NDK em build REAL.
+# p4a.branch = develop
+[buildozer]
+log_level = 2
+warn_on_root = 1
