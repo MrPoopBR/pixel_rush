@@ -34,6 +34,16 @@ class Jogador:
         self.tempo_morte = 0
         self.coyote_ticks = 0
         self.buffer_pulo_ticks = 0
+        self.angulo_rotacao = 0
+        self._visual_dirty = False
+
+    def iniciar_morte(self, por_buraco=False):
+        self.morrendo = True
+        self.tempo_morte = 60
+
+    def update(self, *args, **kwargs):
+        if self.morrendo:
+            self.tempo_morte -= 1
 
     def obter_hitbox(self):
         return pygame.Rect(self.rect.x + 20, self.rect.y + 20, 40, 55)
@@ -93,7 +103,7 @@ inicio = t.objetos[0].rect.x
 for _ in range(5):
     passo(t, todos)
 assert t.objetos[0].rect.x == inicio - 30, 'perigo deve andar 6 px por passo sem gesto'
-for _ in range(120):
+for _ in range(280):
     passo(t, todos)
     if t.tentativas >= 2:
         break

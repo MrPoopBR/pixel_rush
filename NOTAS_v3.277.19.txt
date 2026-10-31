@@ -1,0 +1,14 @@
+PIXEL RUSH v3.277.19 — Android RC debug, nao homologado
+Base v3.277.18, commit 945b01edad799507e1ebd16eee63c60b3e0efd86.
+
+Mudancas apenas no tutorial obrigatorio de obstaculos (pular, pular longo, agachar, swipe-down):
+1. Colisao com obstaculo didatico agora dispara a animacao ORIGINAL de morte do Jogador, por 24 ticks; o retorno precoce do tutorial impede Game Over, perda de vida ou fim da partida.
+2. Em seguida, efeito visual de camera reversa por 24 ticks: perigos andam para a direita, o deslocamento do chao, parallax e arte de fundo rebobinam, e o jogador retorna visualmente a posicao original. Sem captura/reproducao custosa de imagens.
+3. O obstaculo e reiniciado 230 px a frente do lado direito do jogador (distancia segura), permitindo infinitas tentativas, sem contagem de pontos durante o tutorial.
+4. Aviso grande e piscante a 1,25 Hz, sem flash de tela inteira, com comando da licao nos 13 idiomas existentes. O aviso permanece apos o retrocesso para dar tempo de reagir.
+5. Comandos recebidos durante as animacoes de morte/reverso sao bloqueados apenas no tutorial; controles da corrida real preservados.
+6. Falha sem contato tambem gera rebobina visual (sem animacao de morte falsa).
+
+Mudancas administrativas: v3.277.19-PROD-ANDROID-RC, versionCode debug 327719, notas, preflight, teste pygame-ce headless e workflow APK debug para executar QA.
+Mantidos integralmente: main, DEV, AAB, fisica global, sprites, pygame-ce, numpy, p4a, pets, saves, economia, assets, obstaculos/spawn normais, tutorial moedas/letras, pontuacao v3.277.18.
+O teste real no Android continua obrigatorio antes de homologar.

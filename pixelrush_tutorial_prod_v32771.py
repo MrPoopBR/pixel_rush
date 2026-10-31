@@ -43,6 +43,15 @@ class TutorialCorrida(_TutorialBase):
         self.passo_obstaculo = 6
         self._cache_linhas = {}
         self._cache_textos = {}
+        # Efeito exclusivo das quatro licoes de obstaculos; nunca causa GAMEOVER.
+        self.fase_recuperacao = None
+        self.tempo_recuperacao = 0
+        self._rect_seguro_jogador = None
+        self._inicio_reverso_jogador = None
+        self._inicio_reverso_obstaculos = ()
+        self._alvos_reverso_obstaculos = ()
+        self._reverso_desloc_anterior = 0.0
+        self._reverso_teve_colisao = False
 
     def fonte_tutorial(self, tamanho):
         if self.idioma in ('ja_JP', 'zh_CN', 'ko_KR', 'hi_IN'):
@@ -50,6 +59,9 @@ class TutorialCorrida(_TutorialBase):
         return super().fonte_tutorial(tamanho)
 
     def processar_evento(self, evento, converter=None, som=None, volume=1.0):
+        # Durante a animacao de morte/reverso os comandos nao movem o jogador.
+        if self.fase_recuperacao is not None:
+            return True
         # O SDL pode sintetizar mouse durante um toque nativo. Nao permitir
         # que esse evento apague a origem antes da liberacao do dedo.
         if (_USAR_GESTOS and self.toque_ativo and evento.type in
@@ -86,14 +98,108 @@ class TutorialCorrida(_TutorialBase):
                         obj._base_y = obj.rect.y
         return retorno
 
+    def _iniciar_reverso(self):
+        """Inicia camera ao contrario sem gravar video/quadros em RAM."""
+        self.fase_recuperacao = 'reverso'
+        self.tempo_recuperacao = 24
+        self._inicio_reverso_jogador = self.jogador.rect.copy()
+        self._inicio_reverso_obstaculos = tuple(obj.rect.x for obj in self.objetos)
+        self._alvos_reverso_obstaculos = tuple(
+            self._rect_seguro_jogador.right + 230 + i * 75
+            for i in range(len(self.objetos)))
+        self._reverso_desloc_anterior = 0.0
+
+    def _iniciar_recuperacao(self, contato):
+        """Colisao: morte visual, depois reverso; falha sem contato: so reverso."""
+        self._reverso_teve_colisao = bool(contato)
+        self._rect_seguro_jogador = self.jogador.rect.copy()
+        self.segurar_pulo = False
+        self.segurar_baixo = False
+        self.toque_ativo = False
+        self.swipe_iniciado = None
+        if contato:
+            # Chama a animacao ORIGINAL do proprio Jogador, sem atingir
+            # o fluxo de morte/Game Over do jogo fora do tutorial.
+            self.jogador.iniciar_morte()
+            self.fase_recuperacao = 'morte'
+            self.tempo_recuperacao = 24
+        else:
+            self._iniciar_reverso()
+
+    @staticmethod
+    def _reposicionar_objeto_reverso(obj, x):
+        obj.rect.x = int(x)
+        if hasattr(obj, '_x'):
+            obj._x = float(obj.rect.x)
+        if hasattr(obj, '_posicao_mundo_x'):
+            obj._posicao_mundo_x = float(obj.rect.x)
+        if hasattr(obj, 'renderizar_visual'):
+            obj.renderizar_visual()
+
+    def _atualizar_recuperacao(self, fundo, todos, letras, palavra,
+                              particulas, pool, som, volume, frame):
+        # Nenhum passo do tutorial/colisao/spawn avanca durante estes estados.
+        self.ticks += 1
+        if self.fase_recuperacao == 'morte':
+            self.jogador.update(0.0, frame, False, False, particulas, pool,
+                                som, volume, pode_pousar=True)
+            self.tempo_recuperacao -= 1
+            if self.tempo_recuperacao <= 0:
+                self._iniciar_reverso()
+            return (0, False)
+        if self.fase_recuperacao == 'reverso':
+            restante = self.tempo_recuperacao
+            t = (25 - restante) / 24.0
+            t = max(0.0, min(1.0, t))
+            ease = t * t * (3.0 - 2.0 * t)
+            # O mundo e os obstaculos voltam para a DIREITA, simulando uma
+            # camera reversa. So a camada didatica utiliza estes deslocamentos.
+            for i, obj in enumerate(self.objetos):
+                if not obj.alive():
+                    todos.add(obj)
+                x0 = self._inicio_reverso_obstaculos[i]
+                x1 = self._alvos_reverso_obstaculos[i]
+                self._reposicionar_objeto_reverso(
+                    obj, round(x0 + (x1 - x0) * ease))
+            passo = 255.0 * ease - self._reverso_desloc_anterior
+            self._reverso_desloc_anterior += passo
+            # Recuar o chao, edificios e montanhas existentes, sem afetar
+            # a simulacao/velocidade da corrida normal nem alocar frames.
+            if hasattr(fundo, 'desloc_chao'):
+                fundo.desloc_chao = (fundo.desloc_chao - passo) % 900.0
+            if hasattr(fundo, 'camada_perto'):
+                fundo.camada_perto += passo * 0.24
+            if hasattr(fundo, 'camada_longe'):
+                fundo.camada_longe += passo * 0.08
+            if hasattr(fundo, '_desloc_arte'):
+                fundo._desloc_arte = (fundo._desloc_arte - passo * 0.19) % 2700.0
+            if hasattr(fundo, '_desloc_arte_fundo'):
+                fundo._desloc_arte_fundo = (fundo._desloc_arte_fundo - passo * 0.06) % 2700.0
+            if self._reverso_teve_colisao:
+                # A propria animacao de morte volta em sentido contrario antes
+                # da restauracao: evita teletransporte visual repentino.
+                origem = self._inicio_reverso_jogador
+                destino = self._rect_seguro_jogador
+                self.jogador.rect.x = round(origem.x + (destino.x - origem.x) * ease)
+                self.jogador.rect.y = round(origem.y + (destino.y - origem.y) * ease)
+                if hasattr(self.jogador, 'angulo_rotacao'):
+                    self.jogador.angulo_rotacao = round(
+                        self.jogador.angulo_rotacao * (1.0 - ease))
+                self.jogador._visual_dirty = True
+            self.tempo_recuperacao -= 1
+            if self.tempo_recuperacao <= 0:
+                self._rebobinar_desafio(todos, letras, palavra)
+            return (0, False)
+        return (0, False)
+
     def _rebobinar_desafio(self, todos, letras, palavra):
-        """Repete somente a lição atual, ~28 ticks antes do contato, sem game over."""
+        """Finalize o reverso com desafio a distancia segura e vidas infinitas."""
         self.tentativas += 1
-        self.aviso_erro_ate = self.ticks + 90
-        self._preparar(todos, letras, palavra)
         jogador = self.jogador
-        jogador.velocidade_y = 0.0
+        if self._rect_seguro_jogador is not None:
+            jogador.rect = self._rect_seguro_jogador.copy()
         jogador.rect.bottom = jogador.chao_y
+        jogador.velocidade_y = 0.0
         jogador.no_chao = True
         jogador.agachado = False
         jogador.descida_rapida = False
@@ -101,8 +207,19 @@ class TutorialCorrida(_TutorialBase):
         jogador.tempo_morte = 0
         jogador.coyote_ticks = 0
         jogador.buffer_pulo_ticks = 0
+        if hasattr(jogador, 'angulo_rotacao'):
+            jogador.angulo_rotacao = 0
+        if hasattr(jogador, '_visual_dirty'):
+            jogador._visual_dirty = True
         self.toque_ativo = False
+        self._preparar(todos, letras, palavra)
+        for i, obj in enumerate(self.objetos):
+            # 230 px livres em vez de 165: tempo real para ler o aviso e agir.
+            self._reposicionar_objeto_reverso(obj, jogador.rect.right + 230 + i * 75)
+        self.fase_recuperacao = None
+        self._reverso_teve_colisao = False
         self.ticks_etapa = 0
+        self.aviso_erro_ate = self.ticks + 130
 
     @staticmethod
     def _atingiu_corpo(corpo, obstaculo):
@@ -114,6 +231,9 @@ class TutorialCorrida(_TutorialBase):
 
     def atualizar(self, jogador, fundo, todos, letras, palavra, particulas,
                   pool, som, volume, frame):
+        if self.fase_recuperacao is not None:
+            return self._atualizar_recuperacao(
+                fundo, todos, letras, palavra, particulas, pool, som, volume, frame)
         etapa_anterior = self.etapa
         desafio = etapa_anterior in ('pular', 'pular_longo', 'agachar', 'swipe_down')
         if desafio:
@@ -147,7 +267,7 @@ class TutorialCorrida(_TutorialBase):
                              and all(obj.rect.right < jogador.rect.left - 35
                                      for obj in self.objetos))
             if contato or deixou_passar or getattr(jogador, 'morrendo', False):
-                self._rebobinar_desafio(todos, letras, palavra)
+                self._iniciar_recuperacao(contato or getattr(jogador, 'morrendo', False))
         return resposta
 
     def _render_texto(self, fonte, texto, cor):
@@ -267,6 +387,35 @@ class TutorialCorrida(_TutorialBase):
             surf = self._render_texto(ff, rotulo, (255, 245, 195))
             if surf.get_width() <= barra2.width-20:
                 tela.blit(surf, surf.get_rect(center=barra2.center))
+        # Aviso grande, localizado e piscando (1,25 Hz), sem flashes em tela
+        # cheia. Usa o comando real da licao nos treze idiomas existentes.
+        if (self.fase_recuperacao is not None
+                or self.aviso_erro_ate > self.ticks):
+            aviso = pygame.Rect(12, 94, w - 24, 119)
+            pygame.draw.rect(tela, (34, 28, 45), aviso, border_radius=13)
+            pygame.draw.rect(tela, (255, 198, 98), aviso, 3, border_radius=13)
+            if (self.ticks // 24) % 2 == 0:
+                mensagem = mensagem_repetir(self.idioma)
+                instrucao = ui['dicas'][self.etapa][1 if _USAR_GESTOS else 0]
+                fm, lm, hm = self._encaixar_linhas(mensagem, aviso.width - 28, 42, 29)
+                fi, li, hi = self._encaixar_linhas(instrucao, aviso.width - 28, 58, 25)
+                y_alerta = aviso.y + 10
+                for linha in lm:
+                    img = self._render_texto(fm, linha, (255, 223, 108))
+                    tela.blit(img, img.get_rect(centerx=aviso.centerx, top=y_alerta))
+                    y_alerta += hm
+                y_alerta += 4
+                for linha in li:
+                    img = self._render_texto(fi, linha, (255, 255, 255))
+                    tela.blit(img, img.get_rect(centerx=aviso.centerx, top=y_alerta))
+                    y_alerta += hi
+            if self.fase_recuperacao == 'reverso':
+                # Trilhas direcionais, desenhadas sem criar superficies extra.
+                for i in range(4):
+                    yy = 186 + i * 5
+                    pygame.draw.line(tela, (255, 194, 100),
+                                     (w - 30 - i * 15, yy),
+                                     (w - 53 - i * 15, yy), 3)
         if self.objetos and not self.sucesso:
             alvo = self.objetos[0].rect
             x = max(27, min(w-27, alvo.centerx))
