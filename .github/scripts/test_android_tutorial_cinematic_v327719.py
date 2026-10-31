@@ -138,7 +138,8 @@ for offs in (0,24):
     t.ticks=(t.ticks//48)*48+offs
     surface.fill((0,0,0))
     t.desenhar(surface)
-    pixels.append(surface.get_at((225,135)))
+    pixels.append(pygame.image.tostring(
+        surface.subsurface((12, 94, 426, 119)), 'RGB'))
 assert pixels[0]!=pixels[1], 'Texto de alerta deve piscar'
 assert t.jogador.deaths==1, 'Sem Game Over e sem nova morte no retrocesso'
 print('APROVADO: morte 24 ticks, camera em reverso 24 ticks, 230 px, 1 retry, comando bloqueado e aviso piscante')

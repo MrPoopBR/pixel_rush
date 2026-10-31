@@ -109,7 +109,7 @@ for _ in range(280):
         break
 assert t.tentativas >= 2 and t.etapa == 'pular' and jogador.no_chao
 assert not jogador.morrendo, 'tutorial nunca gera game over'
-assert t.objetos[0].rect.x == jogador.rect.right + 165, 'deve rebobinar o desafio'
+assert t.objetos[0].rect.x == jogador.rect.right + 230, 'deve rebobinar em distancia segura'
 
 jogador = Jogador()
 todos = pygame.sprite.Group()
