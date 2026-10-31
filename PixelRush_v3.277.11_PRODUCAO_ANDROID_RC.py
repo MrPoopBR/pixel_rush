@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.16-PROD-ANDROID-RC"
+VERSAO = "v3.277.17-PROD-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -13842,7 +13842,10 @@ def main():
                         display_surface, jogador.rect.left, modo_grafico_leve(dados))
                 _pro_sub_inicio("sprites_render")
                 _prod_dx_entrada = 0
-                if estado == 'JOGANDO' and jogador is not None and frame_count < entrada_corrida_ate:
+                if (estado == 'JOGANDO' and jogador is not None and frame_count < entrada_corrida_ate
+                        and not (tutorial_corrida and tutorial_corrida.ativo)):
+                    # Tutorial: sprite e hitbox devem iniciar na MESMA coordenada.
+                    # A entrada cosmetica continua intacta nas corridas sem tutorial.
                     _prod_t = max(0.0, min(1.0, (entrada_corrida_ate - frame_count) / 70.0))
                     _prod_dx_entrada = int(250 * (_prod_t ** 2))
                     jogador.rect.x -= _prod_dx_entrada

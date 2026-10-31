@@ -50,6 +50,19 @@ class TutorialCorrida(_TutorialBase):
         return super().fonte_tutorial(tamanho)
 
     def processar_evento(self, evento, converter=None, som=None, volume=1.0):
+        # O SDL pode sintetizar mouse durante um toque nativo. Nao permitir
+        # que esse evento apague a origem antes da liberacao do dedo.
+        if (_USAR_GESTOS and self.toque_ativo and evento.type in
+                (pygame.MOUSEBUTTONDOWN, pygame.MOUSEMOTION, pygame.MOUSEBUTTONUP)):
+            return True
+        # FINGERUP pode ser o unico evento recebido apos FINGERDOWN, sem
+        # FINGERMOTION intermediario: validar tambem o deslocamento final.
+        if (evento.type == pygame.FINGERUP and self.etapa == 'swipe_down'
+                and self.toque_ativo and self.swipe_iniciado is not None
+                and not self.jogador.no_chao
+                and evento.y * self.altura - self.swipe_iniciado[1] >= 45):
+            self.jogador.iniciar_descida_rapida(som, volume)
+            self.swipe_feito = bool(self.jogador.descida_rapida)
         retorno = super().processar_evento(evento, converter, som, volume)
         # O meio físico, e não o último evento de mouse sintetizado, escolhe
         # as instruções exibidas. Mouse de emulador = controle PC.
@@ -61,7 +74,17 @@ class TutorialCorrida(_TutorialBase):
         # personagem continua com a mesma física e hitbox da corrida real.
         self.passo_obstaculo = (12 if self.etapa == 'pular' else
                                 16 if self.etapa == 'pular_longo' else 6)
-        return super()._preparar(todos, letras, palavra)
+        retorno = super()._preparar(todos, letras, palavra)
+        if self.etapa == 'agachar':
+            # O ancestral eleva o C2 para a lição de swipe-down. Em agachar,
+            # manter a altura real do pombo da Cidade (chao 730, bottom 691).
+            # Assim, em pe colide e agachado passa; fisica normal intocada.
+            for obj in self.objetos:
+                if getattr(obj, 'codigo', None) == 'C2':
+                    obj.rect.bottom = self.jogador.chao_y - 39
+                    if hasattr(obj, '_base_y'):
+                        obj._base_y = obj.rect.y
+        return retorno
 
     def _rebobinar_desafio(self, todos, letras, palavra):
         """Repete somente a lição atual, ~28 ticks antes do contato, sem game over."""

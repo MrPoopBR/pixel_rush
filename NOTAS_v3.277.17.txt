@@ -1,0 +1,12 @@
+PIXEL RUSH v3.277.17 - Android RC debug (nao homologado)
+Base v3.277.16 - commit fc25e1ff8659b39faa264c15d1134a5264dbbb10
+
+Correcoes estritamente limitadas aos tres problemas funcionais pedidos:
+1. No tutorial obrigatorio, o desenho do jogador deixa de sofrer o recuo cosmetico da animacao inicial, sincronizando a posicao visual com a hitbox real. A animacao existente fora do tutorial permanece intacta.
+2. Apenas a licao AGACHAR devolve ao pombo C2 a altura de colisao real da Cidade (rect.bottom = chao_y - 39, 691). Em pe colide; agachado passa. O pombo da licao SWIPE-DOWN nao foi alterado.
+3. No Android nativo, FINGERUP tambem reconhece um swipe-down de pelo menos 45 pixels virtuais durante o salto, mesmo sem FINGERMOTION. O mouse sintetizado pelo SDL nao apaga a origem de um toque ativo.
+
+Versao: v3.277.17-PROD-ANDROID-RC; buildozer version 3.277.17; versionCode de TESTE 327717.
+QA adicional: teste headless pygame-ce com os metodos REAIS da hitbox e tutorial e eventos SDL, mantendo o teste v3.277.16. Apenas o workflow de APK debug recebe este teste extra; AAB nao alterado.
+Nenhuma mudanca na fisica global, personagens, sprites, spawns normais, assets, economia, saves, pets, main ou DEV.
+Gates: executar preflight, pygame-ce e auditoria do APK debug na execucao CI da branch isolada. Homologacao visual/gestos no Android fisico continua pendente.

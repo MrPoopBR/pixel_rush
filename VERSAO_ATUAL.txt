@@ -1,2 +1,2 @@
-Pixel Rush v3.277.16-PROD-ANDROID-RC (candidata nao homologada)
-Origem: v3.277.15-PROD-ANDROID-RC; somente desempenho Android e tutorial
+Pixel Rush v3.277.17-PROD-ANDROID-RC (candidata nao homologada)
+Origem: v3.277.16-PROD-ANDROID-RC; somente tres correcoes funcionais do tutorial Android
