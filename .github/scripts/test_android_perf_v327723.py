@@ -84,7 +84,23 @@ def testar_atlas():
     assert cena is not None
     assert m._prepared_bytes == 0
     assert pygame.image.tobytes(cena.sprite,"RGBA")==pygame.image.tobytes(ref,"RGBA")
-    print("OK: frac=56%, teto de RAM e ativacao byte a byte")
+    # A cobertura minima deve permanecer igual a v3.277.22, mesmo
+    # quando o teto impedir que todos atinjam os 56% extras.
+    m2=mod._Manager()
+    m2._quality=False
+    m2._event=NoEvent()
+    m2._prepared_budget_bytes=900*1024
+    nomes=("neve","deserto","cidade_futurista")
+    for nome in nomes:
+        copia=[Buffer(zlib.compress(dados),tamanho) for _ in range(10)]
+        m2._ready[nome]=({"biome":nome},copia,0)
+    for _ in range(60):
+        m2.update(False,"cidade")
+    for nome in nomes:
+        assert m2._progress[nome]>=4, ("regressao de cobertura",nome,m2._progress)
+        assert m2._progress[nome]<=6
+    assert m2._prepared_bytes<=m2._prepared_budget_bytes
+    print("OK: frac=56%, piso 38% por bioma, teto RAM, pixels e ativacao")
 
 def main():
     pygame.init()
