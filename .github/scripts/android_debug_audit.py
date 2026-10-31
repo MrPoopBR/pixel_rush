@@ -21,7 +21,7 @@ import zipfile
 
 EXPECTED_BLOBS = {
     'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py': 'fea14b11e4701a0986792554451faa5fa84c2e13',
-    'main.py': '77b3fb47fb1123eb71bed711c9cdf6312cd0a008',
+    'main.py': 'f09232f000ba14e04e1b111cb2e9fe95f1152e0b',
     'VERSAO_ATUAL.txt': 'eb3f15c7ba028227aa3b43e5d9486064e8ee7a41',
     'p4a-recipes/python3/__init__.py': 'fc7a21423b3eae737422d2da2d5a985a247aca81',
     '.github/scripts/test_android_p4a_patches.py': '07ce9c357d37fa99d9189cf03afa703d61b93977',

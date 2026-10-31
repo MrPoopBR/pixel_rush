@@ -1,7 +1,7 @@
 [app]
 title = PIXEL RUSH
 # Identidade original do repositório preservada. Confirmar na Play Console antes de publicar.
-package.name = bigheadmobile_pixelrush
+package.name = bigheadmobile_pixelrush_qa
 package.domain = com
 source.dir = .
 # Recursos usados pela candidata Android v3.277.16 (não somente arquivos Python).
