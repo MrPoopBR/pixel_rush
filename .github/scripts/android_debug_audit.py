@@ -118,26 +118,58 @@ def check_apk(apk):
     if not apk.is_file() or apk.suffix != '.apk':
         raise AssertionError(f'APK debug nao encontrado: {apk}')
     libraries = []
-    def collect(label, data):
-        if label.endswith('.so'):
-            libraries.append((label, data))
-    with zipfile.ZipFile(apk, 'r') as z:
+    zip_stored_checked = 0
+
+    def collect_tar(label, payload, mode='r:*'):
+        # O bootstrap p4a grava os modulos Python num TAR gzip chamado
+        # libpybundle.so. O nome .so nao significa que o conteudo seja ELF.
+        try:
+            with tarfile.open(fileobj=io.BytesIO(payload), mode=mode) as archive:
+                for member in archive:
+                    if member.isfile() and member.name.endswith('.so'):
+                        f = archive.extractfile(member)
+                        if f:
+                            libraries.append((label + '!' + member.name, f.read()))
+        except (tarfile.TarError, OSError) as exc:
+            raise AssertionError(f'{label}: TAR Python invalido: {exc}') from exc
+
+    with zipfile.ZipFile(apk, 'r') as z, apk.open('rb') as apk_source:
         entries = z.namelist()
         if not any(x.endswith('.so') and x.startswith('lib/arm64-v8a/') for x in entries):
             raise AssertionError('APK sem bibliotecas Android lib/arm64-v8a/')
         for item in z.infolist():
-            if item.filename.endswith('.so'):
-                collect(item.filename, z.read(item))
+            # Em ZIP/APK, apenas entradas STORED necessitam alinhamento de
+            # deslocamento. Libraries ELF STORED exigem 16 KiB; outras, 4 B.
+            # Entradas DEFLATED nao sao carregadas diretamente do APK.
+            if item.compress_type == zipfile.ZIP_STORED:
+                apk_source.seek(item.header_offset)
+                header = apk_source.read(30)
+                if len(header) != 30 or header[:4] != b'PK\x03\x04':
+                    raise AssertionError(f'{item.filename}: cabecalho ZIP local invalido')
+                name_len, extra_len = struct.unpack_from('<HH', header, 26)
+                data_offset = item.header_offset + 30 + name_len + extra_len
+                alignment = 16384 if (item.filename.startswith('lib/') and
+                                      item.filename.endswith('.so')) else 4
+                if data_offset % alignment:
+                    raise AssertionError(
+                        f'{item.filename}: ZIP STORED desalinhado '
+                        f'(offset={data_offset}, exigido={alignment})'
+                    )
+                zip_stored_checked += 1
+
+            if item.filename == 'lib/arm64-v8a/libpybundle.so':
+                bundle = z.read(item)
+                if not bundle.startswith(b'\x1f\x8b'):
+                    raise AssertionError('libpybundle.so: esperado TAR gzip do python-for-android')
+                collect_tar(item.filename, bundle, mode='r:gz')
+            elif item.filename.endswith('.so'):
+                libraries.append((item.filename, z.read(item)))
             elif item.filename.endswith(('.tar', '.tar.gz', '.tgz')):
-                # p4a pode guardar extensoes Python nativas em assets/private.tar.
-                with tarfile.open(fileobj=io.BytesIO(z.read(item)), mode='r:*') as t:
-                    for member in t:
-                        if member.isfile() and member.name.endswith('.so'):
-                            f = t.extractfile(member)
-                            if f:
-                                collect(item.filename + '!' + member.name, f.read())
+                collect_tar(item.filename, z.read(item))
     if not libraries:
         raise AssertionError('nenhuma biblioteca compartilhada encontrada')
+    if not zip_stored_checked:
+        raise AssertionError('APK sem entradas ZIP STORED para auditar')
     aligned = []
     for name, payload in libraries:
         loads = elf_segments(payload, name)
@@ -175,7 +207,7 @@ def check_apk(apk):
     return {'resultado': 'APROVADO', 'apk': str(apk), 'bibliotecas_so': len(libraries),
             'bibliotecas_pygame': len(pygame_native), 'bibliotecas_numpy': len(numpy_native),
             'alinhamento_elf_minimo': min(min(x['load_alignments']) for x in aligned),
-            'zipalign_16k': 'aprovado', 'target_api': 36, 'min_api': 26,
+            'zipalign_16k': 'aprovado', 'zip_stored_verificados': zip_stored_checked, 'target_api': 36, 'min_api': 26,
             'arquitetura': 'arm64-v8a', 'bibliotecas': aligned}
 
 
