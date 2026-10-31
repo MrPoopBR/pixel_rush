@@ -49,7 +49,10 @@ jobs:
           python3 .github/scripts/test_android_stdlib_bootstrap.py
           python3 .github/scripts/test_android_p4a_patches.py
           python3 .github/scripts/test_android_stdlib_dt_needed.py
-          SDL_VIDEODRIVER=dummy python3 .github/scripts/test_android_tutorial_retry_v327716.py
+          # Teste pygame isolado do sistema; nao altera o ambiente de producao.
+          python3 -m venv /tmp/pixelrush-qa-pygame
+          /tmp/pixelrush-qa-pygame/bin/python -m pip install --disable-pip-version-check 'pygame-ce==2.5.8'
+          SDL_VIDEODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_retry_v327716.py
           if [ -n "$(find . -maxdepth 1 -name '*.aab' -print -quit)" ]; then
             echo 'Arquivo AAB inesperado na raiz.' >&2
             exit 1
