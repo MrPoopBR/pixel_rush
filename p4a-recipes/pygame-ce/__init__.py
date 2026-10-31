@@ -6,6 +6,8 @@ Baseada nas receitas p4a pygame e nas propostas abertas #2971/#2838.
 from os.path import join
 from pathlib import Path
 
+import sh
+from pythonforandroid.logger import info, shprint
 from pythonforandroid.recipe import CompiledComponentsPythonRecipe
 from pythonforandroid.toolchain import current_directory
 
@@ -66,13 +68,38 @@ class PixelRushPygameCeRecipe(CompiledComponentsPythonRecipe):
                 png_includes="-I" + png.get_build_dir(arch.arch),
                 freetype_includes="",
             )
-            # O template Android 2.5.8 nao lista system; os saves Android usam
-            # pygame.system.get_pref_path() e requerem a extensao nativa.
             if not any(line.startswith("system ") for line in setup.splitlines()):
                 setup += "\nsystem src_c/system.c $(SDL) $(DEBUG)\n"
             if not any(line.startswith("system ") for line in setup.splitlines()):
                 raise RuntimeError("pygame.system ausente do Setup Android")
             Path("Setup").write_text(setup)
+
+    def install_python_package(self, arch, name=None, env=None, is_dir=True):
+        """Instala extensoes ja compiladas via setuptools, sem novo build PEP 517/Meson.
+
+        Na execucao 41212545595, a implementacao p4a usa 'pip install .' e
+        aciona Meson sem cross-file: ele tenta rodar um binario ARM64 em Linux.
+        O build_ext da receita ja foi concluido; usamos o legado setup.py install
+        para reutilizar esse build sem executar um sanity check do Meson.
+        """
+        if env is None:
+            env = self.get_recipe_env(arch)
+        source = self.get_build_dir(arch.arch)
+        target = self.ctx.get_python_install_dir(arch.arch)
+        record = join(source, "pygame-ce-android-install-record.txt")
+        info("Installing pygame-ce via setuptools legacy setup.py (no PEP 517/Meson)")
+        with current_directory(source):
+            shprint(
+                sh.Command(self.hostpython_location), "setup.py", "install",
+                "--single-version-externally-managed", "--record", record,
+                "--install-lib", target, _env=env,
+            )
+        package = Path(target) / "pygame"
+        if not (package / "__init__.py").is_file():
+            raise RuntimeError("pygame-ce: pacote pygame nao foi instalado")
+        for module in ("base", "system"):
+            if not tuple(package.glob(module + "*.so")):
+                raise RuntimeError("pygame-ce: modulo nativo ausente: " + module)
 
 
 recipe = PixelRushPygameCeRecipe()
