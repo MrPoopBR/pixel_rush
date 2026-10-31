@@ -50,7 +50,7 @@ jobs:
           python-version: '3.13.5'
       - name: Instalar pygame-ce para QA
         run: python -m pip install --disable-pip-version-check -r requirements-p21-qa.txt
-      - name: Regressao independente (49 testes: 18 atuais + 31 historicos)
+      - name: 'Regressao independente (49 testes: 18 atuais + 31 historicos)'
         run: python -m unittest discover -s qa_p21 -t . -p "test_*.py" -v
       - name: Verificacoes e evidencia em JSON
         run: python -m qa_p21.runner
