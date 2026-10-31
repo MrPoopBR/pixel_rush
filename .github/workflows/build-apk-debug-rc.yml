@@ -43,9 +43,10 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/android_debug_audit.py preflight --report preflight-debug.json
-          python3 -m compileall -q main.py pixelrush_android_abertura_v327712.py pixelrush_android_storage_v327711.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py p4a-recipes/pygame-ce/__init__.py p4a-recipes/python3/__init__.py .github/scripts/test_android_stdlib_bootstrap.py .github/scripts/test_android_p4a_patches.py
+          python3 -m compileall -q main.py pixelrush_android_abertura_v327712.py pixelrush_android_storage_v327711.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py p4a-recipes/pygame-ce/__init__.py p4a-recipes/python3/__init__.py .github/scripts/test_android_stdlib_bootstrap.py .github/scripts/test_android_p4a_patches.py .github/scripts/test_android_stdlib_dt_needed.py
           python3 .github/scripts/test_android_stdlib_bootstrap.py
           python3 .github/scripts/test_android_p4a_patches.py
+          python3 .github/scripts/test_android_stdlib_dt_needed.py
           if [ -n "$(find . -maxdepth 1 -name '*.aab' -print -quit)" ]; then
             echo 'Arquivo AAB inesperado na raiz.' >&2
             exit 1
@@ -75,7 +76,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            git zip unzip curl wget ca-certificates build-essential binutils \
+            git zip unzip curl wget ca-certificates build-essential binutils patchelf \
             autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev \
             libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
             libltdl-dev gettext autopoint ccache

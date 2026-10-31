@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import types
+from unittest.mock import patch
 from zipfile import ZipFile, ZIP_DEFLATED, ZIP_STORED
 
 
@@ -44,7 +45,9 @@ def main():
         local_recipe = runpy.run_path('p4a-recipes/python3/__init__.py')['recipe']
         assert local_recipe.version == '3.12.12'
         with tempfile.TemporaryDirectory() as td:
-            assert local_recipe.create_python_bundle(td, None) == 'UPSTREAM_RESULT'
+            with patch.object(type(local_recipe), '_link_cpython_extensions', return_value=56) as link:
+                assert local_recipe.create_python_bundle(td, None) == 'UPSTREAM_RESULT'
+                link.assert_called_once_with(Path(td) / 'modules')
             path = Path(td) / 'stdlib.zip'
             with ZipFile(path) as z:
                 assert len(z.infolist()) == len(sample)

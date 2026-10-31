@@ -1,0 +1,17 @@
+PIXEL RUSH v3.277.15 - Android RC nao homologada
+
+Objetivo: corrigir simbolo PyExc_ValueError ausente no carregamento de math.cpython-312.so no Android 16.
+Evidencia: logcat real v3.277.14 mostra Python inicializado, erro de dlopen de math e encerramento antes de iniciar a jogabilidade. Analise ELF do APK anterior: libpython3.12.so exporta PyExc_ValueError, mas as extensoes CPython nao declaravam DT_NEEDED para libpython3.12.so.
+
+Mudancas estritamente limitadas a build e auditoria APK Android RC:
+1. Receita local p4a-recipes/python3/__init__.py adiciona DT_NEEDED de libpython3.12.so nas extensoes nativas CPython *.cpython-312.so do diretorio _python_bundle/modules. Usa patchelf com --page-size 16384 e valida dependencia unica. Falha de forma explicita se faltarem patchelf ou math/zlib/_ctypes/_ssl.
+2. Mantido reempacotamento stdlib.zip ZIP_STORED da v3.277.14 e encaminhamento de patches originais do python-for-android.
+3. Novo teste de regressao de DT_NEEDED cobre escopo, falha de ferramenta, ausencia de modulos e idempotencia.
+4. Teste anterior de ZIP_STORED adaptado apenas para isolar sua verificacao da nova fase de vinculo ELF.
+5. Auditoria do APK exige DT_NEEDED em TODOS os modulos nativos CPython 3.12, conserva verificacao ELF 16 KiB, ZIP_STORED, pygame-ce, NumPy, manifest/ABI e ZIP align.
+6. Workflow exclusivo APK debug instala patchelf e executa novo teste offline. Workflow AAB nao modificado.
+7. Versao Android RC: 3.277.15; versionCode de debug: 327715.
+
+Preservados: main, DEV, jogo, fisica, saves, pets, recursos, UI, SDL, receita pygame-ce, NumPy e workflow AAB. Nao ha alteracoes na producao do jogo.
+
+Gates: testes de sintaxe, mocks de DT_NEEDED e ZIP_STORED locais APROVADOS; build GitHub Actions e auditoria binaria devem ser comprovados pela execucao correspondente. Inicializacao real no Samsung Galaxy A54 permanece PENDENTE (nao aprovar sem novo logcat).

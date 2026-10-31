@@ -15,22 +15,24 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import tarfile
 import zipfile
 
 EXPECTED_BLOBS = {
     'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py': 'e3e343fa29778d81682469c84bec79148ca3870e',
     'main.py': '77b3fb47fb1123eb71bed711c9cdf6312cd0a008',
-    'VERSAO_ATUAL.txt': 'd3361bda61191ce436d122ddfd7894bc323fd672',
-    'p4a-recipes/python3/__init__.py': 'be5207432256075b1511a93e74b63b6263402a14',
+    'VERSAO_ATUAL.txt': '9ccb31f9dcbb50a86c90a3cd8209386a887d6cb2',
+    'p4a-recipes/python3/__init__.py': 'fc7a21423b3eae737422d2da2d5a985a247aca81',
     '.github/scripts/test_android_p4a_patches.py': '07ce9c357d37fa99d9189cf03afa703d61b93977',
-    '.github/scripts/test_android_stdlib_bootstrap.py': 'f052e6c9f156e779f7b1abec4135de022410dbf8',
+    '.github/scripts/test_android_stdlib_bootstrap.py': '8361723053d4ecddbf2cbc88d28ab0b20856eaf6',
+    '.github/scripts/test_android_stdlib_dt_needed.py': '3f47d6ebf543b90ff9e4e2939dfe92eb8401799f',
     'assets/atlas_prod_v32776/deserto.atlas': 'a35eb6e2cc2d1eb1069270e7ffb25c195201318d',
     'assets/buffers_prod_v32779/neve.pbuf': '2a9b535e25dc306f7adb24d8978cca8d7eefc2f4',
 }
 EXPECTED_CONFIG = {
-    'version': '3.277.14',
-    'android.numeric_version': '327714',
+    'version': '3.277.15',
+    'android.numeric_version': '327715',
     'icon.filename': 'assets_android/icon_pixel_rush.png',
     'presplash.filename': 'assets_android/splash_01_vermelho.png',
     'android.api': '36',
@@ -85,7 +87,7 @@ def check_preflight():
             raise AssertionError(f'PNG visual Android invalido: {filename}')
         if hashlib.sha256(raw).hexdigest() != wanted:
             raise AssertionError(f'Asset visual Android alterado: {filename}')
-    if 'v3.277.14' not in Path('VERSAO_ATUAL.txt').read_text(encoding='utf-8'):
+    if 'v3.277.15' not in Path('VERSAO_ATUAL.txt').read_text(encoding='utf-8'):
         raise AssertionError('arquivo de versao divergente')
     summary = {'resultado': 'APROVADO', 'pygame_ce_recipe': '2.5.8', 'numpy': 'p4a recipe', 'android_api': 36,
                'android_ndk': '28c', 'ndk_api': 26, 'abi': 'arm64-v8a', 'assets_amostrados': len(EXPECTED_BLOBS), 'assets_visuais_android': len(ANDROID_VISUAL_ASSETS)}
@@ -223,6 +225,31 @@ def check_apk(apk):
     for name, payload in libraries:
         loads = elf_segments(payload, name)
         aligned.append({'nome': name, 'load_alignments': loads})
+    # Prova DT_NEEDED nas extensoes CPython empacotadas.
+    cpython_modules = [(label, binary) for label, binary in libraries
+                       if re.search(r'/modules/[^/]+\.cpython-312\.so$', label)]
+    required_modules = {'math', 'zlib', '_ctypes', '_ssl'}
+    module_names = {Path(label).name.split('.cpython-312.so')[0]
+                    for label, _ in cpython_modules}
+    if required_modules - module_names or len(cpython_modules) < 50:
+        raise AssertionError('extensoes nativas CPython incompletas: '
+                             + repr(sorted(required_modules - module_names)))
+    readelf = shutil.which('readelf')
+    if not readelf:
+        raise AssertionError('readelf ausente: gate DT_NEEDED sem evidencia')
+    with tempfile.TemporaryDirectory(prefix='px-cpython-needed-') as temp:
+        for i, (label, binary) in enumerate(cpython_modules):
+            file = Path(temp) / f'modulo_{i}.so'
+            file.write_bytes(binary)
+            result = subprocess.run([readelf, '-d', str(file)],
+                                    text=True, capture_output=True)
+            if result.returncode:
+                raise AssertionError(f'{label}: readelf falhou: {result.stderr[-300:]}')
+            occurrences = re.findall(
+                r'\(NEEDED\).*?Shared library: \[libpython3\.12\.so\]',
+                result.stdout)
+            if len(occurrences) != 1:
+                raise AssertionError(f'{label}: DT_NEEDED libpython3.12.so ausente ou duplicado')
     names = [item[0].lower() for item in libraries]
     # A prova de pygame e numpy requer detectar as extensoes nativas, nao apenas SDL/libpython.
     pygame_native = [name for name in names if '/pygame/' in name or 'pygame' in Path(name).name]
@@ -256,7 +283,7 @@ def check_apk(apk):
     return {'resultado': 'APROVADO', 'apk': str(apk), 'bibliotecas_so': len(libraries),
             'bibliotecas_pygame': len(pygame_native), 'bibliotecas_numpy': len(numpy_native),
             'alinhamento_elf_minimo': min(min(x['load_alignments']) for x in aligned),
-            'zipalign_16k': 'aprovado', 'zip_stored_verificados': zip_stored_checked, 'target_api': 36, 'min_api': 26,
+            'zipalign_16k': 'aprovado', 'cp312_modulos_dt_needed': len(cpython_modules), 'zip_stored_verificados': zip_stored_checked, 'target_api': 36, 'min_api': 26,
             'arquitetura': 'arm64-v8a', 'stdlib_python': stdlib_check,
             'bibliotecas': aligned}
 

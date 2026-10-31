@@ -7,6 +7,8 @@ preserva a compilacao Python 3.12 original do p4a e altera APENAS a forma de
 armazenamento de stdlib.zip de DEFLATED para STORED.
 """
 from inspect import getfile
+from shutil import which
+from subprocess import run
 from os import replace
 from pathlib import Path
 from zipfile import ZipFile, ZIP_STORED
@@ -41,8 +43,40 @@ class PixelRushPython3Recipe(UpstreamPython3Recipe):
             filename = str(official_patch)
         return super().apply_patch(filename, arch, build_dir=build_dir)
 
+    @staticmethod
+    def _link_cpython_extensions(modules_dir):
+        """Adiciona DT_NEEDED sem alterar bootstrap global ou extensoes de terceiros.
+
+        O python-for-android compila os modulos nativos da stdlib sem DT_NEEDED
+        para libpython3.12.so. No namespace isolado do Android 16, isso impede
+        resolver simbolos como PyExc_ValueError ao importar math. PatchELF
+        trabalha SOMENTE em _python_bundle/modules/*.cpython-312.so.
+        """
+        modules_dir = Path(modules_dir)
+        modules = sorted(modules_dir.glob('*.cpython-312.so'))
+        required = {'math', 'zlib', '_ctypes', '_ssl'}
+        found = {p.name.removesuffix('.cpython-312.so') for p in modules}
+        if required - found:
+            raise RuntimeError(f'extensoes CPython 3.12 ausentes: {sorted(required - found)}')
+        patchelf = which('patchelf')
+        if not patchelf:
+            raise RuntimeError('patchelf nao encontrado: necessario para DT_NEEDED CPython')
+        wanted = 'libpython3.12.so'
+        for module in modules:
+            def needed():
+                return run([patchelf, '--print-needed', str(module)],
+                           check=True, capture_output=True, text=True).stdout.splitlines()
+            if wanted not in needed():
+                # Preserva PT_LOAD de 16 KiB em APKs ARM64/Android 16.
+                run([patchelf, '--page-size', '16384', '--add-needed',
+                     wanted, str(module)], check=True, capture_output=True, text=True)
+            if needed().count(wanted) != 1:
+                raise RuntimeError(f'DT_NEEDED invalido em {module.name}')
+        return len(modules)
+
     def create_python_bundle(self, dirn, arch):
         result = super().create_python_bundle(dirn, arch)
+        self._link_cpython_extensions(Path(dirn) / 'modules')
         stdlib = Path(dirn) / 'stdlib.zip'
         temporary = stdlib.with_name('stdlib-pixelrush-stored.tmp')
         if not stdlib.is_file():
