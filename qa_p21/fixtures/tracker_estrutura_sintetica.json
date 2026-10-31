@@ -1,0 +1,894 @@
+{
+  "Visão Geral": [
+    [
+      "PIXEL RUSH — TRACKER v3.285.4 | QA P20/P21/P23 + revisão de gates",
+      null
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      "INDICADOR",
+      "VALOR"
+    ],
+    [
+      "Planos totais",
+      30
+    ],
+    [
+      "Planos originais",
+      18
+    ],
+    [
+      "Novos planos",
+      12
+    ],
+    [
+      "Em execução",
+      10
+    ],
+    [
+      "Concluídos",
+      0
+    ],
+    [
+      "Planejados",
+      20
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      "FASE",
+      "ENFOQUE"
+    ],
+    [
+      "A",
+      "Técnica e automação"
+    ],
+    [
+      "B",
+      "Gameplay e controles"
+    ],
+    [
+      "C",
+      "Rotas e perigos"
+    ],
+    [
+      "D",
+      "Arte, céu, vida, som"
+    ],
+    [
+      "E",
+      "Economia e coleção"
+    ],
+    [
+      "F",
+      "Finalização e publicação"
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      "LEMBRETE",
+      null
+    ],
+    [
+      "v3.268.0: auditoria de lasers e jetpack com classes reais, replay de sequências e pipeline expandido.",
+      null
+    ],
+    [
+      "v3.285.4: 10 planos efetivamente em execução no backlog; resumo corrigido por fórmula. Certificação hardware real segue pendente.",
+      null
+    ],
+    [
+      "31/10/2026: gate F4→F1 natural + replay P20/P21 ATENDIDO no QA (LIMPA/DEV); planos e hardware ainda pendentes.",
+      null
+    ]
+  ],
+  "Backlog 30 planos": [
+    [
+      "ID",
+      "Plano",
+      "Fase",
+      "Prioridade",
+      "Origem",
+      "Dependências",
+      "Status",
+      "Progresso (gates monitorados)"
+    ],
+    [
+      "P01",
+      "API de controle para bot por Wi-Fi/USB",
+      "A",
+      "P1",
+      "original",
+      "P19, P20, P21",
+      "Em execução",
+      0
+    ],
+    [
+      "P02",
+      "Arte, biomas, chunks e parallax 2.5D",
+      "D",
+      "P2",
+      "original",
+      "P20, P24, P25, P26",
+      "Em execução",
+      0
+    ],
+    [
+      "P03",
+      "Skins, animação e física do jogador",
+      "B",
+      "P1",
+      "original",
+      "P19, P21, P22",
+      "Planejado",
+      0
+    ],
+    [
+      "P04",
+      "Gameplay, perigos, clima e destruição",
+      "C",
+      "P1",
+      "original",
+      "P06, P20, P21, P24",
+      "Planejado",
+      0
+    ],
+    [
+      "P05",
+      "Áudio e identidade sonora",
+      "D",
+      "P2",
+      "original",
+      "P19, P24, P25",
+      "Planejado",
+      0
+    ],
+    [
+      "P06",
+      "IA de inimigos, obstáculos sequenciais e dificuldade",
+      "B",
+      "P0",
+      "original",
+      "P19, P20, P21",
+      "Planejado",
+      0
+    ],
+    [
+      "P07",
+      "Céu vivo e ciclo dia/noite realista",
+      "D",
+      "P2",
+      "original",
+      "P02, P24, P25",
+      "Planejado",
+      0
+    ],
+    [
+      "P08",
+      "Plataformas flutuantes e rotas de recompensa",
+      "C",
+      "P1",
+      "original",
+      "P03, P06, P20, P21",
+      "Planejado",
+      0
+    ],
+    [
+      "P09",
+      "Vida dos cenários: NPCs, fauna e objetos",
+      "D",
+      "P2",
+      "original",
+      "P02, P24, P25",
+      "Planejado",
+      0
+    ],
+    [
+      "P10",
+      "Game juice, fluidez, personalização, tutorial e cutscene",
+      "B",
+      "P0",
+      "original",
+      "P19, P20, P22",
+      "Em execução",
+      0.4
+    ],
+    [
+      "P11",
+      "Localização internacional e detecção de idioma",
+      "F",
+      "P1",
+      "original",
+      "P21, P23, P26",
+      "Em execução",
+      0.6
+    ],
+    [
+      "P12",
+      "Coletáveis, efeitos e identidade visual de interfaces",
+      "E",
+      "P1",
+      "original",
+      "P02, P13, P22, P25",
+      "Planejado",
+      0
+    ],
+    [
+      "P13",
+      "Economia: moedas por corrida, preços e progressão",
+      "E",
+      "P0",
+      "original",
+      "P08, P19, P20",
+      "Planejado",
+      0
+    ],
+    [
+      "P14",
+      "Missões de corrida, diárias e semanais",
+      "E",
+      "P1",
+      "original",
+      "P04, P08, P13, P19",
+      "Planejado",
+      0
+    ],
+    [
+      "P15",
+      "Bibliotecas e pipeline tecnológico de arte/som/física/IA",
+      "A",
+      "P1",
+      "original",
+      "P21, P24",
+      "Planejado",
+      0
+    ],
+    [
+      "P16",
+      "Relíquias premium, troféus e conquistas",
+      "E",
+      "P2",
+      "original",
+      "P13, P14, P23, P25",
+      "Planejado",
+      0
+    ],
+    [
+      "P17",
+      "Auditoria de bugs, modularização e remoção de duplicação",
+      "A",
+      "P0",
+      "original",
+      "P21, P23",
+      "Planejado",
+      0
+    ],
+    [
+      "P18",
+      "Corredor de lasers e jetpack profissional",
+      "B",
+      "P0",
+      "original",
+      "P03, P06, P19, P20, P21",
+      "Em execução",
+      0
+    ],
+    [
+      "P19",
+      "Métricas de corrida, diagnósticos e painéis",
+      "A",
+      "P0",
+      "novo",
+      "P21",
+      "Em execução",
+      0
+    ],
+    [
+      "P20",
+      "Gerador procedural, contratos de justiça e dificuldade",
+      "A",
+      "P0",
+      "novo",
+      "P19, P21",
+      "Em execução",
+      0.25
+    ],
+    [
+      "P21",
+      "QA automatizado, matriz de dispositivos e regressão",
+      "A",
+      "P0",
+      "novo",
+      null,
+      "Em execução",
+      0.25
+    ],
+    [
+      "P22",
+      "Acessibilidade, controle e conforto visual",
+      "B",
+      "P1",
+      "novo",
+      "P21",
+      "Planejado",
+      0
+    ],
+    [
+      "P23",
+      "Integridade de saves, backup e migrações",
+      "A",
+      "P0",
+      "novo",
+      "P21",
+      "Em execução",
+      0.5
+    ],
+    [
+      "P24",
+      "Desempenho, VRAM e bateria em hardware real",
+      "A",
+      "P0",
+      "novo",
+      "P19, P21",
+      "Em execução",
+      0
+    ],
+    [
+      "P25",
+      "Pipeline artístico profissional e identidade por bioma",
+      "A",
+      "P1",
+      "novo",
+      "P15, P24",
+      "Planejado",
+      0
+    ],
+    [
+      "P26",
+      "Ferramentas internas e dados configuráveis",
+      "A",
+      "P1",
+      "novo",
+      "P17, P20",
+      "Planejado",
+      0
+    ],
+    [
+      "P27",
+      "Empacotamento, distribuição e atualização PC/Android",
+      "F",
+      "P1",
+      "novo",
+      "P21, P23, P24",
+      "Planejado",
+      0
+    ],
+    [
+      "P28",
+      "Segurança da API, bots e integridade de recordes",
+      "F",
+      "P1",
+      "novo",
+      "P01, P21, P23",
+      "Planejado",
+      0
+    ],
+    [
+      "P29",
+      "Progressão saudável, UX de retorno e telemetria opt-in",
+      "E",
+      "P2",
+      "novo",
+      "P13, P14, P19, P22",
+      "Planejado",
+      0
+    ],
+    [
+      "P30",
+      "Conteúdo sazonal e eventos de longo prazo",
+      "E",
+      "P3",
+      "novo",
+      "P04, P07, P14, P25",
+      "Planejado",
+      0
+    ]
+  ],
+  "Fases e ordem": [
+    [
+      "Ordem",
+      "Fase"
+    ],
+    [
+      1,
+      "A — Alicerce técnico"
+    ],
+    [
+      2,
+      "B — Gameplay"
+    ],
+    [
+      3,
+      "C — Conteúdo de corrida"
+    ],
+    [
+      4,
+      "D — Audiovisual"
+    ],
+    [
+      5,
+      "E — Metajogo"
+    ],
+    [
+      6,
+      "F — Publicação"
+    ]
+  ],
+  "Progresso Gates Offline": [
+    [
+      "PIXEL RUSH v3.285.4  |  PROGRESSO FUNCIONAL POR GATE",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "Percentual de GATES MONITORADOS, não percentual integral do plano. Hardware e revisão humana nunca aprovados por simulação.",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "Plano",
+      "Área",
+      "Gates monitorados",
+      "Aprovados offline",
+      "Em investigação/hist.",
+      "Pendentes externos",
+      "% gates aprovados",
+      "Status oficial"
+    ],
+    [
+      "P01",
+      "API Wi-Fi/USB",
+      2,
+      0,
+      0,
+      2,
+      0,
+      "Em execução"
+    ],
+    [
+      "P02",
+      "Biomas/parallax",
+      2,
+      0,
+      0,
+      2,
+      0,
+      "Em execução"
+    ],
+    [
+      "P10",
+      "Tutorial obrigatório",
+      5,
+      2,
+      1,
+      2,
+      0.4,
+      "Em execução"
+    ],
+    [
+      "P11",
+      "Localização 13 idiomas",
+      5,
+      3,
+      0,
+      2,
+      0.6,
+      "Em execução"
+    ],
+    [
+      "P18",
+      "Laser e jetpack",
+      3,
+      0,
+      2,
+      1,
+      0,
+      "Em execução"
+    ],
+    [
+      "P19",
+      "Métricas",
+      2,
+      0,
+      1,
+      1,
+      0,
+      "Em execução"
+    ],
+    [
+      "P20",
+      "Justiça procedural",
+      4,
+      1,
+      1,
+      2,
+      0.25,
+      "Em execução"
+    ],
+    [
+      "P21",
+      "QA automatizado",
+      4,
+      1,
+      2,
+      1,
+      0.25,
+      "Em execução"
+    ],
+    [
+      "P23",
+      "Saves/migração",
+      4,
+      2,
+      1,
+      1,
+      0.5,
+      "Em execução"
+    ],
+    [
+      "P24",
+      "Performance/bateria",
+      2,
+      0,
+      0,
+      2,
+      0,
+      "Em execução"
+    ],
+    [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "Resumo de caráter probatório: não foi criado gate para todo requisito técnico do plano. Nenhum plano foi formalmente concluído.",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  ],
+  "Gates QA Offline 32854": [
+    [
+      "PIXEL RUSH v3.285.4 • Evidências e gates monitorados — P10/P11/P23",
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "31/10/2026 — Gates comprovados nesta sessão ou em QA anterior identificado. Status oficiais preservados.",
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "Plano",
+      "Gate específico",
+      "Situação",
+      "Natureza",
+      "Evidência",
+      "Ressalva / próxima validação"
+    ],
+    [
+      "P01",
+      "USB e Wi-Fi físicos",
+      "Pendente hardware",
+      "Hardware",
+      "Não executado nesta campanha",
+      "Galaxy A54, MEmu/Windows"
+    ],
+    [
+      "P01",
+      "Autenticação sessão e latência",
+      "Pendente hardware",
+      "Hardware",
+      "Não executado",
+      "Pareamento e medições reais"
+    ],
+    [
+      "P02",
+      "Catálogo visual dos 7 biomas",
+      "Pendente revisão",
+      "Humano",
+      "Não executado nesta campanha",
+      "Verificar costuras/luminosidade"
+    ],
+    [
+      "P02",
+      "FPS/RAM por bioma",
+      "Pendente hardware",
+      "Hardware",
+      "Sem medição física",
+      "Windows/Android"
+    ],
+    [
+      "P10",
+      "Primeira corrida LIMPA — 6 lições",
+      "Aprovado offline",
+      "Pygame",
+      "609 frames; 6/6 etapas; save marcado e corrida continuou",
+      "Não substitui teste humano"
+    ],
+    [
+      "P10",
+      "Primeira corrida DEV — 6 lições",
+      "Em investigação",
+      "Pygame",
+      "Testes anteriores: 10/10 DEV e 7/7 LIMPA; nova campanha: ciclo QUIT→retomar→reabrir 3/3 DEV e 3/3 LIMPA.",
+      "Gate principal continua EM INVESTIGAÇÃO: origem dos QUIT históricos desconhecida; revisão humana e hardware pendentes."
+    ],
+    [
+      "P10",
+      "Textos das 6 lições nos 13 idiomas",
+      "Aprovado offline",
+      "Pygame",
+      "78/78 renderizações sem exceção",
+      "Atlas não substitui todas as telas"
+    ],
+    [
+      "P10",
+      "Legibilidade e compreensão do tutorial",
+      "Pendente revisão",
+      "Humano",
+      "Não executado com jogadores",
+      "Revisão de experiência humana"
+    ],
+    [
+      "P10",
+      "Execução do tutorial em dispositivos",
+      "Pendente hardware",
+      "Hardware",
+      "Linux SDL dummy apenas",
+      "Windows, MEmu, Galaxy A54"
+    ],
+    [
+      "P11",
+      "Catálogo tutorial 13 idiomas",
+      "Aprovado offline",
+      "Pygame",
+      "13 capturas Pygame e 78/78 textos",
+      "Outros estados foram auditados anteriormente"
+    ],
+    [
+      "P11",
+      "Cobertura de caracteres CJK/Devanagari",
+      "Aprovado offline",
+      "Fonte/cmap",
+      "Cmap do corpus estático anteriormente aprovado; NOVA suíte: 264/264 textos dinâmicos Pygame nos 13 idiomas (aba QA Gates Novos).",
+      "Novas imagens são painéis de QA; revisão linguística humana e renderização em Windows/Android continuam pendentes."
+    ],
+    [
+      "P11",
+      "Idioma persistido e save intocado",
+      "Aprovado offline",
+      "Pygame/save",
+      "26/26 leituras LIMPA/DEV",
+      "Fixtures sintéticas"
+    ],
+    [
+      "P11",
+      "Revisão linguística por falantes nativos",
+      "Pendente revisão",
+      "Humano",
+      "Não executada",
+      "13 idiomas, nuances e gramática"
+    ],
+    [
+      "P11",
+      "Fontes e escala em Windows/Android",
+      "Pendente hardware",
+      "Hardware",
+      "Linux SDL dummy apenas",
+      "Dispositivos reais"
+    ],
+    [
+      "P18",
+      "Corredor laser sem proteção",
+      "Evidência anterior",
+      "Histórico",
+      "2/2 gravações anteriores; não reexecutado agora",
+      "Replay/jetpack ainda pendentes"
+    ],
+    [
+      "P18",
+      "Jetpack, softlocks e reação",
+      "Pendente investigação",
+      "Pygame",
+      "Não executado nesta campanha",
+      "Testes específicos"
+    ],
+    [
+      "P18",
+      "Reação humana no hardware",
+      "Pendente hardware",
+      "Hardware",
+      "Não executado",
+      "A54/MEmu/Windows"
+    ],
+    [
+      "P19",
+      "Telemetria P1 frame-time/RAM",
+      "Pendente hardware",
+      "Hardware",
+      "Sem benchmark nesta campanha",
+      "Hardware e diagnóstico"
+    ],
+    [
+      "P19",
+      "Logs release e privacidade",
+      "Pendente investigação",
+      "Pygame",
+      "Não executado",
+      "Audit de release"
+    ],
+    [
+      "P20",
+      "Rota natural F4→F1 Floresta",
+      "Aprovado offline",
+      "Histórico QA",
+      "Seed 2; quadro 8174; 0 mortes; LIMPA/DEV",
+      "Um cenário amostral, não aprovação dos 7 biomas"
+    ],
+    [
+      "P20",
+      "7 biomas e múltiplas sementes",
+      "Pendente investigação",
+      "Pygame",
+      "Cobertura ainda incompleta",
+      "Corridas naturais variadas"
+    ],
+    [
+      "P20",
+      "Justiça para jogador humano",
+      "Pendente revisão",
+      "Humano",
+      "Não executado",
+      "Jogadores e reação real"
+    ],
+    [
+      "P20",
+      "Acessibilidade em dispositivos",
+      "Pendente hardware",
+      "Hardware",
+      "Não executado",
+      "A54/MEmu/Windows"
+    ],
+    [
+      "P21",
+      "Replay F4→F1 LIMPA/DEV",
+      "Aprovado offline",
+      "Histórico QA",
+      "2/2 replays anteriores; 8175 quadros",
+      "Cenário amostral"
+    ],
+    [
+      "P21",
+      "CI automático independente",
+      "Pendente investigação",
+      "CI",
+      "Não executado nesta campanha",
+      "Runner CI e gates reproduzíveis"
+    ],
+    [
+      "P21",
+      "Cobertura final 7 biomas",
+      "Pendente investigação",
+      "Pygame",
+      "Incompleta",
+      "Mais fitas e cenários"
+    ],
+    [
+      "P21",
+      "Matriz hardware e metas P1",
+      "Pendente hardware",
+      "Hardware",
+      "Não executado",
+      "Windows/Android"
+    ],
+    [
+      "P23",
+      "Backups/transações/migração sintética",
+      "Aprovado offline",
+      "Pygame/save",
+      "30/30 unittest nesta sessão",
+      "Fixtures sintéticas"
+    ],
+    [
+      "P23",
+      "Leitura sem escrita nos 13 idiomas",
+      "Aprovado offline",
+      "Pygame/save",
+      "Suíte anterior 30/30; NOVA bateria 8/8 (4 por edição): prioridade principal, dupla corrupção, Unicode, limite antes da escrita.",
+      "Somente saves sintéticos temporários; saves históricos autênticos e testes de falha física pendentes."
+    ],
+    [
+      "P23",
+      "Saves históricos autênticos",
+      "Pendente investigação",
+      "Arquivo autêntico",
+      "Não disponíveis/validados nesta campanha",
+      "Originais com consentimento"
+    ],
+    [
+      "P23",
+      "Queda real de energia/file system",
+      "Pendente hardware",
+      "Hardware",
+      "Falhas apenas simuladas",
+      "Testes físicos controlados"
+    ],
+    [
+      "P24",
+      "Bateria/temperatura 30 min",
+      "Pendente hardware",
+      "Hardware",
+      "Não executado",
+      "A54 físico"
+    ],
+    [
+      "P24",
+      "FPS P1/RAM/VRAM",
+      "Pendente hardware",
+      "Hardware",
+      "Não executado",
+      "Windows/Android"
+    ],
+    [
+      "P23",
+      "Compatibilidade entre escritores de 13 versões históricas",
+      "Aprovado offline",
+      "Pygame/fixtures",
+      "104/104: 13 ZIPs v3.277.0–v3.285.4 × LIMPA/DEV × 4 cenários",
+      "Fixtures produzidas por código histórico; NÃO confundir com saves autênticos nem homologação de hardware."
+    ]
+  ]
+}
