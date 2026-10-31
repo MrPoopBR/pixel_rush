@@ -21,13 +21,15 @@ import zipfile
 EXPECTED_BLOBS = {
     'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py': 'e3e343fa29778d81682469c84bec79148ca3870e',
     'main.py': '77b3fb47fb1123eb71bed711c9cdf6312cd0a008',
-    'VERSAO_ATUAL.txt': '16b6d51b1370795c8e2ec3031044010b1368d980',
+    'VERSAO_ATUAL.txt': '5724ae8066826bb2c2924145aa0e93dbd9441af2',
+    'p4a-recipes/python3/__init__.py': '3539316a028d6ad1b6ba5d389bbd0789026cd078',
+    '.github/scripts/test_android_stdlib_bootstrap.py': 'f052e6c9f156e779f7b1abec4135de022410dbf8',
     'assets/atlas_prod_v32776/deserto.atlas': 'a35eb6e2cc2d1eb1069270e7ffb25c195201318d',
     'assets/buffers_prod_v32779/neve.pbuf': '2a9b535e25dc306f7adb24d8978cca8d7eefc2f4',
 }
 EXPECTED_CONFIG = {
-    'version': '3.277.12',
-    'android.numeric_version': '327712',
+    'version': '3.277.13',
+    'android.numeric_version': '327713',
     'icon.filename': 'assets_android/icon_pixel_rush.png',
     'presplash.filename': 'assets_android/splash_01_vermelho.png',
     'android.api': '36',
@@ -82,7 +84,7 @@ def check_preflight():
             raise AssertionError(f'PNG visual Android invalido: {filename}')
         if hashlib.sha256(raw).hexdigest() != wanted:
             raise AssertionError(f'Asset visual Android alterado: {filename}')
-    if 'v3.277.12' not in Path('VERSAO_ATUAL.txt').read_text(encoding='utf-8'):
+    if 'v3.277.13' not in Path('VERSAO_ATUAL.txt').read_text(encoding='utf-8'):
         raise AssertionError('arquivo de versao divergente')
     summary = {'resultado': 'APROVADO', 'pygame_ce_recipe': '2.5.8', 'numpy': 'p4a recipe', 'android_api': 36,
                'android_ndk': '28c', 'ndk_api': 26, 'abi': 'arm64-v8a', 'assets_amostrados': len(EXPECTED_BLOBS), 'assets_visuais_android': len(ANDROID_VISUAL_ASSETS)}
@@ -136,6 +138,7 @@ def check_apk(apk):
         raise AssertionError(f'APK debug nao encontrado: {apk}')
     libraries = []
     zip_stored_checked = 0
+    stdlib_check = {}
 
     def collect_tar(label, payload, mode='r:*'):
         # O bootstrap p4a grava os modulos Python num TAR gzip chamado
@@ -143,6 +146,30 @@ def check_apk(apk):
         try:
             with tarfile.open(fileobj=io.BytesIO(payload), mode=mode) as archive:
                 for member in archive:
+                    if member.isfile() and member.name.endswith('/stdlib.zip'):
+                        if stdlib_check:
+                            raise AssertionError('varios stdlib.zip encontrados em bundles')
+                        stream = archive.extractfile(member)
+                        if stream is None:
+                            raise AssertionError('bundle Python sem leitura de stdlib.zip')
+                        with zipfile.ZipFile(io.BytesIO(stream.read())) as lib:
+                            infos = lib.infolist()
+                            if not infos or any(i.compress_type != zipfile.ZIP_STORED for i in infos):
+                                raise AssertionError('stdlib.zip deve usar ZIP_STORED; DEFLATE depende de zlib no boot')
+                            missing = {'encodings/__init__.pyc', 'encodings/utf_8.pyc',
+                                       'codecs.pyc'} - set(lib.namelist())
+                            if missing:
+                                raise AssertionError(f'stdlib.zip sem codecs: {sorted(missing)}')
+                            for boot_name in ('encodings/__init__.pyc',
+                                              'encodings/utf_8.pyc', 'codecs.pyc'):
+                                if lib.read(boot_name)[:4] != b'\xcb\r\r\n':
+                                    raise AssertionError(f'magic Python 3.12 invalido: {boot_name}')
+                            bad = lib.testzip()
+                            if bad:
+                                raise AssertionError('stdlib.zip CRC invalido: ' + bad)
+                            stdlib_check.update({'arquivos': len(infos),
+                                                 'compressao': 'ZIP_STORED',
+                                                 'codecs': 'presentes'})
                     if member.isfile() and member.name.endswith('.so'):
                         f = archive.extractfile(member)
                         if f:
@@ -185,6 +212,10 @@ def check_apk(apk):
                 collect_tar(item.filename, z.read(item))
     if not libraries:
         raise AssertionError('nenhuma biblioteca compartilhada encontrada')
+    if not stdlib_check:
+        raise AssertionError('bundle Python sem stdlib.zip validado')
+    if not any('/modules/zlib.cpython-312.so' in label for label, _ in libraries):
+        raise AssertionError('bundle Python sem extensao nativa zlib 3.12')
     if not zip_stored_checked:
         raise AssertionError('APK sem entradas ZIP STORED para auditar')
     aligned = []
@@ -225,7 +256,8 @@ def check_apk(apk):
             'bibliotecas_pygame': len(pygame_native), 'bibliotecas_numpy': len(numpy_native),
             'alinhamento_elf_minimo': min(min(x['load_alignments']) for x in aligned),
             'zipalign_16k': 'aprovado', 'zip_stored_verificados': zip_stored_checked, 'target_api': 36, 'min_api': 26,
-            'arquitetura': 'arm64-v8a', 'bibliotecas': aligned}
+            'arquitetura': 'arm64-v8a', 'stdlib_python': stdlib_check,
+            'bibliotecas': aligned}
 
 
 def main():
