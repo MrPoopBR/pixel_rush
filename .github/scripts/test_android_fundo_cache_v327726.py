@@ -37,7 +37,7 @@ compile(codigo,'jogo','exec')
 assert "E_ANDROID and estado == 'JOGANDO' and portal_tipo_ativo is None" in codigo
 assert "not (tutorial_corrida and tutorial_corrida.ativo)" in codigo
 assert 'MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15' in codigo
-assert 'VERSAO = "v3.277.26-PROD-ANDROID-RC"' in codigo
+assert 'VERSAO = "v3.277.27-PROD-ANDROID-RC"' in codigo
 for flag in ('PIXELRUSH_DEV_BUILD = False','LASERS_JETPACK_ATIVOS_PROD = False',
              'OBSTACULOS_QUE_AVANCAM_ATIVOS_PROD = False','API_ONLINE_ATIVA_PROD = False'):
     assert flag in codigo, flag
