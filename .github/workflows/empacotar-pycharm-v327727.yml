@@ -1,0 +1,40 @@
+name: PIXEL RUSH - Entrega ZIP Completo PyCharm v3.277.27 r1
+
+on:
+  push:
+    branches:
+      - entrega/pycharm-v3.277.27-estrutura-r1
+    paths:
+      - '.github/scripts/empacotar_pycharm_v327727.py'
+      - '.github/workflows/empacotar-pycharm-v327727.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zip-completo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Recuperar todos os arquivos do projeto no commit exato
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Conferir que somente metadados de entrega mudaram
+        shell: bash
+        run: |
+          python3 -m py_compile .github/scripts/empacotar_pycharm_v327727.py
+          git diff --name-only f5202e8599356ddb83beca7a61f81a314d09cda1 HEAD
+      - name: Organizar fonte PyCharm e validar SHA256 de cada arquivo
+        shell: bash
+        run: |
+          python3 .github/scripts/empacotar_pycharm_v327727.py
+      - name: Entregar ZIP unico e completo
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXEL_RUSH_v3.277.27_COMPLETO_PYCHARM_r1
+          path: dist/PIXEL_RUSH_v3.277.27_COMPLETO_PYCHARM_r1.zip
+          retention-days: 30
+          if-no-files-found: error
