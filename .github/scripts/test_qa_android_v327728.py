@@ -42,13 +42,13 @@ class TesteQAndroid(unittest.TestCase):
                     qa.marcar('limitador_fps')
                     qa.fim()
             self.assertTrue(qa.salvar())
-            rel = json.loads((Path(pasta) / 'pixelrush_qa_v327728.json').read_text('utf-8'))
+            rel = json.loads((Path(pasta) / 'pixelrush_qa_v327729.json').read_text('utf-8'))
             self.assertEqual(rel['quadros_observados'], 60)
             self.assertEqual(set(rel['grupos']), {'corrida_normal|cidade', 'replay|cidade', 'outros|cidade'})
             self.assertEqual(rel['grupos']['corrida_normal|cidade']['metricas_ms']['mundo_2_5d']['n'], 20)
             self.assertEqual(rel['grupos']['replay|cidade']['metricas_ms']['quadro_total_ms']['n'], 20)
             self.assertIsNone(rel['gpu_ms_real'])
-            self.assertEqual((Path(pasta) / 'pixelrush_qa_frames_v327728.csv').read_text('utf-8').count('\n'), 61)
+            self.assertEqual((Path(pasta) / 'pixelrush_qa_frames_v327729.csv').read_text('utf-8').count('\n'), 61)
 
     def test_picos_e_limite_de_memoria(self):
         with tempfile.TemporaryDirectory() as pasta:
