@@ -1,2 +1,2 @@
-Pixel Rush v3.277.24-PROD-ANDROID-RC (candidata Android nao homologada)
-Base v3.277.23: recuperacao de 8 ticks a 60Hz para lag Android; tutorial guiado, pausa de tempo, swipe apos salto automatico, confirmacao apos passagem e HUD unico.
+Pixel Rush v3.277.25-PROD-ANDROID-RC (candidata Windows/Android nao homologada)
+Base v3.277.24: compatibilidade CPython 3.9 em Windows para SHA-256 de atlas e buffers; malloc_trim sem CDLL(None) no Windows; sem alteracao de jogabilidade, visual, fisica, tutorial, saves e APK/AAB.
