@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.25-PROD-ANDROID-RC"
+VERSAO = "v3.277.26-PROD-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -10697,6 +10697,7 @@ def main():
     global portal_proximo_metro
     from pixelrush_apresentacao_v3273 import precisa_tutorial, qa_sem_abertura
     from pixelrush_tutorial_guia_prod_v327724 import TutorialCorrida
+    from pixelrush_fundo_mobile_v327726 import CacheFundoMobile
     from pixelrush_producao_fx_v32771 import (desenhar_fx_palavra as _prod_fx_palavra,
                                              desenhar_mensagem_tutorial as _prod_mensagem_tutorial,
                                              desenhar_entrada as _prod_banner_entrada,
@@ -10852,6 +10853,7 @@ def main():
     # Um frame completo durante o gesto congelado evita recalcular 2.5D/FX
     # dezenas de vezes sem movimento (somente tutorial). Maximo 450x800 RGB.
     cache_tutorial_congelado = None
+    cache_fundo_mobile = CacheFundoMobile()
     evento_corrida = None
     evento_corrida_x = LARGURA_VIRTUAL + 80
     evento_corrida_timer = 0
@@ -13633,28 +13635,48 @@ def main():
             # Todas as telas chamam bg_parallax.draw(), que já preenche o céu;
             # evitamos um segundo fill da superfície completa em todos os frames.
             if estado in ["JOGANDO", "PAUSA", "GAMEOVER"]:
-                cor_ceu_render = clima.aplicar_ceu(cor_ceu_tupla) if estado in ("JOGANDO", "PAUSA", "GAMEOVER") else cor_ceu_tupla
+                # v3.277.26: cache apenas do FUNDO quando Android esta sobrecarregado.
+                # Personagem, objetos, HUD e eventos sao desenhados em todo quadro.
+                _cache_fundo_mobile_ativo = (
+                    E_ANDROID and estado == 'JOGANDO' and portal_tipo_ativo is None
+                    and modo_grafico_leve(dados)
+                    and dados.get('modo_grafico', 'auto') in ('auto', 'leve')
+                    and not (tutorial_corrida and tutorial_corrida.ativo)
+                )
                 bg_parallax.world.lightweight = modo_grafico_leve(dados)
-                _pro_sub_inicio("mundo_2_5d")
-                bg_parallax.draw(display_surface, cor_ceu_render, e_noite)
-                _pro_sub_fim()
-                profundidade_cinematografica(display_surface, cenario_atual, peso_noite,
-                                              modo_grafico_leve(dados))
-                # Fase B: plano atmosférico leve atrás do chão, riscos e HUD.
-                desenhar_profundidade_bioma(display_surface, cenario_atual,
-                                             bg_parallax.world.travel, peso_noite,
-                                             modo_grafico_leve(dados) or dados.get("acess_reduzir_efeitos", False),
-                                             clima.tipo)
-                # Nuvens de clima sao fundo do mundo, nunca cobrem o HUD/jogador.
-                if clima.tipo != "limpo" and estado in ("JOGANDO", "PAUSA", "GAMEOVER"):
-                    clima._desenhar_nuvens_clima(display_surface, cor_ceu_render)
-                if estado in ('JOGANDO', 'PAUSA') and portal_tipo_ativo is None:
-                    cenas_epicas.desenhar(display_surface, cenario_atual,
-                                         bg_parallax.world.travel, frame_count, peso_noite,
-                                         leve=(modo_grafico_leve(dados) or dados.get('acess_reduzir_efeitos', False)))
-                bg_parallax.draw_chao(display_surface)
-                if estado == 'JOGANDO' and not modo_grafico_leve(dados):
-                    desenhar_clima_premium(display_surface, cenario_atual, frame_count)
+                _chave_fundo_mobile = (
+                    cenario_atual, bg_parallax.cenario, clima.tipo, cor_ceu_tupla,
+                    bool(e_noite), round(float(peso_noite), 2),
+                    bool(bg_parallax.world.lightweight), display_surface.get_size()
+                )
+                if cache_fundo_mobile.reusar(
+                        display_surface, _chave_fundo_mobile, _cache_fundo_mobile_ativo):
+                    pass
+                else:
+                    cor_ceu_render = clima.aplicar_ceu(cor_ceu_tupla) if estado in ("JOGANDO", "PAUSA", "GAMEOVER") else cor_ceu_tupla
+                    bg_parallax.world.lightweight = modo_grafico_leve(dados)
+                    _pro_sub_inicio("mundo_2_5d")
+                    bg_parallax.draw(display_surface, cor_ceu_render, e_noite)
+                    _pro_sub_fim()
+                    profundidade_cinematografica(display_surface, cenario_atual, peso_noite,
+                                                  modo_grafico_leve(dados))
+                    # Fase B: plano atmosférico leve atrás do chão, riscos e HUD.
+                    desenhar_profundidade_bioma(display_surface, cenario_atual,
+                                                 bg_parallax.world.travel, peso_noite,
+                                                 modo_grafico_leve(dados) or dados.get("acess_reduzir_efeitos", False),
+                                                 clima.tipo)
+                    # Nuvens de clima sao fundo do mundo, nunca cobrem o HUD/jogador.
+                    if clima.tipo != "limpo" and estado in ("JOGANDO", "PAUSA", "GAMEOVER"):
+                        clima._desenhar_nuvens_clima(display_surface, cor_ceu_render)
+                    if estado in ('JOGANDO', 'PAUSA') and portal_tipo_ativo is None:
+                        cenas_epicas.desenhar(display_surface, cenario_atual,
+                                             bg_parallax.world.travel, frame_count, peso_noite,
+                                             leve=(modo_grafico_leve(dados) or dados.get('acess_reduzir_efeitos', False)))
+                    bg_parallax.draw_chao(display_surface)
+                    if estado == 'JOGANDO' and not modo_grafico_leve(dados):
+                        desenhar_clima_premium(display_surface, cenario_atual, frame_count)
+                    cache_fundo_mobile.guardar(
+                        display_surface, _chave_fundo_mobile, _cache_fundo_mobile_ativo)
                 if estado in ("JOGANDO", "PAUSA") and evento_corrida:
                     ex = int(evento_corrida_x)
                     if evento_corrida == "PLATAFORMA":
