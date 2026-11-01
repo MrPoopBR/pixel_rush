@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.23-PROD-ANDROID-RC"
+VERSAO = "v3.277.24-PROD-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -10696,7 +10696,7 @@ from pixelrush_perf_biomas_v3251 import criar_monitor as criar_monitor_biomas  #
 def main():
     global portal_proximo_metro
     from pixelrush_apresentacao_v3273 import precisa_tutorial, qa_sem_abertura
-    from pixelrush_tutorial_prod_v32771 import TutorialCorrida
+    from pixelrush_tutorial_guia_prod_v327724 import TutorialCorrida
     from pixelrush_producao_fx_v32771 import (desenhar_fx_palavra as _prod_fx_palavra,
                                              desenhar_mensagem_tutorial as _prod_mensagem_tutorial,
                                              desenhar_entrada as _prod_banner_entrada,
@@ -13128,7 +13128,9 @@ def main():
     MAX_TEMPO_ACUMULADO = 0.25
     # Android: limitar o custo de quadros de recuperacao sem alterar a fisica
     # de cada passo fixo (60 Hz) nem os temporizadores da corrida.
-    MAX_PASSOS_POR_FRAME = 4 if E_ANDROID else 15
+    # A 10 FPS sao 6 ticks de 60 Hz por quadro: 4 desacelerava a corrida.
+    # Preservar o passo fixo, hitboxes e velocidade; permitir recuperacao de 8.
+    MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15
     FPS_RENDER = 30 if E_ANDROID else 60
     sim_acumulado = 0.0
 
@@ -14137,24 +14139,27 @@ def main():
                                             (ponta, base1, base2))
                 # v3.153: COMBO/FEBRE ao lado da distância; pausa embaixo à direita.
                 # HUD e hitbox do botão compartilham HUD_PAUSA_AREA.
-                desenhar_hud_compacto(
-                    display_surface, metros=metros_atuais, moedas=moedas_coletadas,
-                    missoes=missoes_atuais, jogador=jogador, combo=combo_contagem,
-                    multiplicador=multiplicador_combo() if combo_contagem > 0 else 1,
-                    combo_timer=combo_timer, febre=febre_carga, febre_timer=febre_timer,
-                    febre_turbo_restante=febre_turbo_distancia_restante,
-                    idioma=dados.get('idioma', 'pt_BR'), frame=frame_count,
-                    fonte_grande=fonte_grande, fonte_missoes=fonte_missoes,
-                    fonte_pequena=fonte_pequena, render=render_texto_cacheado,
-                    botao_pausa=btn_pausa)
-                acabamento_hud(display_surface, frame_count, modo_grafico_leve(dados))
-                if frame_count < palavra_hud_ate and ((frame_count // 13) % 4 != 3 or frame_count < palavra_festa_ate):
-                    palavra_partida.desenhar_hud(display_surface, dados.get("idioma", "pt_BR"))
-                if frame_count < palavra_festa_ate:
-                    _prod_fx_palavra(display_surface, frame_count, palavra_festa_ate, fonte_grande)
-                if frame_count < tutorial_concluido_ate:
-                    _prod_mensagem_tutorial(display_surface, dados.get('idioma','pt_BR'), frame_count)
-                desenhar_botoes(display_surface, dados, fonte_missoes, frame_count)
+                if not (tutorial_corrida and tutorial_corrida.ativo):
+                    # Tutorial usa um unico cartao de instrucao; HUD normal fica
+                    # intocado em toda corrida depois das seis licoes.
+                    desenhar_hud_compacto(
+                        display_surface, metros=metros_atuais, moedas=moedas_coletadas,
+                        missoes=missoes_atuais, jogador=jogador, combo=combo_contagem,
+                        multiplicador=multiplicador_combo() if combo_contagem > 0 else 1,
+                        combo_timer=combo_timer, febre=febre_carga, febre_timer=febre_timer,
+                        febre_turbo_restante=febre_turbo_distancia_restante,
+                        idioma=dados.get('idioma', 'pt_BR'), frame=frame_count,
+                        fonte_grande=fonte_grande, fonte_missoes=fonte_missoes,
+                        fonte_pequena=fonte_pequena, render=render_texto_cacheado,
+                        botao_pausa=btn_pausa)
+                    acabamento_hud(display_surface, frame_count, modo_grafico_leve(dados))
+                    if frame_count < palavra_hud_ate and ((frame_count // 13) % 4 != 3 or frame_count < palavra_festa_ate):
+                        palavra_partida.desenhar_hud(display_surface, dados.get("idioma", "pt_BR"))
+                    if frame_count < palavra_festa_ate:
+                        _prod_fx_palavra(display_surface, frame_count, palavra_festa_ate, fonte_grande)
+                    if frame_count < tutorial_concluido_ate:
+                        _prod_mensagem_tutorial(display_surface, dados.get('idioma','pt_BR'), frame_count)
+                    desenhar_botoes(display_surface, dados, fonte_missoes, frame_count)
                 if febre_timer > 0:
                     if febre_turbo_distancia_restante > 0:
                         pygame.draw.rect(display_surface, (255, 215, 70), (0, 0, LARGURA_VIRTUAL, 6))
