@@ -133,29 +133,39 @@ class Profiler:
             return False
 
 _ATUAL = None
+_QA_ATUAL = None  # somente no APK QA; observador separado do profiler legado
 
 def instalar(versao, edicao):
-    global _ATUAL
+    global _ATUAL, _QA_ATUAL
     _ATUAL = Profiler(versao, edicao)
+    _QA_ATUAL = None
+    if os.environ.get("PIXELRUSH_QA_ANDROID") == "1":
+        from pixelrush_qa_android_v327728 import QATelemetria
+        _QA_ATUAL = QATelemetria(versao, edicao)
     return _ATUAL
 
 def iniciar(estado, bioma):
+    if _QA_ATUAL is not None: _QA_ATUAL.iniciar(estado, bioma)
     p = _ATUAL
     if p is not None: p.iniciar(estado, bioma)
 
 def marcar(nome):
+    if _QA_ATUAL is not None: _QA_ATUAL.marcar(nome)
     p = _ATUAL
     if p is not None: p.marcar(nome)
 
 def sub_inicio(nome):
+    if _QA_ATUAL is not None: _QA_ATUAL.sub_inicio(nome)
     p = _ATUAL
     if p is not None: p.sub_inicio(nome)
 
 def sub_fim():
+    if _QA_ATUAL is not None: _QA_ATUAL.sub_fim()
     p = _ATUAL
     if p is not None: p.sub_fim()
 
 def fim():
+    if _QA_ATUAL is not None: _QA_ATUAL.fim()
     p = _ATUAL
     if p is not None: p.fim()
 
@@ -165,3 +175,5 @@ def executar_com_profiler(funcao, versao, edicao):
         return funcao()
     finally:
         p.salvar()
+        if _QA_ATUAL is not None:
+            _QA_ATUAL.salvar()
