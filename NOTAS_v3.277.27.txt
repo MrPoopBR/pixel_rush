@@ -1,0 +1,39 @@
+PIXEL RUSH v3.277.27 — otimizacao de composicao CPU / modo NORMAL
+Base v3.277.26 (commit 67919ca13e78d07de9ac80daaf5197ac33ddd912).
+
+MUDANCAS IMPLEMENTADAS:
+- Acelerar blit de atlas RGBA estatico da Cidade via SDL RLE.
+- Em sprites da Cidade e tiles dos biomas modulares, ativar RLE apenas
+  se o alfa por pixel e binario (0/255). Texturas semitransparentes
+  mantem blend anterior porque SDL RLE arredonda diferentemente.
+- Cache limitado de atlas ja configurados, sem reprocessamento por quadro.
+- Na Cidade, consumir geradores de tiles direto nas camadas far/mid/fg;
+  reter tupla do plano near necessaria a iluminacao original.
+- Nenhum frame pulado, nenhum efeito ou resolucao removidos no modo NORMAL.
+- Conservados os buffers existentes de gamefeel, camera e céu.
+
+TESTES:
+- pygame-ce 2.5.8 SDL dummy, 40 quadros em quatro biomas ativos
+  com mesma imagem RGB, teste de recorte RGB/RGBA.
+- Regressao de zoom, buffers, tutorial, morte/replay, memoria e flags OFF.
+- O microbenchmark isolado de SDL nao representa o FPS total Android.
+
+PROPOSTAS AINDA NAO ATIVADAS SEM EVIDENCIA:
+- SDL2 Renderer/Texture GPU persistentes: dependem do driver OpenGL ES,
+  sem upload/download de frame inteiro e comparacao visual em aparelho.
+- ModernGL atual exige GL 3.3, inadequado para ES Android sem port.
+- Camera smoothscale atual usa buffer reutilizado e filtro que nao pode
+  mudar sem afetar a aparencia; preservada.
+- Simulacao/60Hz/8 passos e audio intactos: antes da auditoria, CPU de
+  fisica/audio foram menores que mundo 2.5D no teste host.
+- Nao introduzir batch blits sem ganho positivo/garantia de mesmos pixels.
+- Qualquer cache adicional de cena dinamica requer comparacao por estado.
+
+PRESERVADOS:
+main do repositorio, DEV, AAB, pets, saves, zoom/camera, sprites,
+shaders opcionais, 13 idiomas, tutorial, replay, fisica, colisao,
+spawn, RNG e sistemas desativados (lasers Jetpack, obstaculos dirigidos,
+API online e modos DEV). Nenhuma publicacao na Play Store.
+
+Nova numeracao: v3.277.27 / versionCode 327727. Somente debug Android.
+Gates de FPS real e desempenho sustentado devem ser medidos em celular.
