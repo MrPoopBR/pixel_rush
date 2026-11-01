@@ -7,7 +7,7 @@ não validado recai nas rotinas exatas da v3.277.7. Não altera gameplay/ticks.
 """
 from pathlib import Path
 import hashlib
-from pixelrush_hash_compat_v327725 import sha256_stream
+from pixelrush_hash_compat_v327725 import sha256_stream, load_verified_pickle
 import json
 import os
 import pickle
@@ -136,7 +136,7 @@ def instalar():
             if (st.st_size, st.st_mtime_ns) != ok:
                 return original_cena(bioma, lightweight)
             with path.open('rb') as arquivo:
-                estado = pickle.load(arquivo)
+                estado = load_verified_pickle(arquivo)
             if estado.get('biome') != bioma:
                 raise ValueError('bioma incorreto')
             classe = atlas.ModularBiomeScene
