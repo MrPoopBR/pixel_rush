@@ -7,6 +7,7 @@ Nenhuma cena inativa permanece em RAM.
 """
 from pathlib import Path
 import hashlib
+from pixelrush_hash_compat_v327725 import sha256_stream, load_verified_pickle
 import pickle
 import pygame
 from pixelrush_biomes2_v3185 import ModularBiomeScene
@@ -35,10 +36,10 @@ def carregar_cena(bioma, lightweight=False):
         with (_ATLAS / f'{nome}.atlas').open('rb') as arquivo:
             # Fluxo em blocos: evita uma cópia temporária do atlas inteiro
             # (até 24 MiB no Deserto) na memória residente do processo.
-            if hashlib.file_digest(arquivo, 'sha256').hexdigest() != esperado:
+            if sha256_stream(arquivo) != esperado:
                 raise ValueError('atlas de cenário não íntegro')
             arquivo.seek(0)
-            estado = pickle.load(arquivo)  # arquivo local validado por SHA-256
+            estado = load_verified_pickle(arquivo)  # arquivo local validado por SHA-256
         if estado.get('biome') != bioma:
             raise ValueError('atlas pertence a outro cenário')
         cena = ModularBiomeScene.__new__(ModularBiomeScene)
