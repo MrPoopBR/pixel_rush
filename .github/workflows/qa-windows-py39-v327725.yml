@@ -1,0 +1,71 @@
+name: PIXEL RUSH v3.277.25 - QA Windows Python 3.9
+
+on:
+  push:
+    branches:
+      - correcao/windows-v3.277.25-python39
+    paths:
+      - 'pixelrush_hash_compat_v327725.py'
+      - 'pixelrush_preparacao_prod_v32778.py'
+      - 'pixelrush_buffers_prod_v327710.py'
+      - 'pixelrush_buffers_prod_v32779.py'
+      - '.github/scripts/test_windows_py39_v327725.py'
+      - '.github/workflows/qa-windows-py39-v327725.yml'
+      - 'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'
+      - 'JOGAR.py'
+  workflow_dispatch:
+
+jobs:
+  windows-py39:
+    name: Windows 2022 - CPython 3.9 - pygame 2.6.1
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python 3.9 real no Windows
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          architecture: x64
+      - name: Dependencias espelhando o ambiente do usuario
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check 'pygame==2.6.1' 'numpy==1.26.4'
+          python -c "import pygame,sys; print('PYTHON',sys.version); print('PYGAME',pygame.version.ver)"
+      - name: Sintaxe Python 3.9 e validacao real de hash/atlas
+        shell: pwsh
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        run: |
+          python -m py_compile JOGAR.py pixelrush_hash_compat_v327725.py pixelrush_preparacao_prod_v32778.py pixelrush_buffers_prod_v327710.py pixelrush_buffers_prod_v32779.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py .github/scripts/test_windows_py39_v327725.py
+          python .github/scripts/test_windows_py39_v327725.py
+      - name: Smoke test real de JOGAR.py em video dummy (sem saves reais)
+        shell: pwsh
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONIOENCODING: utf-8
+        run: |
+          @'
+          import subprocess, sys, time, os
+          processo = subprocess.Popen([sys.executable, "JOGAR.py"],
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                       text=True, encoding="utf-8", errors="replace",
+                                       env=os.environ.copy())
+          try:
+              time.sleep(18)
+              codigo = processo.poll()
+              if codigo is not None:
+                  saida, _ = processo.communicate(timeout=10)
+                  raise AssertionError("JOGAR.py saiu cedo, exit code %s:\n%s" % (codigo, saida[-8000:]))
+              print("APROVADO: JOGAR.py permaneceu executando por 18s no Windows com Python 3.9")
+          finally:
+              processo.terminate()
+              try:
+                  processo.communicate(timeout=10)
+              except subprocess.TimeoutExpired:
+                  processo.kill()
+                  processo.communicate(timeout=10)
+          '@ | python -
