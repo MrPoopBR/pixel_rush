@@ -17,6 +17,8 @@ SECOES = (
     'renderizacao_e_ui', 'posprocessamento', 'apresentacao', 'limitador_fps',
     'fisica_jogador', 'inimigos_objetos', 'particulas_update',
     'mundo_2_5d', 'sprites_render', 'clima_render',
+    'mundo_composicao_interna', 'profundidade_fundo',
+    'camera_smoothscale', 'camera_gamefeel',
 )
 
 
@@ -128,7 +130,9 @@ class QATelemetria:
         self.pilha.clear()
         self.contagem += 1
         estado = entrada['estado']
-        modo = 'corrida_normal' if estado == 'JOGANDO' else 'replay' if estado == 'GAMEOVER_REPLAY_QA' else 'outros'
+        modo = ('tutorial' if estado == 'JOGANDO_TUTORIAL_QA' else
+                'corrida_normal' if estado == 'JOGANDO' else
+                'replay' if estado == 'GAMEOVER_REPLAY_QA' else 'outros')
         bioma = entrada['bioma']
         chave = modo + '|' + bioma
         fases = entrada['fases_ms']
