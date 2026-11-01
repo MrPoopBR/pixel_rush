@@ -8,7 +8,9 @@ Não altera a ordem nem os tempos da escolha de cenários.
 """
 from collections import deque
 import hashlib
+from pixelrush_hash_compat_v327725 import sha256_stream
 import ctypes
+import os
 import gc
 import io
 import pickle
@@ -104,16 +106,18 @@ class _Manager:
         self._prepared_budget_bytes=26 * 1048576
         self._prepared_bytes=0
         self._ticks_since_trim=0
-        try:
-            # O descarte de Surface libera referências, mas o alocador nativo
-            # pode guardar as páginas e fazer o RSS subir a cada revisita.
-            # Chamada oportunista: disponível no glibc; ausente -> não faz nada.
-            self._trim=getattr(ctypes.CDLL(None), 'malloc_trim', None)
-            if self._trim is not None:
-                self._trim.argtypes=[ctypes.c_size_t]
-                self._trim.restype=ctypes.c_int
-        except (OSError, AttributeError):
-            self._trim=None
+        # Windows: CDLL(None) nao e uma biblioteca C valida.
+        # malloc_trim e exclusivo do glibc; nao tentar carrega-lo no Windows.
+        self._trim=None
+        if os.name == 'posix':
+            try:
+                # No Linux/Android, manter o descarte de paginas anterior.
+                self._trim=getattr(ctypes.CDLL(None), 'malloc_trim', None)
+                if self._trim is not None:
+                    self._trim.argtypes=[ctypes.c_size_t]
+                    self._trim.restype=ctypes.c_int
+            except (OSError, AttributeError, TypeError, ValueError):
+                self._trim=None
         self._epoch=0
         self._thread=threading.Thread(target=self._worker,name='pixelrush-atlas-buffers',daemon=True)
         self.stats={'loaded':[],'used':[],'fallback':[],'activation_ms':[],'max_buffer_mib':0}
@@ -130,7 +134,7 @@ class _Manager:
                 try:
                     path=_DIR/(key+'.pbuf')
                     with path.open('rb') as file:
-                        if hashlib.file_digest(file,'sha256').hexdigest()!=_MANIFESTO[key]['sha256']:
+                        if sha256_stream(file)!=_MANIFESTO[key]['sha256']:
                             raise ValueError('buffers preparados não íntegros')
                         file.seek(0)
                         state,buffers,used_bytes=pickle.load(file)
