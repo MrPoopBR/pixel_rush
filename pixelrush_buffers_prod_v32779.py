@@ -7,6 +7,7 @@ Não altera a ordem nem os tempos da escolha de cenários.
 """
 from collections import deque
 import hashlib
+from pixelrush_hash_compat_v327725 import sha256_stream
 import io
 import pickle
 import threading
@@ -111,7 +112,7 @@ class _Manager:
                 try:
                     path=_DIR/(key+'.pbuf')
                     with path.open('rb') as file:
-                        if hashlib.file_digest(file,'sha256').hexdigest()!=_MANIFESTO[key]['sha256']:
+                        if sha256_stream(file)!=_MANIFESTO[key]['sha256']:
                             raise ValueError('buffers preparados não íntegros')
                         file.seek(0)
                         state,buffers,used_bytes=pickle.load(file)
