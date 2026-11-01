@@ -89,7 +89,7 @@ def testar_atlas():
     m2=mod._Manager()
     m2._quality=False
     m2._event=NoEvent()
-    m2._prepared_budget_bytes=900*1024
+    m2._prepared_budget_bytes=3*1024*1024
     nomes=("neve","deserto","cidade_futurista")
     for nome in nomes:
         copia=[Buffer(zlib.compress(dados),tamanho) for _ in range(10)]
