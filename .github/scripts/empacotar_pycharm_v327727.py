@@ -12,7 +12,7 @@ import re
 import subprocess
 import zipfile
 
-BASE_SHA = "175025f4e989f16c0d65fd7bf95b3b7bbbb82eb6"
+BASE_SHA = "8a4b477fb5d362e04de9a34caef295634e87662e"
 VERSION = "3.277.27"
 REVISAO_PACOTE = "r1"
 PREFIXO = "PixelRush_v%s_PYCHARM/" % VERSION
@@ -35,7 +35,7 @@ def eh_documentacao(nome):
 def texto_guia():
     return """PIXEL RUSH v3.277.27 — PROJETO COMPLETO PARA PYCHARM / WINDOWS
 PACOTE: r1 (somente organizacao do ZIP; codigo do jogo INALTERADO)
-CODIGO DE ORIGEM: 175025f4e989f16c0d65fd7bf95b3b7bbbb82eb6
+CODIGO DE ORIGEM: 8a4b477fb5d362e04de9a34caef295634e87662e
 
 INICIO RAPIDO NO WINDOWS:
   1. Extraia o ZIP inteiro em uma pasta nova.
