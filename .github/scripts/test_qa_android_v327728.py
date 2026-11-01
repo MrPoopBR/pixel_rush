@@ -1,6 +1,7 @@
 """QA: exercicio REAL do pygame-ce (SDL dummy), telemetria + saida JSON/CSV."""
 import json
 import os
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -8,6 +9,7 @@ import unittest
 os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
 os.environ.setdefault('SDL_AUDIODRIVER', 'dummy')
 import pygame
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from pixelrush_qa_android_v327728 import QATelemetria
 
 
