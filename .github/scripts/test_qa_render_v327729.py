@@ -56,6 +56,27 @@ class TesteRender329(unittest.TestCase):
               % (len(anterior),sum(anterior)/len(anterior),
                  sum(otimizado)/len(otimizado)))
 
+    def test_outros_seis_biomas_rgb_identicos(self):
+        # Usa a mesma hierarquia de producao que o jogo importa.
+        from pixelrush_world_prod_v32777 import LivingWorld as MundoJogo
+        biomas = ('neve', 'deserto', 'vulcao', 'floresta',
+                  'cidade_futurista', 'ilhas_celestes')
+        total = 0
+        for bioma in biomas:
+            mundo = MundoJogo(bioma, lightweight=True)
+            mundo.travel, mundo.frame = 343.5, 19
+            mundo.night, mundo.phase, mundo.climate = .37, .62, 'chuva'
+            for kind in ('image', 'normal', 'material'):
+                baseline = mundo._city_surface(kind).copy()
+                instalar()
+                alterado = mundo._city_surface(kind).copy()
+                self.assertEqual(bytes_rgba(baseline), bytes_rgba(alterado),
+                                 'Bioma/canal divergente: %s/%s' % (bioma, kind))
+                restaurar_para_teste()
+                total += 1
+            del mundo
+        print('PIXELS=IDENTICOS %d casos em 6 biomas modulares' % total)
+
     def test_sem_limpeza_perdida_foreground(self):
         mundo = LivingWorld('cidade',lightweight=True)
         import pixelrush_world_v3130 as engine
