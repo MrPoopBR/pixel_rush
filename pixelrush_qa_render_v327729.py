@@ -32,9 +32,15 @@ def instalar():
         # render_scene executa fill completo para cada kind, inclusive image.
         from pixelrush_world_v3130 import MODULAR_BIOMES
         cena = self._get_modular() if self.biome in MODULAR_BIOMES else self.city2
-        cena.render_scene(surf, self.travel, self.frame, self.night,
-                          self.climate, self.phase, foreground_only=False,
-                          map_kind=kind)
+        # A instrumentacao interna confirma onde o mundo 2.5D gasta CPU.
+        from pixelrush_profiler_v3204 import sub_inicio, sub_fim
+        sub_inicio('mundo_composicao_interna')
+        try:
+            cena.render_scene(surf, self.travel, self.frame, self.night,
+                              self.climate, self.phase, foreground_only=False,
+                              map_kind=kind)
+        finally:
+            sub_fim()
         return surf
 
     LivingWorld._city_surface = _city_surface_qa
