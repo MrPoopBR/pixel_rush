@@ -1,2 +1,1 @@
-Pixel Rush v3.277.25-PROD-ANDROID-RC (candidata Windows/Android nao homologada)
-Base v3.277.24: compatibilidade CPython 3.9 em Windows para SHA-256 de atlas e buffers; malloc_trim sem CDLL(None) no Windows; sem alteracao de jogabilidade, visual, fisica, tutorial, saves e APK/AAB.
+Pixel Rush v3.277.26-PROD-ANDROID-RC (candidata Android, QA pendente)\nBase v3.277.25: cache visual de fundo 2.5D somente durante modo leve/auto reduzido no Android, preservando sprites, UI, fisica, tutorial, replay, saves e flags OFF.\n
