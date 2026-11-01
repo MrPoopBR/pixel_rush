@@ -132,10 +132,15 @@ class QATelemetria:
         estado = entrada['estado']
         modo = ('tutorial' if estado == 'JOGANDO_TUTORIAL_QA' else
                 'corrida_normal' if estado == 'JOGANDO' else
-                'replay' if estado == 'GAMEOVER_REPLAY_QA' else 'outros')
+                'replay' if estado == 'GAMEOVER_REPLAY_QA' else estado.lower())
         bioma = entrada['bioma']
         chave = modo + '|' + bioma
         fases = entrada['fases_ms']
+        # Resto do desenho, descontando passes inclusivos do ramo de render.
+        if 'renderizacao_e_ui' in fases:
+            fases['render_residual_estimado'] = max(0.0, fases['renderizacao_e_ui'] -
+                sum(fases.get(k, 0.0) for k in
+                    ('mundo_2_5d', 'profundidade_fundo', 'sprites_render', 'clima_render')))
         total = max(0, agora - self.inicio) / 1e6
         trabalho = max(0, total - fases.get('limitador_fps', 0))
         cpu = max(0, self.cpu_relogio() - entrada['cpu_inicial']) / 1e6
@@ -190,6 +195,7 @@ class QATelemetria:
             'gpu_ms_real': None, 'gpu_estado': 'nao_disponivel_no_pygame; usar Perfetto/gfxinfo Android',
             'observacoes': [
                 'Fases principais exclusivas; subsistemas dentro delas: NAO somar duas vezes.',
+                'render_residual_estimado = renderizacao_e_ui menos passes medidos; nao representa um intervalo contiguo.',
                 'CPU de processo inclui threads SDL/audio; nao e porcentagem de um nucleo.',
                 'apresentacao inclui scale/blit/pygame.display.flip e espera do driver; nao prova gargalo GPU.',
                 'FPS estimado por intervalo entre inicios, inclui limitador e pausas do SO.',
