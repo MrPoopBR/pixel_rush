@@ -10,6 +10,8 @@ on:
       - '.github/scripts/test_pygame_zoom_v327721.py'
       - '.github/scripts/test_pygame_perf_v327722.py'
       - '.github/scripts/test_android_perf_v327723.py'
+      - '.github/scripts/test_android_tutorial_guided_v327724.py'
+      - 'pixelrush_tutorial_guia_prod_v327724.py'
       - 'pixelrush_buffers_prod_v327710.py'
       - 'pixelrush_gamefeel_v3129.py'
       - 'buildozer.spec'
@@ -53,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/android_debug_audit.py preflight --report preflight-debug.json
-          python3 -m compileall -q .github/scripts/test_pygame_zoom_v327721.py .github/scripts/test_pygame_perf_v327722.py .github/scripts/test_android_perf_v327723.py pixelrush_buffers_prod_v327710.py pixelrush_gamefeel_v3129.py pixelrush_gamefeel_v3129.py pixelrush_cinema_v3172.py main.py pixelrush_android_abertura_v327712.py pixelrush_android_storage_v327711.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py p4a-recipes/pygame-ce/__init__.py p4a-recipes/python3/__init__.py .github/scripts/test_android_stdlib_bootstrap.py .github/scripts/test_android_p4a_patches.py .github/scripts/test_android_stdlib_dt_needed.py .github/scripts/test_android_tutorial_retry_v327716.py .github/scripts/test_android_tutorial_fixes_v327717.py .github/scripts/test_android_tutorial_score_v327718.py .github/scripts/test_android_tutorial_cinematic_v327719.py
+          python3 -m compileall -q .github/scripts/test_pygame_zoom_v327721.py .github/scripts/test_pygame_perf_v327722.py .github/scripts/test_android_perf_v327723.py .github/scripts/test_android_tutorial_guided_v327724.py pixelrush_tutorial_guia_prod_v327724.py pixelrush_buffers_prod_v327710.py pixelrush_gamefeel_v3129.py pixelrush_gamefeel_v3129.py pixelrush_cinema_v3172.py main.py pixelrush_android_abertura_v327712.py pixelrush_android_storage_v327711.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py p4a-recipes/pygame-ce/__init__.py p4a-recipes/python3/__init__.py .github/scripts/test_android_stdlib_bootstrap.py .github/scripts/test_android_p4a_patches.py .github/scripts/test_android_stdlib_dt_needed.py .github/scripts/test_android_tutorial_retry_v327716.py .github/scripts/test_android_tutorial_fixes_v327717.py .github/scripts/test_android_tutorial_score_v327718.py .github/scripts/test_android_tutorial_cinematic_v327719.py
           python3 .github/scripts/test_android_stdlib_bootstrap.py
           python3 .github/scripts/test_android_p4a_patches.py
           python3 .github/scripts/test_android_stdlib_dt_needed.py
@@ -63,6 +65,7 @@ jobs:
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_pygame_zoom_v327721.py
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_pygame_perf_v327722.py
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_perf_v327723.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_guided_v327724.py
           SDL_VIDEODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_retry_v327716.py
           SDL_VIDEODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_fixes_v327717.py
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_score_v327718.py
