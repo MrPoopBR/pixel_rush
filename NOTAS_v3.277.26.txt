@@ -1,0 +1,30 @@
+PIXEL RUSH v3.277.26-PROD-ANDROID-RC — desempenho Android (candidata de teste)
+Base: v3.277.25 (Python 3.9/Windows validado).
+
+O QUE MUDOU
+- Replay usa capturas gravadas, enquanto a corrida calcula mundo 2.5D,
+  física, perigos e interface. Esse contraste aponta para a necessidade
+  de reduzir o custo do desenho ao vivo; nao prova o FPS final no aparelho.
+- Quando o Android detecta baixa taxa de apresentação no modo AUTO ou
+  quando o modo LEVE e escolhido, reutiliza por UM quadro o fundo 2.5D.
+  O fundo ainda e atualizado a cada dois quadros visiveis.
+- PERSONAGEM, obstaculos, moedas, efeitos sobre o personagem e HUD continuam
+  desenhados novos em todos os quadros; nenhuma hitbox e reutilizada.
+- Invalida fundo ao trocar cenario, clima, cor do ceu, periodo, qualidade
+  ou dimensoes; nao intervem no tutorial, replay, menus ou portais.
+- O modo AUTO/ALTO em FPS saudavel continua a desenhar todos os fundos.
+- Teste SDL dummy valida 50% menos chamadas ao fundo, desenho de
+  sprite/HUD por quadro e as flags originais da edicao LIMPA.
+
+O QUE NAO MUDOU
+- Passo fixo de 60 Hz, velocidade, dificuldade, spawn, movimentos,
+  personagens, pets, moedas, pontuacao, tutorial, rebobinamento e saves.
+- Sem ativar lasers Jetpack, obstaculos dirigidos, API online e DEV.
+- Sem alteracoes na branch main, AAB ou em shaders e atlas originais.
+
+LIMITES / GATES
+- Teste de cache em pygame-ce nao representa FPS real de um Android.
+- Aprovacao para publicar depende de APK ARM64 compilado, auditoria
+  ZIP/ELF 16KB, pygame-ce/NumPy, DT_NEEDED e medicao no celular/emulador.
+- A adaptacao pode reduzir a frequencia visual de animacao do FUNDO
+  quando o modo de desempenho reduzido esta ativo, nunca a do jogador.
