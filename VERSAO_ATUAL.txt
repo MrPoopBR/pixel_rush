@@ -1,1 +1,2 @@
-Pixel Rush v3.277.26-PROD-ANDROID-RC (candidata Android, QA pendente)\nBase v3.277.25: cache visual de fundo 2.5D somente durante modo leve/auto reduzido no Android, preservando sprites, UI, fisica, tutorial, replay, saves e flags OFF.\n
+Pixel Rush v3.277.27-PROD-ANDROID-RC (candidata de desempenho, APK debug)
+Base v3.277.26: SDL-RLE somente em atlas estaticos e texturas de alfa seguro do modo NORMAL, menos alocacoes temporarias na Cidade. Conserva fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android pendente.
