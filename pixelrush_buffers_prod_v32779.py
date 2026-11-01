@@ -7,7 +7,7 @@ Não altera a ordem nem os tempos da escolha de cenários.
 """
 from collections import deque
 import hashlib
-from pixelrush_hash_compat_v327725 import sha256_stream
+from pixelrush_hash_compat_v327725 import sha256_stream, NumPyCompatUnpickler
 import io
 import pickle
 import threading
@@ -35,7 +35,7 @@ class _Buffer:
         self.size=size
         self.surface=None
 
-class _Unpickler(pickle.Unpickler):
+class _Unpickler(NumPyCompatUnpickler):
     def find_class(self, module, name):
         if module == 'pixelrush_atlas_prod_v32776' and name == '_restore_surface':
             return _Buffer
@@ -115,7 +115,7 @@ class _Manager:
                         if sha256_stream(file)!=_MANIFESTO[key]['sha256']:
                             raise ValueError('buffers preparados não íntegros')
                         file.seek(0)
-                        state,buffers,used_bytes=pickle.load(file)
+                        state,buffers,used_bytes=_Unpickler(file).load()
                     if state.get('biome') != key.removesuffix('_lite'):
                         raise ValueError('bioma divergente')
                     if len(buffers)!=_MANIFESTO[key]['count']:
