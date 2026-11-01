@@ -1,0 +1,27 @@
+PIXEL RUSH v3.277.24-PROD-ANDROID-RC — candidato Android DEBUG
+Base: v3.277.23. Branch isolada correcao/android-v3.277.24-fluidez-tutorial.
+
+1. Android: permitir 8 passos fisicos de recuperacao por frame em vez
+de 4, preservando passo fixo 60 Hz, fisica e spawn. Em 10 FPS,
+6 ticks/frame sao necessarios para nao simular em camera lenta.
+A taxa de renderizacao pode continuar limitada pelo hardware;
+nao prometer 30/60 FPS sem medicoes em celular.
+2. Tutorial: aguardar obstaculo perto, congelar mundo e bloquear
+toques anteriores e errados. Licao swipe-down realiza salto original
+automatico, congela no ar e exige arrasto vertical >= 55 px no celular.
+Agachamento ou um toque isolado nao contam. Comando correto passa pela
+mesma fisica e pelos perigos reais da Cidade.
+3. Confirmacao de sucesso apenas apos obstaculos realmente ultrapassados.
+Tutorial usa um painel com uma instrucao por vez; sem HUD nem botoes
+normais duplicados durante as seis licoes. Aparencia normal preservada.
+4. Tela durante pausa guiada usa um frame cacheado reutilizavel, evitando
+redesenhar mundo e efeitos enquanto a simulacao esta congelada.
+5. Corrigir exclusivamente fixture CI heredada 900 KiB -> 3 MiB, que
+inviabilizava 12 superficies RGBA e bloqueava o APK v3.277.23.
+6. Novos testes pygame-ce para pausa, entradas precoces, swipe, gesto
+insuficiente, confirmacao de passagem, FPS de simulacao e cache.
+
+Preservado: main do repositorio, DEV, AAB, pets, saves, colisoes
+e fisica normais, shaders, recursos visuais e audio. Nao houve
+mudanca na logica de spawn, premio, tutorial concluido ou game over.
+Gates de APK somente com prova da execucao GitHub Actions.
