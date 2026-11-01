@@ -1,0 +1,28 @@
+PIXEL RUSH v3.277.25-PROD-ANDROID-RC — compatibilidade Windows / Python 3.9
+Base: v3.277.24, commit 61b745e087ae56554e1177dc3beec5b1bc754b01.
+Ramo isolado: correcao/windows-v3.277.25-python39
+
+ERROS CORRIGIDOS:
+1. O Python 3.9 nao tem hashlib.file_digest (adicionado no Python 3.11).
+   Novo modulo pixelrush_hash_compat_v327725.py com SHA-256 em blocos de
+   1 MiB para 3 locais: precarga de atlas, buffer v3.277.10 e
+   carregador legado de buffer v3.277.9.
+   Usa hashlib.file_digest no Python 3.11+ quando disponivel;
+   mantem comparacao SHA-256 sem relaxar validacao ou mudar recursos.
+2. ctypes.CDLL(None) gera TypeError no Windows.
+   O malloc_trim opcional agora e inicializado SOMENTE em plataformas POSIX;
+   em Windows fica None. Tratamento de OSError/AttributeError/
+   TypeError/ValueError no POSIX. A coleta gc.collect(0) permanece.
+3. JOGAR.py mantido intacto. Nao houve mudanca em telas ou controles.
+4. QA independente com Windows/Python 3.9/pygame 2.6.1,
+   teste do SHA de assets reais, prefetch assincrono e smoke de JOGAR.py.
+5. Mantida numeracao coerente para eventual debug Android: 3.277.25 /
+   versionCode 327725, hash de preflight atualizado.
+
+LIMITES: sem execucao real em um Windows do usuario nao e possivel
+garantir que nao existem outras incompatibilidades no ambiente. O teste
+CI Windows 3.9 e as evidencias dos logs devem determinar o status.
+
+PRESERVADOS: main (ramo publicacao), DEV, pets, saves, jogabilidade,
+spawn, tutoriais, fisica, GPU/shaders, recursos, aparencia e AAB.
+Apenas compatibilidade de arquivos e numeracao da candidata atualizada.

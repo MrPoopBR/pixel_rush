@@ -1,0 +1,17 @@
+PIXEL RUSH v3.277.18 — Android RC debug, nao homologada
+
+Base: v3.277.17, commit 2fcbe49254d8641de0ec9501c8be48c4bcdedb9a.
+Pedido: tutorial obrigatorio nao deve iniciar nem acumular pontos. A pontuacao so comeca na corrida real, apos as seis licoes.
+
+Alteracao funcional unica:
+- Removido o incremento `pontuacao += 2` dentro do ramo exclusivo do tutorial na fonte Android RC.
+- O placar permanece zero em todas as licoes, repeticoes ilimitadas e no tick de conclusao.
+- No tick seguinte a conclusao, a logica normal da corrida continua contando a pontuacao original, inclusive seus multiplicadores.
+- Moedas coletadas e bonus das letras permanecem inalterados. A conclusao e o save do tutorial continuam iguais.
+
+Versao interna v3.277.18-PROD-ANDROID-RC; buildozer version 3.277.18; versionCode 327718 (somente debug).
+Teste: suite pygame-ce dummy extrai e executa os nos de pontuacao do codigo de producao; 450 ticks de seis licoes sem pontos, bonus preservado, 2/4/8 apos conclusao. Os testes anteriores do tutorial seguem ativos.
+
+Alteracoes administrativas limitadas: arquivo VERSAO_ATUAL, buildozer.spec, auditoria de hashes do preflight, teste novo, workflow de APK debug para incluir o teste e estas notas.
+Nao alterados: main, DEV, AAB, fisica, sprites, cenarios, tutorial (gestos, hitboxes, repeticoes, fluxo), spawns, saves, pets, assets, recompensas, economia, pygame-ce, numpy ou receitas Python Android.
+APK debug automatico: verificar CI e ELF/16 KB antes de homologar.

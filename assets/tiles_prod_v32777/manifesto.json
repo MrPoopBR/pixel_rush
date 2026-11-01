@@ -1,0 +1,20 @@
+{
+  "neve": {
+    "sha256": "08d8d3273e4d2b27a9060b4106333c102f680cb7f92bc914edd09466f41aabd3",
+    "items": 75,
+    "uncompressed_bytes": 475968,
+    "size_bytes": 416901
+  },
+  "cidade_futurista": {
+    "sha256": "cbbf3e1adf04b96462fde33400149f00e3722bfe82324d309ae0cd20a7e1f9a6",
+    "items": 15,
+    "uncompressed_bytes": 119809,
+    "size_bytes": 107212
+  },
+  "deserto": {
+    "sha256": "2aacf6a247548412725b5c3f643ff1ba1115ccc89fb2eabcdb335a52fe2a1726",
+    "items": 60,
+    "uncompressed_bytes": 248951,
+    "size_bytes": 196268
+  }
+}

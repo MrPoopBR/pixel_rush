@@ -1,0 +1,28 @@
+PIXEL RUSH v3.277.13 - Android RC nao homologada
+
+Objetivo: diagnosticar erro fatal de inicializacao Python 3.12 no Android 16:
+"failed to get the Python codec of the filesystem encoding".
+
+Evidencias da v3.277.12:
+- stdlib.zip existe no armazenamento privado do aparelho e corresponde byte a byte ao APK (SHA-256 b5cb6522d29dddad6279b4a98c1062c5c64c9e3c535b735dcf3dc8b97498e0da).
+- Os 515 membros ZIP sao DEFLATED; encodings/__init__.pyc, encodings/utf_8.pyc e codecs.pyc estao presentes e usam magic Python 3.12.
+- O carregador p4a define PyConfig.module_search_paths com stdlib.zip e modules antes de Py_InitializeFromConfig.
+- A indisponibilidade de zlib impede zipimport de descomprimir DEFLATE; teste de regressao reproduziu o mecanismo com zipimport e zlib bloqueado. A causa unica no aparelho ainda depende de novo logcat.
+
+Alteracoes restritas a compilacao Android debug:
+1. Adicionada receita local p4a-recipes/python3 para preservar a compilacao oficial python3==3.12.12 e reempacotar SOMENTE stdlib.zip sem compressao (ZIP_STORED).
+2. Adicionado teste offline para validar CRC, bytes, nomes, codigos de versao e importacao de ZIPs quando zlib nao esta disponivel.
+3. Auditoria do APK debug passa a exigir stdlib.zip ZIP_STORED, codecs presentes, magic Python 3.12, integridade do ZIP e zlib nativo presente.
+4. Preflight Android e workflow APK debug executam o novo teste.
+5. Versao RC elevada para 3.277.13, versionCode debug 327713.
+
+Nao alterados:
+- main, DEV, workflow AAB, PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py, outros modulos do jogo, fisica, UI, saves, economia, pets, efeitos, arte e recursos.
+- Receita pygame-ce 2.5.8, NumPy, SDL2, Android API/NDK, alinhamento 16 KiB.
+
+Validacao:
+- Teste offline de ZIP STORED/DEFLATED e mocks da receita (aprovado antes do commit).
+- Sintaxe dos arquivos novos (aprovada antes do commit).
+- Smoke test pygame-ce 2.5.8 com SDL dummy no host (aprovado antes do commit).
+- Build e auditoria APK ARM64 em GitHub Actions: verificar apos disparo.
+- Inicio real no celular: PENDENTE de instalacao e novo logcat.

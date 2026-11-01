@@ -1,0 +1,114 @@
+"""Python 3.12 Android RC: remover dependencia circular de zlib no boot.
+
+O zipimport precisa do modulo zlib para descompactar ZIP_DEFLATED. Durante
+Py_InitializeFromConfig, encodings e codecs precisam estar disponiveis antes
+que as extensoes nativas possam ser importadas com confianca. Esta receita
+preserva a compilacao Python 3.12 original do p4a e altera APENAS a forma de
+armazenamento de stdlib.zip de DEFLATED para STORED.
+"""
+from inspect import getfile
+from shutil import which
+from subprocess import run
+from os import replace
+from pathlib import Path
+from zipfile import ZipFile, ZIP_STORED
+
+from pythonforandroid.recipes.python3 import Python3Recipe as UpstreamPython3Recipe
+
+
+REQUIRED_BOOT_MODULES = (
+    'encodings/__init__.pyc', 'encodings/utf_8.pyc', 'codecs.pyc'
+)
+
+
+class PixelRushPython3Recipe(UpstreamPython3Recipe):
+    name = 'python3'
+    version = '3.12.12'
+
+    def apply_patch(self, filename, arch, build_dir=None):
+        """Mantem os patches oficiais no diretorio do p4a, nao no overlay.
+
+        Recipe.apply_patch() faz join(self.get_recipe_dir(), filename).
+        Quando o python3 e uma receita local, get_recipe_dir aponta para
+        p4a-recipes/python3; os arquivos oficiais continuam na receita base.
+        Fornecer caminho absoluto preserva o metodo original de aplicacao.
+        """
+        if filename.startswith('patches/'):
+            upstream_recipe_dir = Path(getfile(UpstreamPython3Recipe)).resolve().parent
+            official_patch = (upstream_recipe_dir / filename).resolve()
+            if not official_patch.is_file():
+                raise FileNotFoundError(
+                    f'Patch oficial python-for-android ausente: {official_patch}'
+                )
+            filename = str(official_patch)
+        return super().apply_patch(filename, arch, build_dir=build_dir)
+
+    @staticmethod
+    def _link_cpython_extensions(modules_dir):
+        """Adiciona DT_NEEDED sem alterar bootstrap global ou extensoes de terceiros.
+
+        O python-for-android compila os modulos nativos da stdlib sem DT_NEEDED
+        para libpython3.12.so. No namespace isolado do Android 16, isso impede
+        resolver simbolos como PyExc_ValueError ao importar math. PatchELF
+        trabalha SOMENTE em _python_bundle/modules/*.cpython-312.so.
+        """
+        modules_dir = Path(modules_dir)
+        modules = sorted(modules_dir.glob('*.cpython-312.so'))
+        required = {'math', 'zlib', '_ctypes', '_ssl'}
+        found = {p.name.removesuffix('.cpython-312.so') for p in modules}
+        if required - found:
+            raise RuntimeError(f'extensoes CPython 3.12 ausentes: {sorted(required - found)}')
+        patchelf = which('patchelf')
+        if not patchelf:
+            raise RuntimeError('patchelf nao encontrado: necessario para DT_NEEDED CPython')
+        wanted = 'libpython3.12.so'
+        for module in modules:
+            def needed():
+                return run([patchelf, '--print-needed', str(module)],
+                           check=True, capture_output=True, text=True).stdout.splitlines()
+            if wanted not in needed():
+                # Preserva PT_LOAD de 16 KiB em APKs ARM64/Android 16.
+                run([patchelf, '--page-size', '16384', '--add-needed',
+                     wanted, str(module)], check=True, capture_output=True, text=True)
+            if needed().count(wanted) != 1:
+                raise RuntimeError(f'DT_NEEDED invalido em {module.name}')
+        return len(modules)
+
+    def create_python_bundle(self, dirn, arch):
+        result = super().create_python_bundle(dirn, arch)
+        self._link_cpython_extensions(Path(dirn) / 'modules')
+        stdlib = Path(dirn) / 'stdlib.zip'
+        temporary = stdlib.with_name('stdlib-pixelrush-stored.tmp')
+        if not stdlib.is_file():
+            raise RuntimeError('python3: stdlib.zip nao foi gerado pelo p4a')
+        try:
+            with ZipFile(stdlib, 'r') as source, ZipFile(
+                temporary, 'w', compression=ZIP_STORED, allowZip64=True
+            ) as target:
+                entries = source.infolist()
+                if not entries:
+                    raise RuntimeError('python3: stdlib.zip vazio')
+                names = {item.filename for item in entries}
+                missing = set(REQUIRED_BOOT_MODULES) - names
+                if missing:
+                    raise RuntimeError(f'python3: codecs ausentes: {sorted(missing)}')
+                for entry in entries:
+                    content = source.read(entry)
+                    # Mantem metadados, timestamps e CRC do arquivo original.
+                    entry.compress_type = ZIP_STORED
+                    target.writestr(entry, content)
+            with ZipFile(temporary, 'r') as check:
+                if check.testzip() is not None:
+                    raise RuntimeError('python3: stdlib STORED com CRC invalido')
+                if any(item.compress_type != ZIP_STORED for item in check.infolist()):
+                    raise RuntimeError('python3: ZIP_DEFLATED persistiu no stdlib')
+                for name in REQUIRED_BOOT_MODULES:
+                    if check.read(name)[:4] != b'\xcb\r\r\n':
+                        raise RuntimeError(f'python3: magic de bytecode 3.12 invalido: {name}')
+            replace(temporary, stdlib)
+        finally:
+            temporary.unlink(missing_ok=True)
+        return result
+
+
+recipe = PixelRushPython3Recipe()

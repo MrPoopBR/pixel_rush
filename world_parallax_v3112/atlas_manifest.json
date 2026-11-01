@@ -1,0 +1,153 @@
+{
+  "type": "ATLAS_EXPERIMENTAL",
+  "source_game": "v3.112.0",
+  "atlas_size": [
+    512,
+    512
+  ],
+  "atlases": [
+    "atlas_ia_0.png"
+  ],
+  "sprites": [
+    {
+      "biome": "cidade",
+      "sprite_index": 0,
+      "atlas_page": 0,
+      "atlas_rect": [
+        221,
+        55,
+        30,
+        35
+      ],
+      "world_rect": [
+        435,
+        145,
+        30,
+        35
+      ],
+      "parallax_speed": 0.22962,
+      "source_file": "cidade_sprite_0.png",
+      "source_sha256": "e74871782d1a85a0d5362e326b93194060abb924ac8f1462d9859bb3acc89f87"
+    },
+    {
+      "biome": "cidade",
+      "sprite_index": 1,
+      "atlas_page": 0,
+      "atlas_rect": [
+        221,
+        2,
+        30,
+        49
+      ],
+      "world_rect": [
+        264,
+        342,
+        30,
+        49
+      ],
+      "parallax_speed": 0.24885,
+      "source_file": "cidade_sprite_1.png",
+      "source_sha256": "e94811c34ac62cdfc568d88494f1456d50ba8698df00a050678e86cddf510ca4"
+    },
+    {
+      "biome": "deserto",
+      "sprite_index": 0,
+      "atlas_page": 0,
+      "atlas_rect": [
+        112,
+        2,
+        105,
+        61
+      ],
+      "world_rect": [
+        568,
+        349,
+        105,
+        61
+      ],
+      "parallax_speed": 0.2455,
+      "source_file": "deserto_sprite_0.png",
+      "source_sha256": "92645bae504e2938e7d51536a1d6ee2f3b08a55faea589c878ca374eeaea4389"
+    },
+    {
+      "biome": "deserto",
+      "sprite_index": 1,
+      "atlas_page": 0,
+      "atlas_rect": [
+        2,
+        2,
+        106,
+        61
+      ],
+      "world_rect": [
+        227,
+        349,
+        106,
+        61
+      ],
+      "parallax_speed": 0.24568,
+      "source_file": "deserto_sprite_1.png",
+      "source_sha256": "f5f93eda0f497babe879bee1a8cf96974f5a5d81564f6a887bc8e45c02c378a4"
+    },
+    {
+      "biome": "floresta",
+      "sprite_index": 0,
+      "atlas_page": 0,
+      "atlas_rect": [
+        332,
+        2,
+        23,
+        43
+      ],
+      "world_rect": [
+        123,
+        347,
+        23,
+        43
+      ],
+      "parallax_speed": 0.24709,
+      "source_file": "floresta_sprite_0.png",
+      "source_sha256": "7d3e11e94244fce0ddf1c0da205ed50efaafb499ca5266abed81bb23002f9b54"
+    },
+    {
+      "biome": "floresta",
+      "sprite_index": 1,
+      "atlas_page": 0,
+      "atlas_rect": [
+        288,
+        2,
+        40,
+        32
+      ],
+      "world_rect": [
+        250,
+        366,
+        40,
+        32
+      ],
+      "parallax_speed": 0.25026,
+      "source_file": "floresta_sprite_1.png",
+      "source_sha256": "7d0245cd701af50862a2a59511f4982c89a3ccf009f73c0b158d471fc96cefd4"
+    },
+    {
+      "biome": "cidade_futurista",
+      "sprite_index": 0,
+      "atlas_page": 0,
+      "atlas_rect": [
+        255,
+        2,
+        29,
+        50
+      ],
+      "world_rect": [
+        594,
+        352,
+        29,
+        50
+      ],
+      "parallax_speed": 0.24938,
+      "source_file": "cidade_futurista_sprite_0.png",
+      "source_sha256": "4477fd17fa054712c6a1d6ece641c579c2cb44a6babd9c8579571bce62f70ac6"
+    }
+  ]
+}

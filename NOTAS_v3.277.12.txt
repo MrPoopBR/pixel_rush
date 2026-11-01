@@ -1,0 +1,17 @@
+PIXEL RUSH v3.277.12 — Android RC não homologada
+
+Alterações nesta atualização
+- Ícone do APK: PixelRush_Logo.png original fornecido pelo usuário, sem redesenho.
+- Presplash nativo estático: PIXEL RUSH (título vermelho, ninja e 'Carregando...').
+- Abertura animada SDL2/Pygame exclusiva do Android: título vermelho, laranja, amarelo e ciano em ciclos durante 1,8 segundo.
+- Versão do aplicativo: 3.277.12; versionCode de teste: 327712.
+- Carregador Android aceita arquivo do jogo .py ou .pyc gerado pelo python-for-android, caso não exista .py; lógica do jogo preservada.
+- Pré-voo APK exige os cinco PNGs íntegros e valida a sintaxe do novo módulo.
+
+Preservados sem alterações
+- Código-fonte principal e módulos do jogo, física, dificuldade, regras, saves, artes já existentes, pets.
+- Branch main, branch DEV, workflow AAB e receita pygame-ce 2.5.8.
+
+Validação
+- Executar py_compile, teste Pygame SDL dummy, loader .py/.pyc e gate de recursos.
+- Compilação e execução real Android pendentes de GitHub Actions + logcat do aparelho.

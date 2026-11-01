@@ -1,0 +1,58 @@
+{
+  "schema": "pixelrush-qa-v3114",
+  "policy": "experimental_only_manual_approval_pending",
+  "biomes": {
+    "cidade": {
+      "base_sha256": "33f833bbd127b63344974595ef0c2b8be39adb986c97e5ae909817bf7089dda1",
+      "source_sha256": "32cbe1586cd72715f8e78cb8994df2d0ee03384726691bc5665becd16db0461a",
+      "mask_area_pixels": 2201,
+      "old_new_artificial_white_pixels": [
+        1021,
+        0
+      ],
+      "method": "TELEA",
+      "automatic_checks_passed": true,
+      "manual_approved": false,
+      "test": "pixels outside expanded mask remain byte-identical to source; near-white artifact gate"
+    },
+    "deserto": {
+      "base_sha256": "01a03787b3821c6dd1af92b922f440455c0972e5906759d9873757261313e41b",
+      "source_sha256": "b4e2d1173633bfd9abe46110de9ab34edf512a58bb286bef5b533f449e199b6f",
+      "mask_area_pixels": 7654,
+      "old_new_artificial_white_pixels": [
+        6871,
+        0
+      ],
+      "method": "TELEA",
+      "automatic_checks_passed": true,
+      "manual_approved": false,
+      "test": "pixels outside expanded mask remain byte-identical to source; near-white artifact gate"
+    },
+    "floresta": {
+      "base_sha256": "88c3e944d6639f8008270af428192522335f1146fc11be240291a10e34414587",
+      "source_sha256": "5afe60341e051770d7206fdc3ee57652c00ec907c6f6c3e9f74ba6139faa6e00",
+      "mask_area_pixels": 1721,
+      "old_new_artificial_white_pixels": [
+        713,
+        0
+      ],
+      "method": "TELEA",
+      "automatic_checks_passed": true,
+      "manual_approved": false,
+      "test": "pixels outside expanded mask remain byte-identical to source; near-white artifact gate"
+    },
+    "cidade_futurista": {
+      "base_sha256": "d04d2ede614ed3e89a5be10abb3ed05a7d9d9ca437db6ca40b6771b44694c95b",
+      "source_sha256": "c04f82ea5a60874a52870256e94691887404edbf5587fda05ebc45c811493bf0",
+      "mask_area_pixels": 1176,
+      "old_new_artificial_white_pixels": [
+        728,
+        0
+      ],
+      "method": "TELEA",
+      "automatic_checks_passed": true,
+      "manual_approved": false,
+      "test": "pixels outside expanded mask remain byte-identical to source; near-white artifact gate"
+    }
+  }
+}

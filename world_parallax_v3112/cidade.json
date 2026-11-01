@@ -1,0 +1,46 @@
+{
+  "biome": "cidade",
+  "sources_sha256": "32cbe1586cd72715f8e78cb8994df2d0ee03384726691bc5665becd16db0461a",
+  "base": "cidade_base.png",
+  "sprites": [
+    {
+      "file": "cidade_sprite_0.png",
+      "rect": [
+        435,
+        145,
+        30,
+        35
+      ],
+      "point_index": 11,
+      "sam_score": 0.9471,
+      "area": 731,
+      "relative_depth": 0.6196,
+      "parallax_speed": 0.22962,
+      "wind_pixels": 2
+    },
+    {
+      "file": "cidade_sprite_1.png",
+      "rect": [
+        264,
+        342,
+        30,
+        49
+      ],
+      "point_index": 1,
+      "sam_score": 0.9391,
+      "area": 936,
+      "relative_depth": 0.1922,
+      "parallax_speed": 0.24885,
+      "wind_pixels": 2
+    }
+  ],
+  "available_candidates": 9,
+  "composite_mae": 0.02667,
+  "composite_large_diff_fraction": 0.000407,
+  "masked_fraction": 0.005038,
+  "qa_automatic_passed": true,
+  "qa_manual_approved": false,
+  "note": "Modo experimental. Remocao de clareamento artificial nao equivale a aprovacao artistica.",
+  "reconstruction_method": "opencv_telea_radius3_mask_dilation2",
+  "reconstruction_version": "v3.114.0"
+}

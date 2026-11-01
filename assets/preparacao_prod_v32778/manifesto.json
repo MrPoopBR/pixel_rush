@@ -1,0 +1,357 @@
+{
+  "audio_spec": [
+    22050,
+    -16,
+    2
+  ],
+  "assets": {
+    "audio_cidade.pcmz": {
+      "sha256": "a09815d7d22161e3e632f6f89106af04baadf6a851d9c7632318a86a51f85c28",
+      "raw_sha256": "2c54ace385398c04cc817c618faa43f205f4ad072ce23b6dfb2c4100c29294de",
+      "raw_size": 176400,
+      "size": 76845,
+      "dimensions": null
+    },
+    "marco_cidade.rgbaz": {
+      "sha256": "3d92a55370d48ed386b99813dd41c5703c156a9fcef920e41e2bf95df711fd8a",
+      "raw_sha256": "9dabe13ed6d4bfe1c08a939245225c543bb37f43c544b8bf49a5eb495e5a3a1f",
+      "raw_size": 294000,
+      "size": 7812,
+      "dimensions": [
+        350,
+        210
+      ]
+    },
+    "lamina0_0_cidade.rgbaz": {
+      "sha256": "3f5cb5577462ebf7c6eca1e925caa69f617773219e67ec3349a61147be46a8f7",
+      "raw_sha256": "c29646bea75456b7cf1a88e22c940b9bf019541329a326bda875af93fa950b02",
+      "raw_size": 150800,
+      "size": 398,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina0_1_cidade.rgbaz": {
+      "sha256": "3f4bdc5db8eab818b304d962ddeda5598f6d52e73687e635de7d54b9c51e8ce3",
+      "raw_sha256": "7049af7682efb102975439f000bd0ab8cb21d81cc24045fadfd79cdea20516ef",
+      "raw_size": 150800,
+      "size": 394,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina1_0_cidade.rgbaz": {
+      "sha256": "845236cf999203472ee57c02a051e9eece8d0e90f77ac13eaf93af6db6119f04",
+      "raw_sha256": "2a07bfe6974a98342efd92f283314d1d5d1a5137805472f49d1b761c18ecb653",
+      "raw_size": 150800,
+      "size": 467,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina1_1_cidade.rgbaz": {
+      "sha256": "adb83e883c2ee266fab4787798a2aed26e971058853febb84ab938d7fa1218ac",
+      "raw_sha256": "3346df1fff985e553e8cdd300b4e4294aa1aa214b32374483a1cd158aedcdc7b",
+      "raw_size": 150800,
+      "size": 490,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina2_0_cidade.rgbaz": {
+      "sha256": "a9c2e0ee7b013a4d6ec9073ba62ac1d644c6bf1c32a87616f50e925f7a4870e5",
+      "raw_sha256": "4083720a7dc51779d8118c0b1471ba43b39f6c174105e947ba2d94510d73266c",
+      "raw_size": 150800,
+      "size": 548,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina2_1_cidade.rgbaz": {
+      "sha256": "0420b07cc3290689a0de9bd0a17ec8c4e54fc3d3bc14bfb93a5b842b5777c50e",
+      "raw_sha256": "5b976850750174a091eed17d8c83a237fbfc2b05d566d1da46aaffac86d2acfe",
+      "raw_size": 150800,
+      "size": 565,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "audio_neve.pcmz": {
+      "sha256": "c01a73209d15eb0eb978a4f71a257dede6573460608713781e40b9dd8c544f3e",
+      "raw_sha256": "e73a1c66621b74e810ee4eed5d2efffb45e2caad2e0244346cd6db3cbadb89ef",
+      "raw_size": 176400,
+      "size": 78026,
+      "dimensions": null
+    },
+    "marco_neve.rgbaz": {
+      "sha256": "4a1482adf2d58f4a0cc15073eeeff8fa9d2e07b3e5a1c58ac35bc13bb7684905",
+      "raw_sha256": "9bcc4f9e6a1976d9984278765905f20c49cb1b7eb86f26eac50350bdb8a9c174",
+      "raw_size": 294000,
+      "size": 5714,
+      "dimensions": [
+        350,
+        210
+      ]
+    },
+    "lamina0_0_neve.rgbaz": {
+      "sha256": "07e21fbe90745671b78b0cecbe16d9c920fbf90f9af1c4eb3eab42445e52600d",
+      "raw_sha256": "36f1665880eca38bbea89dd3830e36915028c7b043e09d96d094bb4cfb20c660",
+      "raw_size": 150800,
+      "size": 553,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina0_1_neve.rgbaz": {
+      "sha256": "9fe70bf7b4eca490b2a9f448189bb9c45c95992f7bc367dc93993a4efb9a7310",
+      "raw_sha256": "79fdd46fa0f67753213a93e83ce3914ee57bf3d4d343b11818dfc5308211ea67",
+      "raw_size": 150800,
+      "size": 531,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina1_0_neve.rgbaz": {
+      "sha256": "22a318b9b30ccf39c8a8655c2241c798f4f1d234a9efaeb23569c54931e13812",
+      "raw_sha256": "5b2d39faff5cb384189269ab170f95e61c2eaa55f5e52312b211c97539bf4959",
+      "raw_size": 150800,
+      "size": 663,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina1_1_neve.rgbaz": {
+      "sha256": "7530031b2057fda0059ef6fdbbf88d23daaf2c33d015ef1c7db87f5373be3929",
+      "raw_sha256": "5ecdf739ee64acb179d20bf6ef972ace597e30076c9725eacbf96ff0c7506a7a",
+      "raw_size": 150800,
+      "size": 647,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina2_0_neve.rgbaz": {
+      "sha256": "a186f4d007df1ebabafd70f06d41af56af1d678bbd62c4453c895c2903d507fe",
+      "raw_sha256": "ec406e1a12e5cb89d4d60356b478a14676aaef3d1127e525527be2f76e0648c2",
+      "raw_size": 150800,
+      "size": 831,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina2_1_neve.rgbaz": {
+      "sha256": "819fa1fc3e1231ff2e768e48d1ab316794248b5aec8e0f89872e776e71c20c58",
+      "raw_sha256": "8f0a0e6be7423d648ca3e1c43071f92a5447bcd849f6571a0b475ea885c64a8d",
+      "raw_size": 150800,
+      "size": 790,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "audio_cidade_futurista.pcmz": {
+      "sha256": "a17a309fe1408802d4c3ade9e5203918ef52664606627b6cf7c39fa8f8f00a44",
+      "raw_sha256": "efce677a9173016d39528bad6814a3ebe5e3ae247d691cb9661332aa02f28c33",
+      "raw_size": 176400,
+      "size": 79512,
+      "dimensions": null
+    },
+    "marco_cidade_futurista.rgbaz": {
+      "sha256": "75bbbb16a3ad5f172fcbf0703fe1741bf54a4844d6e3b1412eb676da5b24a26b",
+      "raw_sha256": "7bb5f6d86ea846799ae68ffd58f1c4ac6512e892aa35a813719183d4c7a581b3",
+      "raw_size": 294000,
+      "size": 9449,
+      "dimensions": [
+        350,
+        210
+      ]
+    },
+    "lamina0_0_cidade_futurista.rgbaz": {
+      "sha256": "144f4a46747754ad7de746756c6248d01e8e5aab1dc7cff48897512ff3b91486",
+      "raw_sha256": "9bd594b4a05c70f1239b59c949d23ebfc4aa698fa6ad91c4db49efc5d67e8b08",
+      "raw_size": 150800,
+      "size": 214,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina0_1_cidade_futurista.rgbaz": {
+      "sha256": "e8fa2bd6fb4de987c66678622daf758973ff00d55a8520f78fe80c589d8907b2",
+      "raw_sha256": "143748970067f7cb8a22f8c6a08b26003465c907fe67f1f1a71dad0cb62510dd",
+      "raw_size": 150800,
+      "size": 215,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina1_0_cidade_futurista.rgbaz": {
+      "sha256": "7d1fc3de8b6081933f41d068d12c937092addeb221b411fbd567622c67cfedbf",
+      "raw_sha256": "9d2ff1939ad746363033bd8a6b5c5ecc4cde8247f7178174d81a924939507407",
+      "raw_size": 150800,
+      "size": 554,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina1_1_cidade_futurista.rgbaz": {
+      "sha256": "e0cb65e8a1b600a824a9b3ba6f99e76bb1cb56157a0905d952f24d5f25c1423b",
+      "raw_sha256": "305fdc512bec46591f06204c25188b6bfa4c66da3aed434eac8d66e7df476d42",
+      "raw_size": 150800,
+      "size": 554,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina2_0_cidade_futurista.rgbaz": {
+      "sha256": "6baa0cd540ed6428aa4d5226d2315dac26ab20300260ae3edf7ec84cb3fa49ba",
+      "raw_sha256": "dd5b23d41b26063ddc765e574e55b0ea2bc8f62bc9597eb1a75b48b85e65a05e",
+      "raw_size": 150800,
+      "size": 638,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina2_1_cidade_futurista.rgbaz": {
+      "sha256": "e0cab360ca2d4eb736c86518db22d15a2a818de758d9ed0f5434ed57b31959d2",
+      "raw_sha256": "5aed94757195bbef82b85c5130091b808217b72a70e17ba8fd8405d9b6aee3a2",
+      "raw_size": 150800,
+      "size": 637,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "audio_deserto.pcmz": {
+      "sha256": "bb28b8c21276c8a9a5ed101d311d4ddd358823846d60ea727330eaeaa577c812",
+      "raw_sha256": "98bcfe2cab067df46afa6445bf52615e9f583a6e7e961eefc0a0f3616d008545",
+      "raw_size": 176400,
+      "size": 79786,
+      "dimensions": null
+    },
+    "marco_deserto.rgbaz": {
+      "sha256": "3d0b2450e41432dfbf9a634112da54d33b5641ee4d1fdb1dd53b9fb009c28c25",
+      "raw_sha256": "5ec990e6c83ecc7abcbb675a1c6ce972c881bad498caa09334f2189d319f2176",
+      "raw_size": 294000,
+      "size": 5113,
+      "dimensions": [
+        350,
+        210
+      ]
+    },
+    "lamina0_0_deserto.rgbaz": {
+      "sha256": "651da7d23feb45fb28423a5d070f30822746462c5c256636b0071ae5ddcafe54",
+      "raw_sha256": "b8db43f3572d622bfc4fce16f6c8878463be49010ecc0b7ef102c63008aade3c",
+      "raw_size": 150800,
+      "size": 234,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina0_1_deserto.rgbaz": {
+      "sha256": "47f6687e2914f26054f2ebf5eeaefbcdb97cf1194285cb6b6fd57817862d01ec",
+      "raw_sha256": "dbe4902337f359e5d3375c02cd6e0679cf09746ea0bba13d3061092ff7cc3487",
+      "raw_size": 150800,
+      "size": 234,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina1_0_deserto.rgbaz": {
+      "sha256": "cfb184aff4b7e154994e51e96ea6b217daee9717a2052dc7c94a7d145d36768a",
+      "raw_sha256": "c86428c3685e564cbd3f33f86a6e8735fd927068e3cc0185b55517e6543edf18",
+      "raw_size": 150800,
+      "size": 460,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina1_1_deserto.rgbaz": {
+      "sha256": "785ef86adc4b3e998a44e1b33ddb19ab39a832c6e857a88c4e5fd1511e84c7d5",
+      "raw_sha256": "9bb3e5317a66b7a81b6f7305641e7985bab0fa9829baa06c81e54094c9f99a89",
+      "raw_size": 150800,
+      "size": 477,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina2_0_deserto.rgbaz": {
+      "sha256": "a6bb21252fc21b859cd8ec4f46a5f9b355bbdd848035005e84b749caed9bf557",
+      "raw_sha256": "1126a94599a287ca0491242c7515aedd5d18af4a697ac8c71004ad526240c3f8",
+      "raw_size": 150800,
+      "size": 536,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "lamina2_1_deserto.rgbaz": {
+      "sha256": "29049fa4503ab5efc5b7794ddf9663eb38e480f169291c6cbad00231cc3edb11",
+      "raw_sha256": "4890a1e86ddf1348092185110826acb729bbdc2a4862d67b9b66074ba7d45500",
+      "raw_size": 150800,
+      "size": 553,
+      "dimensions": [
+        260,
+        145
+      ]
+    },
+    "audio_cidade_44100.pcmz": {
+      "sha256": "7d3703ff68c1d821522433ba99df11c559398e8c698c9f5bec0a27a634cc9dca",
+      "raw_sha256": "e68beda69a5368bb6708bea25d3ad7389088a60c930f1aeaf6300b2c4d80f20d",
+      "raw_size": 352800,
+      "size": 147334,
+      "dimensions": null
+    },
+    "audio_neve_44100.pcmz": {
+      "sha256": "940d37f4744c1fb5d1291999bbeb579b51425a5f6c9b9123ed047d93cd26f950",
+      "raw_sha256": "e4c442be15c90815833128c24a988b3a75aa00d33a79272e4de2b01e4c4f709e",
+      "raw_size": 352800,
+      "size": 146159,
+      "dimensions": null
+    },
+    "audio_cidade_futurista_44100.pcmz": {
+      "sha256": "02695780a1d17d58be09dfbef8d8e856a7c4198eb159fdec2650dc23c0e5f550",
+      "raw_sha256": "00c957a7804f21f54cdb8c9efe74d9a213bc2ef531155553b390f6a965775f28",
+      "raw_size": 352800,
+      "size": 150934,
+      "dimensions": null
+    },
+    "audio_deserto_44100.pcmz": {
+      "sha256": "035282b0a9a0bbd5fc137f5508382e5b082ed1465909bcd5158b789075223e35",
+      "raw_sha256": "c2e700a0beec576100d0788e8a3816e7577cd6723d70c4ded55ad6f964c5f6ee",
+      "raw_size": 352800,
+      "size": 154354,
+      "dimensions": null
+    }
+  },
+  "audio_specs": [
+    [
+      22050,
+      -16,
+      2
+    ],
+    [
+      44100,
+      -16,
+      2
+    ]
+  ]
+}

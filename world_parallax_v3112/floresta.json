@@ -1,0 +1,46 @@
+{
+  "biome": "floresta",
+  "sources_sha256": "5afe60341e051770d7206fdc3ee57652c00ec907c6f6c3e9f74ba6139faa6e00",
+  "base": "floresta_base.png",
+  "sprites": [
+    {
+      "file": "floresta_sprite_0.png",
+      "rect": [
+        123,
+        347,
+        23,
+        43
+      ],
+      "point_index": 0,
+      "sam_score": 0.8752,
+      "area": 471,
+      "relative_depth": 0.2314,
+      "parallax_speed": 0.24709,
+      "wind_pixels": 2
+    },
+    {
+      "file": "floresta_sprite_1.png",
+      "rect": [
+        250,
+        366,
+        40,
+        32
+      ],
+      "point_index": 1,
+      "sam_score": 0.7799,
+      "area": 788,
+      "relative_depth": 0.1608,
+      "parallax_speed": 0.25026,
+      "wind_pixels": 2
+    }
+  ],
+  "available_candidates": 2,
+  "composite_mae": 0.0106,
+  "composite_large_diff_fraction": 9.6e-05,
+  "masked_fraction": 0.004009,
+  "qa_automatic_passed": true,
+  "qa_manual_approved": false,
+  "note": "Modo experimental. Remocao de clareamento artificial nao equivale a aprovacao artistica.",
+  "reconstruction_method": "opencv_telea_radius3_mask_dilation2",
+  "reconstruction_version": "v3.114.0"
+}
