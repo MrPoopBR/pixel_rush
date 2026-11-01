@@ -10849,6 +10849,9 @@ def main():
     pet_cantinho_mensagem = "Toque em um pet para conhecê-lo!"
     pet_cantinho_mensagem_ate = 0
     cache_telas_estaticas = {}
+    # Um frame completo durante o gesto congelado evita recalcular 2.5D/FX
+    # dezenas de vezes sem movimento (somente tutorial). Maximo 450x800 RGB.
+    cache_tutorial_congelado = None
     evento_corrida = None
     evento_corrida_x = LARGURA_VIRTUAL + 80
     evento_corrida_timer = 0
@@ -13619,7 +13622,11 @@ def main():
         # Pausa e Game Over congelam o mundo. Depois do fim da transição de céu,
         # reutilizamos a imagem pronta em vez de redesenhar o fundo, sprites e UI.
         chave_tela_estatica = (estado, cor_ceu_tupla)
-        if estado in ("PAUSA", "GAMEOVER") and chave_tela_estatica in cache_telas_estaticas:
+        if (estado == "JOGANDO" and tutorial_corrida and tutorial_corrida.ativo
+                and getattr(tutorial_corrida, "_pausa_comando", False)
+                and cache_tutorial_congelado is not None):
+            display_surface.blit(cache_tutorial_congelado, (0, 0))
+        elif estado in ("PAUSA", "GAMEOVER") and chave_tela_estatica in cache_telas_estaticas:
             display_surface.blit(cache_telas_estaticas[chave_tela_estatica], (0, 0))
         else:
             # --- RENDERIZAÇÃO NA TELA VIRTUAL ---
@@ -15307,6 +15314,14 @@ def main():
         else:
             paisagem_sonora.atualizar(cenario_atual, estado, dados['vol_sfx'], clima.tipo)
 
+        # Captura somente o primeiro frame congelado; gestos e progresso
+        # invalidam o cache instantaneamente e redesenham o mundo real.
+        if (estado == "JOGANDO" and tutorial_corrida and tutorial_corrida.ativo
+                and getattr(tutorial_corrida, "_pausa_comando", False)):
+            if cache_tutorial_congelado is None:
+                cache_tutorial_congelado = display_surface.copy()
+        else:
+            cache_tutorial_congelado = None
         _pro_marcar("posprocessamento")
         tela_gamefeel = (display_surface if dados.get('acess_reduzir_efeitos', False)
                           else gamefeel.acabamento_camera(display_surface, estado == "JOGANDO"))
