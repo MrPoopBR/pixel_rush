@@ -28,7 +28,9 @@ class CityPilotScene(CidadeAnterior):
         for layer in self.layers:
             if layer.foreground!=foreground_only:
                 continue
-            visible=tuple(self._layer_tiles(travel,layer))
+            # near e reutilizado nas luzes; outros planos consumidos uma vez.
+            visible=(tuple(self._layer_tiles(travel,layer))
+                     if layer.name == 'near' else self._layer_tiles(travel,layer))
             for x,variant,flip in visible:
                 self._render_chunk(target,variant,flip,int(x),frame,night,climate,phase,map_kind)
             if layer.name=='mid' and not foreground_only:
