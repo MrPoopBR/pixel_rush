@@ -6,7 +6,7 @@ from android_debug_audit import EXPECTED_BLOBS, ANDROID_VISUAL_ASSETS, EXPECTED_
 
 BASE = {"PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py":"f5b962f5b9862f71039256faebc0b30af99bd8a8","main.py":"d9dfd4ba04550d33d1482db70d98f555fcd22f85","pixelrush_qa_android_v327728.py":"741cfefb86ce0601711b7e6632740e096370376d"}
 REVERSO_JOGO = [["        _qa_estado = (\"JOGANDO_TUTORIAL_QA\" if\n                      estado == \"JOGANDO\" and tutorial_corrida and tutorial_corrida.ativo\n                      else \"GAMEOVER_REPLAY_QA\" if\n                      estado == \"GAMEOVER\" and\n                      (replay_morte.ativo or\n                       (not replay_morte.congelado and bool(replay_morte.buffer)))\n                      else estado)","        _qa_estado = (\"GAMEOVER_REPLAY_QA\" if\n                      estado == \"GAMEOVER\" and\n                      (replay_morte.ativo or\n                       (not replay_morte.congelado and bool(replay_morte.buffer)))\n                      else estado)"],["                    _pro_sub_inicio(\"profundidade_fundo\")\n                    profundidade_cinematografica(display_surface, cenario_atual, peso_noite,\n                                                  modo_grafico_leve(dados))","                    profundidade_cinematografica(display_surface, cenario_atual, peso_noite,\n                                                  modo_grafico_leve(dados))"],["                                                 clima.tipo)\n                    _pro_sub_fim()\n                    # Nuvens de clima sao fundo do mundo","                                                 clima.tipo)\n                    # Nuvens de clima sao fundo do mundo"],["        _pro_sub_inicio('camera_gamefeel')\n        tela_gamefeel = (display_surface if dados.get('acess_reduzir_efeitos', False)\n                          else gamefeel.acabamento_camera(display_surface, estado == \"JOGANDO\"))\n        _pro_sub_fim()","        tela_gamefeel = (display_surface if dados.get('acess_reduzir_efeitos', False)\n                          else gamefeel.acabamento_camera(display_surface, estado == \"JOGANDO\"))"],["            _pro_sub_inicio(\"camera_smoothscale\")\n            tela_gamefeel = camera_cinematica.aplicar(\n                tela_gamefeel, jogador, vel_jogo,\n                cenas_epicas.momento(bg_parallax.world.travel), True)\n            _pro_sub_fim()","            tela_gamefeel = camera_cinematica.aplicar(\n                tela_gamefeel, jogador, vel_jogo,\n                cenas_epicas.momento(bg_parallax.world.travel), True)"],["v3.277.29-QA-ANDROID-RC","v3.277.28-QA-ANDROID-RC"]]
-REVERSO_QA = [["    'mundo_2_5d', 'sprites_render', 'clima_render',\n    'mundo_composicao_interna', 'profundidade_fundo',\n    'camera_smoothscale', 'camera_gamefeel',","    'mundo_2_5d', 'sprites_render', 'clima_render',"],["        modo = ('tutorial' if estado == 'JOGANDO_TUTORIAL_QA' else\n                'corrida_normal' if estado == 'JOGANDO' else\n                'replay' if estado == 'GAMEOVER_REPLAY_QA' else 'outros')","        modo = 'corrida_normal' if estado == 'JOGANDO' else 'replay' if estado == 'GAMEOVER_REPLAY_QA' else 'outros'"]]
+REVERSO_QA = [["    'mundo_2_5d', 'sprites_render', 'clima_render',\n    'mundo_composicao_interna', 'profundidade_fundo',\n    'camera_smoothscale', 'camera_gamefeel',","    'mundo_2_5d', 'sprites_render', 'clima_render',"],["        modo = ('tutorial' if estado == 'JOGANDO_TUTORIAL_QA' else\n                'corrida_normal' if estado == 'JOGANDO' else\n                'replay' if estado == 'GAMEOVER_REPLAY_QA' else estado.lower())","        modo = 'corrida_normal' if estado == 'JOGANDO' else 'replay' if estado == 'GAMEOVER_REPLAY_QA' else 'outros'"]]
 REVERTER_MAIN = ("    mostrar_abertura()\n    # Instala exclusivamente o compositor QA, sem tocar o entrypoint de producao.\n    from pixelrush_qa_render_v327729 import instalar as instalar_render_qa\n    instalar_render_qa()\n    _executar_jogo()", "    mostrar_abertura()\n    _executar_jogo()")
 
 def blob_sha(conteudo):
@@ -41,6 +41,17 @@ def executar():
         codigo=Path(arquivo).read_text('utf8')
         restaurado=reverter(codigo,regras)
         if arquivo == 'pixelrush_qa_android_v327728.py':
+            atual = """        # Resto do desenho, descontando passes inclusivos do ramo de render.
+        if 'renderizacao_e_ui' in fases:
+            fases['render_residual_estimado'] = max(0.0, fases['renderizacao_e_ui'] -
+                sum(fases.get(k, 0.0) for k in
+                    ('mundo_2_5d', 'profundidade_fundo', 'sprites_render', 'clima_render')))
+"""
+            assert restaurado.count(atual)==1, 'medicao residual alterada'
+            restaurado=restaurado.replace(atual, '')
+            comentario = "                'render_residual_estimado = renderizacao_e_ui menos passes medidos; nao representa um intervalo contiguo.',\n"
+            assert restaurado.count(comentario)==1
+            restaurado=restaurado.replace(comentario,'')
             restaurado=restaurado.replace('pixelrush_qa_v327729.json','pixelrush_qa_v327728.json')
             restaurado=restaurado.replace('pixelrush_qa_frames_v327729.csv','pixelrush_qa_frames_v327728.csv')
         assert blob_sha(restaurado)==BASE[arquivo], 'arquivo divergente fora do escopo: '+arquivo
