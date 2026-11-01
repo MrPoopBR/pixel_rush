@@ -1,6 +1,7 @@
 """Plano F v3.185.0 — texturas materiais dos seis biomas modulares."""
 import numpy as np
 import pygame
+from pixelrush_rle_prod_v327727 import acelerar_textura_estatica
 from pixelrush_biomes2_v3182 import ModularBiomeScene as Anterior
 from pixelrush_texturas_v3185 import refinar_textura
 
@@ -41,3 +42,11 @@ class ModularBiomeScene(Anterior):
                         del arr
         # Invalidar só imagem renderizada, NUNCA mapas físicos nem GLSL.
         self._composites.pop('image', None)
+
+    def _tile_map(self, layer, idx, kind):
+        # Somente tiles de imagem completos; bordas semitransparentes
+        # continuam usando o compositor original pixel a pixel.
+        imagem = super()._tile_map(layer, idx, kind)
+        if kind == 'image':
+            acelerar_textura_estatica(imagem, alpha_binario=True)
+        return imagem
