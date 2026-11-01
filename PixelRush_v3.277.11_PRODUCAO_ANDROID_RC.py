@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.28-QA-ANDROID-RC"
+VERSAO = "v3.277.29-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -13163,7 +13163,9 @@ def main():
     while rodando:
         # Somente rótulo de telemetria: replay não executa a simulação da corrida.
         # Fisica, eventos, sorteio, renderizacao e replay permanecem intocados.
-        _qa_estado = ("GAMEOVER_REPLAY_QA" if
+        _qa_estado = ("JOGANDO_TUTORIAL_QA" if
+                      estado == "JOGANDO" and tutorial_corrida and tutorial_corrida.ativo
+                      else "GAMEOVER_REPLAY_QA" if
                       estado == "GAMEOVER" and
                       (replay_morte.ativo or
                        (not replay_morte.congelado and bool(replay_morte.buffer)))
@@ -13665,6 +13667,7 @@ def main():
                     _pro_sub_inicio("mundo_2_5d")
                     bg_parallax.draw(display_surface, cor_ceu_render, e_noite)
                     _pro_sub_fim()
+                    _pro_sub_inicio("profundidade_fundo")
                     profundidade_cinematografica(display_surface, cenario_atual, peso_noite,
                                                   modo_grafico_leve(dados))
                     # Fase B: plano atmosférico leve atrás do chão, riscos e HUD.
@@ -13672,6 +13675,7 @@ def main():
                                                  bg_parallax.world.travel, peso_noite,
                                                  modo_grafico_leve(dados) or dados.get("acess_reduzir_efeitos", False),
                                                  clima.tipo)
+                    _pro_sub_fim()
                     # Nuvens de clima sao fundo do mundo, nunca cobrem o HUD/jogador.
                     if clima.tipo != "limpo" and estado in ("JOGANDO", "PAUSA", "GAMEOVER"):
                         clima._desenhar_nuvens_clima(display_surface, cor_ceu_render)
@@ -15352,8 +15356,10 @@ def main():
         else:
             cache_tutorial_congelado = None
         _pro_marcar("posprocessamento")
+        _pro_sub_inicio('camera_gamefeel')
         tela_gamefeel = (display_surface if dados.get('acess_reduzir_efeitos', False)
                           else gamefeel.acabamento_camera(display_surface, estado == "JOGANDO"))
+        _pro_sub_fim()
         if gpu_processor.enabled and estado == "JOGANDO" and not dados.get('acess_reduzir_efeitos', False):
             gpu_fxmask.fill((0, 0, 0))
             gpu_normal.fill((128, 128, 255))
@@ -15372,9 +15378,11 @@ def main():
                 travel=bg_parallax.world.travel)
         # O enquadramento é pós-processamento visual; o mundo físico fica intacto.
         if estado == 'JOGANDO' and portal_tipo_ativo is None and not modo_grafico_leve(dados) and not dados.get('acess_reduzir_efeitos', False):
+            _pro_sub_inicio("camera_smoothscale")
             tela_gamefeel = camera_cinematica.aplicar(
                 tela_gamefeel, jogador, vel_jogo,
                 cenas_epicas.momento(bg_parallax.world.travel), True)
+            _pro_sub_fim()
         _pro_marcar("apresentacao")
         if tamanho_final == tela_gamefeel.get_size():
             superficie_final = tela_gamefeel
