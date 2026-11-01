@@ -17,4 +17,7 @@ if __name__ == '__main__':
     # QA isolado: ativar apenas neste APK (nunca no ramo de producao).
     os.environ['PIXELRUSH_QA_ANDROID'] = '1'
     mostrar_abertura()
+    # Instala exclusivamente o compositor QA, sem tocar o entrypoint de producao.
+    from pixelrush_qa_render_v327729 import instalar as instalar_render_qa
+    instalar_render_qa()
     _executar_jogo()
