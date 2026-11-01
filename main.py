@@ -1,6 +1,7 @@
 """Entrada SDL2 experimental para empacotamento Android. Nao publicada."""
 from pathlib import Path
 import runpy
+import os
 
 
 def _executar_jogo():
@@ -13,5 +14,7 @@ def _executar_jogo():
 
 if __name__ == '__main__':
     from pixelrush_android_abertura_v327712 import mostrar_abertura
+    # QA isolado: ativar apenas neste APK (nunca no ramo de producao).
+    os.environ['PIXELRUSH_QA_ANDROID'] = '1'
     mostrar_abertura()
     _executar_jogo()
