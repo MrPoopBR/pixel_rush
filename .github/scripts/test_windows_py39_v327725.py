@@ -66,5 +66,14 @@ assert "neve" in gerenciador.stats["loaded"], (
     "Prefetch deve validar o SHA-256 e carregar estado real com Python 3.9",
     gerenciador.stats,
 )
+# Provar que o .atlas de neve carregou, sem desviar para reconstrucao
+# original (muito lenta no Windows) ao encontrar pickle de NumPy 2.
+from unittest.mock import patch
+import pixelrush_atlas_prod_v32776 as atlas
+with patch.object(atlas.ModularBiomeScene, "__init__",
+                  side_effect=AssertionError("fallback de atlas nao permitido no QA")):
+    cena_neve = atlas.carregar_cena("neve")
+assert cena_neve.biome == "neve"
+
 pygame.quit()
-print("APROVADO: Windows Py3.9 pygame2.6.1, SHA real, prefetch e CDLL protegido")
+print("APROVADO: Windows Py3.9 pygame2.6.1, SHA real, neve.pbuf, neve.atlas e CDLL protegido")
