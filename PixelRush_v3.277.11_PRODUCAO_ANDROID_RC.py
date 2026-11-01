@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.27-PROD-ANDROID-RC"
+VERSAO = "v3.277.28-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -13161,7 +13161,14 @@ def main():
 
     rodando = True
     while rodando:
-        _pro_inicio(estado, cenario_atual)
+        # Somente rótulo de telemetria: replay não executa a simulação da corrida.
+        # Fisica, eventos, sorteio, renderizacao e replay permanecem intocados.
+        _qa_estado = ("GAMEOVER_REPLAY_QA" if
+                      estado == "GAMEOVER" and
+                      (replay_morte.ativo or
+                       (not replay_morte.congelado and bool(replay_morte.buffer)))
+                      else estado)
+        _pro_inicio(_qa_estado, cenario_atual)
         perf_biomas.iniciar(estado, cenario_atual)
         _forense_quadro(estado, cenario_atual, pontuacao // 10,
                         'leve' if PARTICULAS_VISUAIS_LIMITADAS else 'normal')
