@@ -40,6 +40,9 @@ def executar():
         ('pixelrush_qa_android_v327728.py', REVERSO_QA)):
         codigo=Path(arquivo).read_text('utf8')
         restaurado=reverter(codigo,regras)
+        if arquivo == 'pixelrush_qa_android_v327728.py':
+            restaurado=restaurado.replace('pixelrush_qa_v327729.json','pixelrush_qa_v327728.json')
+            restaurado=restaurado.replace('pixelrush_qa_frames_v327729.csv','pixelrush_qa_frames_v327728.csv')
         assert blob_sha(restaurado)==BASE[arquivo], 'arquivo divergente fora do escopo: '+arquivo
     qa=Path('pixelrush_qa_render_v327729.py').read_text('utf8')
     assert 'def instalar():' in qa and 'def restaurar_para_teste():' in qa
