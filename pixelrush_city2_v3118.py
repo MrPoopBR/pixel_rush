@@ -12,6 +12,7 @@ from collections import OrderedDict
 import math
 import random
 import pygame
+from pixelrush_rle_prod_v327727 import acelerar_textura_estatica
 from pixelrush_city2_v3117 import CityPilotScene as PreviousCity, SpriteLibrary, SpriteInstance, ChunkVariant
 from pixelrush_city2_v3115 import Layer
 from pixelrush_city2_v3115 import WIDTH, LOW_W, LOW_H, SCENE_W, SCENE_H, SCALE, DEFAULT_NORMAL, NEUTRAL_FLOW, clamp, lerp_color
@@ -220,9 +221,22 @@ class CityPilotScene(PreviousCity):
         # somente texturas realmente desenhadas chegam à resolução 900x500.
         if tex.get_size()!=(SCENE_W,SCENE_H):
             tex=pygame.transform.scale(tex,(SCENE_W,SCENE_H))
+        # Atlas estatico: acelera o blit, mas nao os buffers dinamicos.
+        if kind == 'image':
+            acelerar_textura_estatica(tex)
         self._scaled[key]=tex
         if len(self._scaled)>self._scaled_limit:self._scaled.popitem(last=False)
         return tex
+
+    def _draw_sprite(self, surface, kind, x, y, frame, night, climate,
+                     map_kind='image', flip=False):
+        # Sprite pronto: evitar RLE onde ha transparencia intermediaria.
+        if map_kind == 'image':
+            asset = self.lib.assets.get(kind)
+            if asset is not None:
+                acelerar_textura_estatica(asset.image, alpha_binario=True)
+        return super()._draw_sprite(surface, kind, x, y, frame, night,
+                                    climate, map_kind, flip)
 
     def _render_chunk(self,target,variant,flip,x,frame,night,climate,phase,map_kind='image',only_sprites=False):
         if not only_sprites:
