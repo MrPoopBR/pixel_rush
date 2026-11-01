@@ -7,6 +7,7 @@ não validado recai nas rotinas exatas da v3.277.7. Não altera gameplay/ticks.
 """
 from pathlib import Path
 import hashlib
+from pixelrush_hash_compat_v327725 import sha256_stream
 import json
 import os
 import pickle
@@ -112,7 +113,7 @@ def instalar():
             try:
                 before = path.stat()
                 with path.open('rb') as fd:
-                    digest = hashlib.file_digest(fd, 'sha256').hexdigest()
+                    digest = sha256_stream(fd)
                 after = path.stat()
                 if (digest == esperado and before.st_size == after.st_size and
                     before.st_mtime_ns == after.st_mtime_ns):
