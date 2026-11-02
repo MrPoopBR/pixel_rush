@@ -22,7 +22,7 @@ def bytes_rgba(s):
 def blit_direto(destino, textura, deslocamento, top):
     largura=destino.get_width()
     periodo=textura.get_width()
-    pos=-int(deslocamento)%periodo
+    pos=int(deslocamento)%periodo
     x=-pos
     # Mesmo strip por x, recorte automatizado pelo pygame.
     while x<largura:
