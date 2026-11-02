@@ -316,7 +316,19 @@ class LivingWorld:
                         self.rigs[rig_key]=rig
                     wake=1.0 if 65 < x+sw//2 < 160 else 0.0
                     rig.update(self.frame,wind=(-1 if mirror else 1)*(1.1 if storm else .3),wake=wake)
-                    pp,left_shift=rig.deform(pp)
+                    # QA v3.277.32: reuso do buffer ja desenhado no mesmo rig.
+                    # Nao e compartilhado entre props; alocacao apenas ao mudar
+                    # tamanho/bioma. Ordem, deslocamentos e alfa nao mudam.
+                    deform_cache=getattr(self,'_qa_deform_buffers',None)
+                    if deform_cache is None:
+                        deform_cache={}
+                        self._qa_deform_buffers=deform_cache
+                    deform_target=deform_cache.get(rig_key)
+                    pp,left_shift=rig.deform(pp,target=deform_target)
+                    if deform_target is not pp:
+                        if len(deform_cache)>=8:
+                            deform_cache.clear()
+                        deform_cache[rig_key]=pp
                     dx=0
                 if kind=='flicker':
                     pp=pp.copy();pp.set_alpha(int(174+77*abs(math.sin(self.frame*.08+i)))*max(.5,self.night))
