@@ -22,6 +22,20 @@ def _blit_visivel(destino, textura, x, y):
     return None
 
 
+def _blits_visiveis(destino, textura, posicoes, y):
+    """Mesma ordem, recorte e blending; um lote SDL por camada de profundidade."""
+    recorte = _REGIOES.get(textura)
+    if recorte is None:
+        recorte = textura.get_bounding_rect(min_alpha=1)
+        _REGIOES[textura] = recorte
+    if not recorte.width or not recorte.height:
+        return
+    operacoes = [(textura, (x + recorte.x, y + recorte.y), recorte)
+                 for x in posicoes]
+    if operacoes:
+        destino.blits(operacoes, doreturn=False)
+
+
 def instalar():
     global _INSTALADO
     if _INSTALADO:
@@ -40,8 +54,8 @@ def instalar():
         if noite:
             tex = b2._faixa_noturna(bioma, round(noite * 4) / 4)
         x = (-int(float(deslocamento) * 0.12)) % 900 - 900
-        for pos in range(x, superficie.get_width(), 900):
-            _blit_visivel(superficie, tex, pos, 305)
+        _blits_visiveis(superficie, tex,
+                       range(x, superficie.get_width(), 900), 305)
         return True
 
     def depth_3273(superficie, bioma, deslocamento, peso_noite=0.0, leve=False):
@@ -52,8 +66,8 @@ def instalar():
         tex = (b3._ambiente_noturno(bioma, round(noite * 4))
                if noite else b3._ambiente_segundo_plano(bioma))
         x = (-int(float(deslocamento) * 0.062)) % 720 - 720
-        for pos in range(x, superficie.get_width(), 720):
-            _blit_visivel(superficie, tex, pos, 262)
+        _blits_visiveis(superficie, tex,
+                       range(x, superficie.get_width(), 720), 262)
         return True
 
     def depth_3275(superficie, bioma, deslocamento, peso_noite=0, leve=False):
@@ -65,8 +79,8 @@ def instalar():
         tex = (b5._detalhes_noite(bioma, round(noite * 4))
                if noite else b5._detalhes_distantes(bioma))
         x = (-int(float(deslocamento) * 0.094)) % 600 - 600
-        for pos in range(x, superficie.get_width(), 600):
-            _blit_visivel(superficie, tex, pos, 335)
+        _blits_visiveis(superficie, tex,
+                       range(x, superficie.get_width(), 600), 335)
         return True
 
     def depth_3276(superficie, bioma, deslocamento, peso_noite=0,
@@ -78,8 +92,8 @@ def instalar():
         grau = max(0, min(4, round(float(peso_noite) * 4)))
         tex = b6._textura_contextual(bioma, condicao, grau)
         x = (-int(float(deslocamento) * .078)) % 600 - 600
-        for pos in range(x, superficie.get_width(), 600):
-            _blit_visivel(superficie, tex, pos, 405)
+        _blits_visiveis(superficie, tex,
+                       range(x, superficie.get_width(), 600), 405)
         return True
 
     # O encadeamento é instalado só nesta instância QA. v3274 conserva
