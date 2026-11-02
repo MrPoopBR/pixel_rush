@@ -12,7 +12,11 @@ import os
 from pathlib import Path
 
 
-def _escrever(pasta, prefixo, relatorio, linhas):
+def _escrever(pasta, prefixo, relatorio, linhas, preparar_relatorio=None):
+    # Estatisticas pesadas calculadas no worker sobre snapshot desconectado
+    # das deques e superficies usadas no frame principal.
+    if preparar_relatorio is not None:
+        relatorio = preparar_relatorio(relatorio)
     pasta = Path(pasta)
     pasta.mkdir(parents=True, exist_ok=True)
     destino_json = pasta / (prefixo + '.json')
@@ -54,13 +58,14 @@ class GravadorQA:
         self._pendente = None
         return True
 
-    def enviar(self, pasta, prefixo, relatorio, linhas, esperar=False):
+    def enviar(self, pasta, prefixo, relatorio, linhas, esperar=False, preparar_relatorio=None):
         # So a thread principal chama enviar(). Nenhum dado mutavel do jogo
         # e acessado pelo worker: as linhas e relatorio sao snapshots.
         if not self._conferir(esperar):
             return False
         self._pendente = self._executor.submit(
-            _escrever, Path(pasta), str(prefixo), relatorio, tuple(dict(l) for l in linhas))
+            _escrever, Path(pasta), str(prefixo), relatorio,
+            tuple(dict(l) for l in linhas), preparar_relatorio)
         if esperar:
             self._conferir(True)
         return True
