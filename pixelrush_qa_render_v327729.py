@@ -47,6 +47,14 @@ def instalar():
     # Otimizacao QA isolada: blits das camadas de profundidade com recorte alfa.
     from pixelrush_qa_alpha_blit_v327731 import instalar as instalar_alpha_blit_qa
     instalar_alpha_blit_qa()
+    # v3.277.33 QA: cache de nuvens sem perda de pixels e instrumentacao
+    # das camadas visuais de verdade usadas nos sete biomas.
+    from pixelrush_qa_scene_v327733 import instalar as instalar_cenario_qa
+    instalar_cenario_qa()
+    # Seleciona SIMD alternativo APENAS se mais rapido e RGB identico.
+    # Sem backend seguro: mantem smoothscale nativo original.
+    from pixelrush_qa_camera_v327733 import instalar as instalar_camera_qa
+    instalar_camera_qa()
     _INSTALADO = True
 
 
