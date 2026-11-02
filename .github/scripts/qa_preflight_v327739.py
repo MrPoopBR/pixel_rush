@@ -17,7 +17,7 @@ def gitblob(path):
 PINNED={
     'main.py':'620a3cdcad571168b31c2633b28da94c251b8855',
     'pixelrush_qa_render_v327729.py':'f488b32c8eeea96204fc56fd746d4f6c3eafaa29',
-    'pixelrush_qa_gles_present_v327735.py':'e498035ce96e0bc8eb1846bbe3fae28e5e94b739',
+    'pixelrush_qa_gles_present_v327735.py':'df8334a4b7e16499a4a7ba57312bb568d3319812',
     'pixelrush_qa_gles_exact_v327736.py':'cd8961206cceed86bb392f626c77d68083782739',
     'pixelrush_world_v3130.py':'7ca66b28898cd138538831c5bce1133ea961763f',
     'pixelrush_cenarios_v398.py':'2d9b9f22fd88d2f370ae9216ee3ebeb28a07098e',
@@ -35,8 +35,8 @@ PINNED={
     'pixelrush_qa_alpha_blit_v327731.py':'fefb6f0f32dae61cdc8368ced51da2234646fa89',
     'tests/test_qa_perf_v327738.py':'05a858485755f7aa81d88060a32ea564abe801f4',
     'pixelrush_city2_v3118.py':'1f193734dc33eb47e4ab87de5d365d1769a732f2',
-    'tests/test_qa_camera_city_v327739.py':'dc17f86dcb9ddb9c4747ec29898a3f7fc582b577',
-    '.github/scripts/qa_benchmark_camera_world_v327739.py':'9682050108d577df674e2ecb6390f1b1cefb2157',
+    'tests/test_qa_camera_city_v327739.py':'a3c8d20c835da8c9b0368543f4de6a6fb177e41a',
+    '.github/scripts/qa_benchmark_camera_world_v327739.py':'fefc68b6f600ef95de47ab974097f51cb16248ed',
     'tests/test_qa_full_performance_v327737.py':'d98e5c9c7aab54fb81b07a45ea585b61f7819cc1',
 }
 
