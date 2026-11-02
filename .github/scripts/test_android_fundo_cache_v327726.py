@@ -35,11 +35,13 @@ assert not cache.reusar(display,chave,True)
 codigo=(Path(__file__).resolve().parents[2]/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(encoding='utf8')
 compile(codigo,'jogo','exec')
 assert "E_ANDROID and estado == 'JOGANDO' and portal_tipo_ativo is None" in codigo
-assert "not (tutorial_corrida and tutorial_corrida.ativo)" in codigo
+# Na v327730 o tutorial tambem usa o cache visual, sem congelar HUD.
+assert 'bool(tutorial_corrida and tutorial_corrida.ativo)' in codigo
+assert 'CacheFundoUltraQA(periodo=5)' in codigo
 assert 'MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15' in codigo
 assert 'VERSAO = "v3.277.30-QA-ANDROID-RC"' in codigo
 for flag in ('PIXELRUSH_DEV_BUILD = False','LASERS_JETPACK_ATIVOS_PROD = False',
              'OBSTACULOS_QUE_AVANCAM_ATIVOS_PROD = False','API_ONLINE_ATIVA_PROD = False'):
     assert flag in codigo, flag
-print('APROVADO: fundo 50% menos redesenhos; jogador/HUD 100%; flags OFF')
+print('APROVADO: cache legado isolado; QA ultra 5 quadros; HUD/sprites 100%; flags OFF')
 pygame.quit()
