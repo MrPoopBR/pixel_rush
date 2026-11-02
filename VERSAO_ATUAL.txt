@@ -1,4 +1,4 @@
-Pixel Rush v3.277.37-QA-ANDROID-RC (diagnostico isolado, APK debug)
+Pixel Rush v3.277.38-QA-ANDROID-RC (diagnostico isolado, APK debug)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
