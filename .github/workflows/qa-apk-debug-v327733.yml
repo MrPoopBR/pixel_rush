@@ -41,6 +41,8 @@ jobs:
           # Teste pygame isolado do sistema; nao altera o ambiente de producao.
           python3 -m venv /tmp/pixelrush-qa-pygame
           /tmp/pixelrush-qa-pygame/bin/python -m pip install --disable-pip-version-check 'pygame-ce==2.5.8' 'numpy==2.3.0'
+          # Tests sob tests/ e .github/scripts/ importam os modulos da raiz.
+          export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_pygame_zoom_v327721.py
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_pygame_perf_v327722.py
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_perf_v327723.py
