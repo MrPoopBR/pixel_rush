@@ -87,8 +87,12 @@ Principal gargalo da câmera de ~188 ms NÃO está resolvido.
 ## Testes e critérios de aprovação
 - A suíte pygame de regressão v327732 foi adicionada ao workflow
   `.github/workflows/qa-apk-debug-v327732.yml` da branch QA.
-- Pygame-ce 2.5.8 disponível no ambiente; houve comparação local
-  representativa de alpha/transição sem divergência RGB nos casos medidos.
+- Pygame-ce 2.5.8 + SDL dummy local: 300 combinações de blit alfa
+  da QA anterior foram repetidas com sucesso.
+- Smoke test local adicional v327732: 185 comparações isoladas
+  (18 transições, 80 mirrors, 80 deformações, 4 rótulos e 3 ícones);
+  igualdade RGB/RGBA nas amostras. Estas operações simuladas NÃO
+  substituem a regressão completa dos arquivos GitHub nem Android.
 - Testes de regressão remotos, compileall de toda a árvore, build APK,
   ABI ARM64/DT_NEEDED/ZIP_STORED/16 KB e novo FPS no celular estão
   **PENDENTES DE COMPROVAÇÃO**. Nunca declarar gate aprovado sem log.
