@@ -31,13 +31,27 @@ def desenhar_profundidade_bioma(superficie, bioma, deslocamento, peso_noite=0, l
         pygame.draw.line(superficie,cor,(x,y),(x+9,y-2),1)
     return ok
 
+# QA v3.277.32: rasterizar marcadores fixos do corredor apenas uma vez.
+_FONTE_LASER_QA = None
+_ROTULOS_LASER_QA = None
+
+
+def _rotulos_laser_qa():
+    global _FONTE_LASER_QA, _ROTULOS_LASER_QA
+    if _ROTULOS_LASER_QA is None:
+        _FONTE_LASER_QA = pygame.font.Font(None, 18)
+        _ROTULOS_LASER_QA = tuple(
+            _FONTE_LASER_QA.render(str(i), True, (240, 243, 229))
+            for i in (3, 2, 1)
+        )
+    return _ROTULOS_LASER_QA
+
+
 def desenhar_legibilidade_jetpack(superficie,gate,frame=0,leve=False):
     resultado=_jetpack(superficie,gate,frame,leve)
     if resultado and not leve:
         # Três marcas numéricas: faixas reconhecíveis independentemente de cor.
-        font=pygame.font.Font(None,18)
-        for indice in range(3):
-            rotulo=font.render(str(3-indice),True,(240,243,229))
+        for indice,rotulo in enumerate(_rotulos_laser_qa()):
             superficie.blit(rotulo,(superficie.get_width()-60,274+indice*20))
     return resultado
 
