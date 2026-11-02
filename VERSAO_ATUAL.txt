@@ -16,3 +16,4 @@ QA v3.277.35: prototipo isolado SDL/OpenGL ES com swap EGL direto, sem leitura G
 QA v3.277.36: shaders GLES2/GLES3 fixed-point SSE2/GENERIC byte-equivalentes em Mesa; desempenho de apresentacao inferior ao CPU local. Codigo GPU nao ativado; nova suite de 720 casos, sem alterar gameplay, saves ou AAB.
 
 QA v3.277.37: pack de otimizacoes de mundo 2.5D, lotes de blits, reducao de alocacoes, cache de skins e luz, telemetria assíncrona e medições SDL. GLES experimental preservado e desativado ate homologacao Android. Relatorios JSON/CSV v327737.
+QA v3.277.38: lotes pixel-exatos nos passes de profundidade e destruição SDF; percentis de telemetria computados na thread de exportacao; JSON/CSV v327738. Somente QA, sem mudanca de fisica, assets, gameplay, saves, AAB ou ativacao GLES. Android real pendente.
