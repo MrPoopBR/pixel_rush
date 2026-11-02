@@ -126,7 +126,7 @@ class TesteUltraQA(unittest.TestCase):
         self.assertIn('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',codigo)
         self.assertIn('FPS_RENDER = 30 if E_ANDROID else 60',codigo)
         self.assertIn('pixelrush_qa_ultraleve_v327730',codigo)
-        self.assertIn('v3.277.38-QA-ANDROID-RC',codigo)
+        self.assertIn('v3.277.39-QA-ANDROID-RC',codigo)
         self.assertIn('PIXELRUSH_DEV_BUILD = False',codigo)
 
 
