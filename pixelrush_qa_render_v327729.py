@@ -44,6 +44,9 @@ def instalar():
         return surf
 
     LivingWorld._city_surface = _city_surface_qa
+    # Otimizacao QA isolada: blits das camadas de profundidade com recorte alfa.
+    from pixelrush_qa_alpha_blit_v327731 import instalar as instalar_alpha_blit_qa
+    instalar_alpha_blit_qa()
     _INSTALADO = True
 
 
