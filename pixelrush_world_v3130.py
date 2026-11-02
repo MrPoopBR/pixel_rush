@@ -288,7 +288,24 @@ class LivingWorld:
                 elif kind=='smoke':
                     dx=int(math.sin(self._bg_wind+i)*3)
                     dy=-int((self.frame*.26+i*7)%8)
-                pp=pygame.transform.flip(piece,True,False) if mirror else piece
+                if mirror:
+                    # QA v3.277.32: espelhamento de props estaticos em cache.
+                    # Mesma Surface que transform.flip produziria a cada desenho;
+                    # invalidacao por identidade evita usar arte anterior.
+                    cache_mirror = getattr(self, '_qa_mirror_props', None)
+                    if cache_mirror is None:
+                        cache_mirror = {}
+                        self._qa_mirror_props = cache_mirror
+                    stored = cache_mirror.get(key)
+                    if stored is not None and stored[0] is piece:
+                        pp = stored[1]
+                    else:
+                        pp = pygame.transform.flip(piece, True, False)
+                        if len(cache_mirror) >= 64:
+                            cache_mirror.clear()
+                        cache_mirror[key] = (piece, pp)
+                else:
+                    pp = piece
                 left_shift=0
                 if kind=='sway':
                     # FABRIK real (3 segmentos) com raiz fixa, vento e turbulência.
