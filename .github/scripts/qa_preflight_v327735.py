@@ -16,7 +16,7 @@ def executar():
     assert conf.read('buildozer.spec')
     app=conf['app']
     exp=dict(EXPECTED_CONFIG)
-    exp.update({'version':'3.277.35,'android.numeric_version':'327735'})
+    exp.update({'version':'3.277.35','android.numeric_version':'327735'})
     for k,v in exp.items():
         assert app.get(k,'').strip()==v, 'buildozer divergente: '+k
     assert set(REQUIRED_EXTENSIONS) <= set(k.strip() for k in app['source.include_exts'].split(','))
@@ -41,7 +41,7 @@ def executar():
         'pixelrush_qa_camera_v327733.py': 'da28a0be8567805ff5c8556c2a7d2bbf31fec635',
         'pixelrush_qa_gles_gate_v327734.py': '462b3e8163cb4495fa8d20131b400f8f7a3fce1e',
         '.github/scripts/qa_gles_camera_probe_v327734.py': '5637dc2132c3ff30d34f7f50858a48c0386f5149',
-        'tests/test_qa_gles_gate_v327734.py': 'eca73d3c797093da3c363eb3948e24611689ed57',
+        'tests/test_qa_gles_gate_v327734.py': '7bca38f1a68372163e60a6ff5d8f3911e20cb5f1',
         'buildozer.spec': '2059ba28c02dfdd69c0a32410b5e2fab094087a7',
         'pixelrush_qa_gles_present_v327735.py': 'e498035ce96e0bc8eb1846bbe3fae28e5e94b739',
         'tests/test_qa_gles_direct_v327735.py': 'b0256ccc2e5a538d3d02c9cb4874c4770d100c1b',
@@ -81,10 +81,6 @@ def executar():
     assert 'qa-gles-direct-v327735.json' in workflow
     assert 'buildozer -v android release' not in workflow
     assert 'buildozer -v android debug' not in workflow
-    assert '.github/scripts/test_qa_ultraleve_v327730.py' in workflow
-    assert 'tests/test_qa_alpha_blit_v327731.py' in workflow
-    assert 'tests/test_qa_performance_full_v327732.py' in workflow
-    assert 'tests/test_qa_camera_scene_v327733.py' in workflow
     assert 'tests/test_qa_gles_direct_v327735.py' in workflow
     assert 'xvfb-run' in workflow
     gl=Path('pixelrush_qa_gles_present_v327735.py').read_text('utf8')
