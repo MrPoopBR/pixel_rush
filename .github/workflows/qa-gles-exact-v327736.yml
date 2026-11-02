@@ -1,0 +1,102 @@
+name: PIXEL RUSH QA v3.277.36 - GLES2 GLES3 interpolacao exata (sem APK)
+
+on:
+  push:
+    branches:
+      - qa/android-gles-pixel-exact-v3.277.36
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-gles-exact-v327736
+  cancel-in-progress: false
+
+jobs:
+  laboratorio-gles:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/android-gles-pixel-exact-v3.277.36'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exclusivo de QA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Preflight - codigo/recursos originais e GPU desativada
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/qa_preflight_v327736.py
+          python3 -m py_compile pixelrush_qa_gles_exact_v327736.py \
+            tests/test_qa_gles_exact_v327736.py \
+            .github/scripts/qa_benchmark_gles_exact_v327736.py \
+            pixelrush_qa_gles_present_v327735.py \
+            PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+          ! grep -q "pixelrush_qa_gles_exact_v327736" main.py
+          ! grep -q "pixelrush_qa_gles_exact_v327736" pixelrush_qa_render_v327729.py
+          ! grep -q "pixelrush_qa_gles_exact_v327736" PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+
+      - name: Mesa/Xvfb e pygame-ce 2.5.8 isolados
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libegl1 libgl1-mesa-dri libgles2 libgl1
+          python3 -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+
+      - name: Validar 720 cenas reais RGBA GLES2/GLES3
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+          PIXELRUSH_QA_GLES_EXACT_REPORT: qa-gles-exact-v327736.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1024x1280x24" python3 tests/test_qa_gles_exact_v327736.py
+          python3 - <<'PY'
+          import json
+          data=json.load(open('qa-gles-exact-v327736.json',encoding='utf8'))
+          assert data['total_casos']==720, 'GLES2 e GLES3 devem passar os 4 modos'
+          assert data['igualdade_total'], 'Qualquer pixel RGB/RGBA divergente reprova shader'
+          assert data['integracao_gpu_aprovada'] is False
+          assert all(x.get('presentacao_readbacks',0)==0 for x in data['metodos'])
+          print('720 casos byte a byte, 0 diferencas; integracao no Android BLOQUEADA')
+          PY
+
+      - name: Benchmark completo de 200 quadros por caminho
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1024x1280x24" python3 .github/scripts/qa_benchmark_gles_exact_v327736.py
+          python3 - <<'PY'
+          import json
+          data=json.load(open('qa-gles-exact-benchmark-v327736.json',encoding='utf8'))
+          assert data['frames_por_caminho']==200
+          assert not data['gpu_android_medida']
+          assert not data['integracao_gpu_aprovada']
+          print('Mesa Linux somente: integracao do jogo nao homologada')
+          PY
+
+      - name: Publicar dados reais de prova e benchmark
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327736-gles-exact-evidencias
+          path: |
+            qa-gles-exact-v327736.json
+            qa-gles-exact-benchmark-v327736.json
+            preflight-qa-v327736.json
+          if-no-files-found: warn
+          retention-days: 14
