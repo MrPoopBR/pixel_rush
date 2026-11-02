@@ -203,11 +203,15 @@ class GLES2DirectPresenterQA:
         ey=max(1,int(self.height*zoom)) if zoom else 0
         w,h=self.width+2*ex,self.height+2*ey
         sy=max(0,min(2*ey,ey+int(focus_y))) if zoom else 0
-        data=C.create_string_buffer(pygame.image.tobytes(image,'RGBA',True))
+        # QA 3.277.39: bytes ficam vivos ate glTexSubImage2D retornar.
+        # Evita a segunda copia de 450x800x4 bytes em create_string_buffer.
+        # A ordem RGBA e flip vertical sao exatamente os originais.
+        data=pygame.image.tobytes(image,'RGBA',True)
+        data_ptr=C.cast(C.c_char_p(data),C.c_void_p)
         t0=time.perf_counter_ns()
         self._f['glBindTexture'](0x0DE1,self.texture)
         self._f['glTexSubImage2D'](0x0DE1,0,0,0,self.width,self.height,
-                                   0x1908,0x1401,data)
+                                   0x1908,0x1401,data_ptr)
         self._f['glUniform2f'](self.u_expanded,float(w),float(h))
         self._f['glUniform2f'](self.u_crop,float(ex),float(h-self.height-sy))
         self._f['glDrawArrays'](0x0004,0,6)
