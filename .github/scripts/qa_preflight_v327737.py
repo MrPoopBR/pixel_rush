@@ -32,7 +32,7 @@ PINNED={
     'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py':'6e306e3ee18669e85d06b04957ca962c85dc73e5',
     'buildozer.spec':'93ef7d249cf30f6c0a2d296bcbf172ab3087d934',
     'pixelrush_qa_async_export_v327737.py':'483b6302f9c01ff4aef1d40c134e7e84f5258f9c',
-    'tests/test_qa_full_performance_v327737.py':'d38e0e9aa21a1ba95757a3483bfbe5b6b444125c',
+    'tests/test_qa_full_performance_v327737.py':'06450ff422b111decb65a4e936a5d87aa67de80c',
 }
 
 
