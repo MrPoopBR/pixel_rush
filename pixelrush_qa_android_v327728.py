@@ -117,6 +117,7 @@ class QATelemetria:
         self.erros_escrita = 0
         self.ultima_falha = None
         self.gravacoes = 0
+        self._qa_gravador = None
 
     def iniciar(self, estado, bioma):
         agora = self.relogio()
@@ -208,7 +209,8 @@ class QATelemetria:
             self.piores.sort(key=lambda x: x['trabalho_ms'], reverse=True)
             del self.piores[100:]
         if self.contagem % 600 == 0:
-            self.salvar()
+            # Exportacao periodica sem esperar escrita, sync somente na saida.
+            self.salvar(esperar=False)
 
     def relatorio(self):
         por_modo_bioma = {}
@@ -245,25 +247,32 @@ class QATelemetria:
             'ultimo_erro_exportacao': self.ultima_falha,
         }
 
-    def salvar(self):
+    def salvar(self, esperar=True):
+        """Grava snapshots fora do frame; a chamada final espera o ultimo disco.
+
+        O calculo dos percentis ainda e feito na thread principal para evitar
+        leitura concorrente dos dados do profiler. O I/O e a serializacao
+        JSON/CSV sao transferidos a uma thread sem acesso ao pygame.
+        """
         try:
-            self.pasta.mkdir(parents=True, exist_ok=True)
-            arquivo = self.pasta / 'pixelrush_qa_v327734.json'
-            temporario = self.pasta / 'pixelrush_qa_v327734.json.tmp'
-            temporario.write_text(json.dumps(self.relatorio(), ensure_ascii=False, indent=2), encoding='utf-8')
-            os.replace(temporario, arquivo)
-            csv_final = self.pasta / 'pixelrush_qa_frames_v327734.csv'
-            csv_tmp = self.pasta / 'pixelrush_qa_frames_v327734.csv.tmp'
-            with csv_tmp.open('w', encoding='utf-8', newline='') as f:
-                campos = ['modo', 'bioma', 'total_ms', 'trabalho_ms', 'cpu_ms', 'intervalo_ms', 'rss_mb']
-                w = csv.DictWriter(f, fieldnames=campos)
-                w.writeheader()
-                w.writerows(self.ultimos)
-            os.replace(csv_tmp, csv_final)
-            self.gravacoes += 1
-            self.ultima_falha = None
-            return True
-        except (OSError, ValueError, TypeError) as erro:
+            if self._qa_gravador is None:
+                from pixelrush_qa_async_export_v327737 import GravadorQA
+                self._qa_gravador = GravadorQA()
+            gravador = self._qa_gravador
+            # Nao gerar snapshots pesados se o worker ainda estiver ocupado
+            # com a exportacao anterior e nao for uma gravacao final.
+            if not esperar and gravador._pendente is not None and not gravador._pendente.done():
+                return False
+            relatorio = self.relatorio()
+            linhas = tuple(dict(x) for x in self.ultimos)
+            aceito = gravador.enviar(
+                self.pasta, 'pixelrush_qa_v327737', relatorio, linhas,
+                esperar=esperar)
+            self.gravacoes = gravador.concluidas
+            self.erros_escrita = gravador.falhas
+            self.ultima_falha = gravador.ultimo_erro
+            return bool(aceito and self.ultima_falha is None)
+        except (OSError, ValueError, TypeError, RuntimeError) as erro:
             self.erros_escrita += 1
             self.ultima_falha = type(erro).__name__
             return False
