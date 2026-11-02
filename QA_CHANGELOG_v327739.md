@@ -15,7 +15,7 @@
 
 ## Alteracoes concretas da v3.277.39
 
-1. **`pixelrush_city2_v3118.py`**, SOMENTE na branch QA: reutiliza os deslocamentos de oscilacao dos sprites decorativos entre copias do mesmo chunk **no mesmo frame** e clima, com descarte de todo cache no frame/vento seguintes. Ordem visual, `math.sin` original, `round`, coordenadas, recortes, sprites, climas e opacidade preservados.
+1. **`pixelrush_city2_v3118.py`**, SOMENTE na branch QA: calcula o fator de vento uma vez por chunk (e nao uma vez para cada sprite); a formula de `math.sin` e `round` continua identica para cada sprite, sem cache adicional. Ordem visual, `math.sin` original, `round`, coordenadas, recortes, sprites, climas e opacidade preservados.
 2. **`pixelrush_qa_gles_present_v327735.py`**, prototipo que NAO e importado pelo jogo: substitui o segundo buffer alocado por `ctypes.cast(ctypes.c_char_p(data),ctypes.c_void_p)`. Bytes RGBA e flip permanecem iguais; `data` fica vivo durante `glTexSubImage2D`. Sem leitura da GPU e sem habilitacao da GPU no jogo.
 3. **`tests/test_qa_camera_city_v327739.py`**: comparacao RGBA/RGB pixel a pixel de `_render_chunk` original vs novo com quadros, scroll, climas, map kinds e fundos; camera real `CameraCinematica` contra referencia `pygame.transform.smoothscale` nao cacheada; teste de bytes da entrada GLES; gate contra integracao prematura GLES.
 4. **`.github/scripts/qa_benchmark_camera_world_v327739.py`**: benchmark de CPU com p50/p95, reutilizacao vs nova Surface, verificacao de igualdade entre backends (sem forcar otimizacao que muda pixels), custo de desenho da cidade e staging GLES. Publica `qa-benchmark-camera-world-v327739.json` nos diagnosticos CI.
@@ -25,7 +25,7 @@
 
 | Teste isolado | Resultado observado |
 |---|---|
-| Reuso trigonometrico em cenario sintetico pygame-ce | cerca de 0,432 ms original vs 0,373 ms com cache por quadro, mediana; nao e ganho global FPS |
+| Reuso trigonometrico em cenario sintetico pygame-ce | cerca de 0,0217 ms original vs 0,0189 ms com fator de vento fora do loop, mediana em 3 chunks sinteticos; nao e ganho global FPS |
 | Camera `GENERIC` vs `SSE2` | backend mais rapido **nao** pixel-identico; troca automatica proibida |
 | Camera com vs sem Surface destino | destino reutilizado reduz alocacao; caminho ja existente preservado |
 | Preparacao GLES 450x800 RGBA (1,44 MB) | `create_string_buffer` ~0,826 ms vs ponteiro direto ~0,737 ms, mediana Linux; bytes identicos |
@@ -37,11 +37,11 @@ Os testes Linux sao microbenchmarks de bancada. O CI pygame usa referencias pixe
 
 Inventario integral anterior: [QA_AUDITORIA_32_v327738.md](QA_AUDITORIA_32_v327738.md).
 
-- **#2 Compositor 2.5D:** nova deduplicacao temporal de calculos decorativos por frame na cidade; composicao completa persistente ainda **pendente**.
+- **#2 Compositor 2.5D:** nova eliminacao de checagens repetidas de clima por sprite na cidade; composicao completa persistente ainda **pendente**.
 - **#7 e #10 Alocacoes e copias:** removida uma copia de 1,44 MB por frame **somente no prototipo GPU**, que segue desligado; nenhuma melhoria declarada na corrida real pelo GPU.
 - **#8 SIMD:** comparacao concreta mostra diferencas pixelicas GENERIC/SSE2; nao forcar SIMD para evitar regressao de visual.
 - **#17 Batching:** preservado trabalho comprovado de v3.277.37 e v3.277.38; nenhuma duplicacao.
-- **#24 Deduplicacao:** ampliada somente para movimentacao decorativa repetida num mesmo frame, sem alocar superficies.
+- **#24 Deduplicacao:** sem novo cache: otimizacao remove redundancia de calculo, sem alocar superficies.
 - **#29 Upload GPU:** `glTexSubImage2D` ainda transfere RGBA completo em cada frame; otimizacao de staging **nao resolve upload**. Proxima etapa exige prova real de GPU/transferencia e plano para evitar readback.
 - **#30 Apresentacao final:** tempo de escala, blit e swap continuam instrumentados; nao mudar composicao ainda.
 - **#32 Driver/Perfetto:** pendente. Nao ha p95 GPU real nem temperatura de teste da v3.277.39.

@@ -124,7 +124,7 @@ def mundo_2_5d():
         quadro(med_new,lambda *args:args[0]._render_chunk(*args[1:]),i_new[0]);i_new[0]+=1
     return {'pixels_iguais_16_quadros':iguais,
             'referencia':medir(ciclo_old,80,12),
-            'cache_movimentos':medir(ciclo_new,80,12),
+            'vento_precalculado':medir(ciclo_new,80,12),
             'resultado_apenas_sintetico':True}
 
 

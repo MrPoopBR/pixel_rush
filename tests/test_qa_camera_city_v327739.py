@@ -74,7 +74,7 @@ class TestQA739(unittest.TestCase):
                             trecho_original(scene,original,variant,False,x,frame,.4,climate,.6,kind)
                             scene._render_chunk(novo,variant,False,x,frame,.4,climate,.6,kind)
                         self.assertEqual(rgba(original),rgba(novo),(flags,frame,climate,kind))
-                        self.assertLessEqual(len(scene._qa_movimentos_cache),1)
+                        self.assertFalse(hasattr(scene,'_qa_movimentos_cache'))
 
     def test_camera_original_pixeis_formatos_zoom_foco(self):
         from pixelrush_cinema_v3172 import CameraCinematica
