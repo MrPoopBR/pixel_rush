@@ -19,6 +19,8 @@ SECOES = (
     'mundo_2_5d', 'sprites_render', 'clima_render',
     'mundo_composicao_interna', 'profundidade_fundo',
     'camera_smoothscale', 'camera_gamefeel', 'menus_fundo',
+    'apresentacao_escala_final', 'apresentacao_blit_final',
+    'apresentacao_swap',
     'cenario_ceu', 'cenario_panorama', 'cenario_emenda',
     'cenario_animacoes_fundo', 'cenario_animacoes_frente',
     'cenario_reacao_noturna', 'cenario_foco_pista', 'cenario_acabamento',
