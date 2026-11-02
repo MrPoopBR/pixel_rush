@@ -384,8 +384,14 @@ class LivingWorld:
             if self.climate in ('tempestade','nevasca','tempestade_areia','cinzas'):
                 self.atmosphere.draw(surface,self.biome,self.night)
             if self._transition is not None and self._transition_frames:
-                old=self._transition.copy();old.set_alpha(int(210*(self._transition_frames/38.)**1.45))
-                surface.blit(old,(0,0))
+                # QA v3.277.32: aplicar alfa no original e restaura-lo
+                # imediatamente; evita copiar uma tela RGBA por frame.
+                alpha_anterior=self._transition.get_alpha()
+                self._transition.set_alpha(int(210*(self._transition_frames/38.)**1.45))
+                try:
+                    surface.blit(self._transition,(0,0))
+                finally:
+                    self._transition.set_alpha(alpha_anterior)
             return
         if self.damage.chunks:
             # Somente cenografia (TOP..GROUND); máscara SDF remove pixels reais.
@@ -407,8 +413,13 @@ class LivingWorld:
             self.atmosphere.draw(surface,self.biome,self.night)
         self.debris.draw(surface,self.travel,LAYER_SPEEDS[2])
         if self._transition is not None and self._transition_frames:
-            old=self._transition.copy();old.set_alpha(int(210*(self._transition_frames/38.)**1.45))
-            surface.blit(old,(0,0))
+            # QA v3.277.32: overlay identico sem copiar a tela RGBA.
+            alpha_anterior=self._transition.get_alpha()
+            self._transition.set_alpha(int(210*(self._transition_frames/38.)**1.45))
+            try:
+                surface.blit(self._transition,(0,0))
+            finally:
+                self._transition.set_alpha(alpha_anterior)
 
     def draw_effect_mask(self,surface):
         if self.biome=='cidade' or self.biome in MODULAR_BIOMES:surface.blit(self._city_surface('fxmask'),(0,TOP))
