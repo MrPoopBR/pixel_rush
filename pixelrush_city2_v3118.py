@@ -336,11 +336,7 @@ class CityPilotScene(PreviousCity):
             self._draw_traffic(target,frame,night)
             self._draw_birds(target,frame)
             if night>.12:
-                # QA v3.277.32: reuso do buffer RGBA sem alocar por pass.
-                veil=getattr(self,'_qa_night_veil',None)
-                if veil is None or veil.get_size()!=(WIDTH,SCENE_H):
-                    veil=pygame.Surface((WIDTH,SCENE_H),pygame.SRCALPHA)
-                    self._qa_night_veil=veil
+                veil=pygame.Surface((WIDTH,SCENE_H),pygame.SRCALPHA)
                 veil.fill((18,31,63,int(72*night)))
                 target.blit(veil,(0,0))
         if map_kind=='geometry' and not foreground_only:
