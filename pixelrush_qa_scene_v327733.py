@@ -24,6 +24,11 @@ def _textura_nuvem(escala, cor, sombra, luz):
 
 def _nuvem_qa(superficie, x, y, escala, cor, sombra, luz):
     s = max(1, int(escala))
+    # A cena real usa escala 1. Impede que variantes ampliadas,
+    # nao usadas no panorama, consumam megabytes no cache mobile.
+    if s != 1:
+        return _ORIGINAIS['nuvem_pixel'](
+            superficie, x, y, escala, cor, sombra, luz)
     # Os retangulos originais quantizam x e y com int(), nao round().
     textura = _textura_nuvem(s, tuple(cor), tuple(sombra), tuple(luz))
     superficie.blit(textura, (int(x), int(y)))
