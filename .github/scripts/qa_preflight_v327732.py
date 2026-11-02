@@ -35,7 +35,7 @@ def executar():
         'pixelrush_profissional_v3108.py': 'a4a93636d279ef7076d96d5f8fd441e4702642f3',
         'pixelrush_fase_b_visuais_v3272.py': '1d8af98523a683aba9d35e0fa736a74e6345ad92',
         'pixelrush_fase_b_visuais_v3274.py': '99f786af7eacd863f6910d98c4ac81bbb99db1ee',
-        'pixelrush_qa_android_v327728.py': 'b1cd31c2d4261b3cd847c1d6bf0f3ba2ce5119ca',
+        'pixelrush_qa_android_v327728.py': '255053e2d21cbd756670f5a736456827aa43b52d',
         'buildozer.spec': 'fe2f11e193a49f1a6a6be2357c4ec3995e62db37',
     }
     for arquivo,sha in expected_qa.items():
