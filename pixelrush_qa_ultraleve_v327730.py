@@ -49,14 +49,20 @@ class FundoMenusUltraQA:
         self.cache = CacheFundoUltraQA(periodo=periodo)
 
     def desenhar(self, superficie, parallax, ceu, estado):
-        chave = (
-            str(estado), parallax.cenario, parallax.world.biome,
-            tuple(ceu), parallax.clima_tipo,
-            bool(parallax.world.lightweight), superficie.get_size()
-        )
-        if not self.cache.reusar(superficie, chave, True):
-            parallax.draw(superficie, ceu, False)
-            self.cache.guardar(superficie, chave, True)
+        # QA v3.277.32: medir fundo de menus separadamente do restante da UI.
+        from pixelrush_profiler_v3204 import sub_inicio, sub_fim
+        sub_inicio('menus_fundo')
+        try:
+            chave = (
+                str(estado), parallax.cenario, parallax.world.biome,
+                tuple(ceu), parallax.clima_tipo,
+                bool(parallax.world.lightweight), superficie.get_size()
+            )
+            if not self.cache.reusar(superficie, chave, True):
+                parallax.draw(superficie, ceu, False)
+                self.cache.guardar(superficie, chave, True)
+        finally:
+            sub_fim()
 
 
 def modo_qa_ultraleve(rodando_android):
