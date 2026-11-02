@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.29-QA-ANDROID-RC"
+VERSAO = "v3.277.30-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -10853,7 +10853,14 @@ def main():
     # Um frame completo durante o gesto congelado evita recalcular 2.5D/FX
     # dezenas de vezes sem movimento (somente tutorial). Maximo 450x800 RGB.
     cache_tutorial_congelado = None
-    cache_fundo_mobile = CacheFundoMobile()
+    # QA Android: reutiliza o pano de fundo; fisica/HUD/sprites continuam atuais.
+    if E_ANDROID:
+        from pixelrush_qa_ultraleve_v327730 import CacheFundoUltraQA, FundoMenusUltraQA
+        cache_fundo_mobile = CacheFundoUltraQA(periodo=5)
+        cache_menus_qa = FundoMenusUltraQA(periodo=5)
+    else:
+        cache_fundo_mobile = CacheFundoMobile()
+        cache_menus_qa = None
     evento_corrida = None
     evento_corrida_x = LARGURA_VIRTUAL + 80
     evento_corrida_timer = 0
@@ -13648,14 +13655,11 @@ def main():
                 # Personagem, objetos, HUD e eventos sao desenhados em todo quadro.
                 _cache_fundo_mobile_ativo = (
                     E_ANDROID and estado == 'JOGANDO' and portal_tipo_ativo is None
-                    and modo_grafico_leve(dados)
-                    and dados.get('modo_grafico', 'auto') in ('auto', 'leve')
-                    and not (tutorial_corrida and tutorial_corrida.ativo)
                 )
                 bg_parallax.world.lightweight = modo_grafico_leve(dados)
                 _chave_fundo_mobile = (
-                    cenario_atual, bg_parallax.cenario, clima.tipo, cor_ceu_tupla,
-                    bool(e_noite), round(float(peso_noite), 2),
+                    cenario_atual, bg_parallax.cenario, clima.tipo,
+                    bool(e_noite), bool(tutorial_corrida and tutorial_corrida.ativo),
                     bool(bg_parallax.world.lightweight), display_surface.get_size()
                 )
                 if cache_fundo_mobile.reusar(
@@ -14278,7 +14282,8 @@ def main():
                 t_anim = anim_menu_tempo / 45.0
                 ease_out = 1.0 - (1.0 - t_anim) ** 3
 
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
 
                 offset_y_titulo = int((1.0 - ease_out) * -220)
                 float_y = math.sin(frame_count * 0.05) * 4
@@ -14366,14 +14371,16 @@ def main():
                                             ALTURA_VIRTUAL - 30)
 
             elif estado == "CANTINHO_PETS":
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 desenhar_cantinho_pets(display_surface, dados, pet_cantinho_selecionado,
                                        frame_count, pet_cantinho_acao,
                                        pet_cantinho_acao_ate, pet_cantinho_mensagem,
                                        pet_cantinho_mensagem_ate, modo_grafico_leve(dados))
 
             elif estado == "BASE_CORREDOR":
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 base = dados.setdefault("base_corredor", {"nivel": 1, "trofeus": [], "decoracao": 0, "mecanicas_descobertas": []})
                 partidas_base = int(dados.get("estatisticas_permanentes", {}).get("partidas", 0))
                 base["nivel"] = max(1, min(5, 1 + partidas_base // 10))
@@ -14406,7 +14413,8 @@ def main():
             elif estado == "LOJA":
                 t_anim = max(0.0, min(1.0, anim_menu_tempo / 35.0))
                 ease_out = 1.0 - (1.0 - t_anim) ** 3
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 # Faixas premium sem novos recursos externos ou superfícies por frame.
                 desenhar_painel_identidade(display_surface, pygame.Rect(17, 10, 416, 115),
                                            UI_CIANO, cabecalho=True)
@@ -14742,7 +14750,8 @@ def main():
             elif estado == "UPGRADES":
                 t_anim = anim_menu_tempo / 35.0
                 ease_out = 1.0 - (1.0 - t_anim) ** 3
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
 
                 off_top = int((1.0 - ease_out) * -150)
                 desenhar_texto_centralizado(display_surface, t("loja_upgrades", dados), fonte_grande, AMARELO_NEON, PRETO,
@@ -14809,7 +14818,8 @@ def main():
             elif estado == "CONFIG":
                 t_anim = anim_menu_tempo / 35.0
                 ease_out = 1.0 - (1.0 - t_anim) ** 3
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 desenhar_painel_identidade(display_surface, pygame.Rect(35, 114, 380, 604),
                                            UI_CIANO, discreto=True)
 
@@ -14903,7 +14913,8 @@ def main():
                                       BRANCO, PRETO, btn_acessibilidade)
 
             elif estado == "CONQUISTAS":
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 desenhar_texto_centralizado(display_surface, t("conquistas", dados), fonte_grande,
                                             AMARELO_NEON, PRETO, 47)
                 stats = dados.get("estatisticas_permanentes", {})
@@ -14969,7 +14980,8 @@ def main():
                 desenhar_rotulo_botao(display_surface, t("voltar", dados), fonte, BRANCO, PRETO, btn_voltar)
 
             elif estado == "DESAFIOS":
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 desenhar_texto_centralizado(display_surface, "DESAFIOS DIÁRIOS / SEMANAIS", fonte, AMARELO_NEON, PRETO, 48)
                 desafios_ui = preparar_desafios(dados)
                 for idx, chave in enumerate(("diario", "semanal")):
@@ -14996,7 +15008,8 @@ def main():
                 desenhar_rotulo_botao(display_surface, t("voltar", dados), fonte, BRANCO, PRETO, btn_voltar)
 
             elif estado == "DESAFIO_PERCURSO":
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 desenhar_texto_centralizado(display_surface, "DESAFIO DE PERCURSO", fonte, AMARELO_NEON, PRETO, 62)
                 desenhar_texto_centralizado(display_surface, "Mesmo codigo e mesma semente inicial", fonte_pequena, BRANCO, PRETO, 113)
                 hoje_codigo = codigo_diario()
@@ -15019,7 +15032,8 @@ def main():
                 desenhar_rotulo_botao(display_surface, t("voltar", dados), fonte, BRANCO, PRETO, btn_percurso_voltar)
 
             elif estado == "RECORDES":
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 desenhar_texto_centralizado(display_surface, t("recordes_pessoais", dados), fonte_grande, AMARELO_NEON, PRETO, 52)
                 stats = dados.get("estatisticas_permanentes", {})
                 recordes = dados.get("recordes_biomas", {})
@@ -15130,7 +15144,8 @@ def main():
                     desenhar_rotulo_botao(display_surface, "FECHAR", fonte, BRANCO, PRETO, btn_recorde_bioma_fechar)
 
             elif estado == "RANKING":
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 desenhar_texto_centralizado(display_surface, "RANKING LOCAL", fonte_grande, AMARELO_NEON, PRETO, 52)
                 desenhar_texto_centralizado(display_surface, "Melhores corridas salvas neste dispositivo", fonte_pequena, BRANCO, PRETO, 88)
                 ranking = dados.get("ranking_local", [])
@@ -15160,7 +15175,8 @@ def main():
                 desenhar_rotulo_botao(display_surface, t("voltar", dados), fonte, BRANCO, PRETO, btn_voltar)
 
             elif estado == "RELIQUIAS":
-                bg_parallax.draw(display_surface, cor_ceu_tupla, False)
+                (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
+                 if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
                 desenhar_texto_centralizado(display_surface, "RELIQUIAS ANCESTRAIS", fonte_grande, AMARELO_NEON, PRETO, 52)
                 stats_rel = dados.get("estatisticas_permanentes", {})
                 stats_extra = dados.get("estatisticas_novas", {})
