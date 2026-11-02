@@ -47,8 +47,8 @@ def _teste_real(imagem, tamanho):
         pygame.transform.set_smoothscale_backend(original)
         t0 = time.perf_counter_ns()
         referencia = pygame.transform.smoothscale(imagem, tamanho, buffer)
-        referencia_bytes = pygame.image.tobytes(referencia, 'RGB')
         custo = (time.perf_counter_ns() - t0) / 1e6
+        referencia_bytes = pygame.image.tobytes(referencia, 'RGB')
         _RESULTADO['tempo_original_ms'] = round(custo, 3)
         for candidato in ('NEON', 'SSE2'):
             if candidato == original:
@@ -63,6 +63,24 @@ def _teste_real(imagem, tamanho):
                 custo_novo = (time.perf_counter_ns() - t1) / 1e6
                 if pygame.image.tobytes(saida, 'RGB') != referencia_bytes:
                     _RESULTADO['resultado'] = 'diferenca_de_pixels: ' + candidato
+                    continue
+                # Segunda prova com pixels independentes e zoom diferente.
+                # Evita aprovar um backend que coincida por acaso no frame
+                # real, mas produza arredondamento distinto em outras cenas.
+                amostra = pygame.Surface((41, 67)).convert(imagem)
+                for y in range(67):
+                    pygame.draw.line(amostra,
+                        ((y * 11) % 256, (y * 7) % 256, (y * 23) % 256),
+                        (0, y), (40, y))
+                alt_tamanho = (45, 73)
+                pygame.transform.set_smoothscale_backend(original)
+                esperado = pygame.image.tobytes(
+                    pygame.transform.smoothscale(amostra, alt_tamanho), 'RGB')
+                pygame.transform.set_smoothscale_backend(candidato)
+                obtido = pygame.image.tobytes(
+                    pygame.transform.smoothscale(amostra, alt_tamanho), 'RGB')
+                if obtido != esperado:
+                    _RESULTADO['resultado'] = 'diferenca_de_pixels_teste2: ' + candidato
                     continue
                 # Evitar trocar backend por variacao estatistica pequena.
                 if custo_novo < custo * 0.80:
