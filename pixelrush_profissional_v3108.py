@@ -60,11 +60,17 @@ class ArticulacaoFABRIK:
         t = limitar(k - a, 0., 1.)
         return self.nodes[a][0] * (1. - t) + self.nodes[a + 1][0] * t
 
-    def deform(self, image, strip=4):
-        """Skinning de pixels por tiras: preserva a textura recortada da arte."""
+    def deform(self, image, strip=4, target=None):
+        """Skinning identico, com buffer QA opcional para evitar alocacoes."""
         width, height = image.get_size()
         pad = 26
-        result = pygame.Surface((width + 2 * pad, height), pygame.SRCALPHA)
+        tamanho = (width + 2 * pad, height)
+        if target is None or target.get_size() != tamanho:
+            result = pygame.Surface(tamanho, pygame.SRCALPHA)
+        else:
+            result = target
+            # Todos os pixels fora das tiras precisam continuar transparentes.
+            result.fill((0, 0, 0, 0))
         for y in range(0, height, strip):
             dx = int(round(self.offset_at(y / max(1, height - 1))))
             result.blit(image, (pad + dx, y), pygame.Rect(0, y, width, min(strip, height - y)))
