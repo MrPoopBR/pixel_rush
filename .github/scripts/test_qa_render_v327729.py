@@ -94,7 +94,7 @@ class TesteRender329(unittest.TestCase):
         self.assertIn('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15', codigo)
         self.assertIn('relogio.tick(FPS_RENDER)',codigo)
         self.assertIn('camera_cinematica.aplicar(',codigo)
-        self.assertIn('v3.277.31-QA-ANDROID-RC',codigo)
+        self.assertIn('v3.277.32-QA-ANDROID-RC',codigo)
 
 
 if __name__ == '__main__':
