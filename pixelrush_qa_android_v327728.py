@@ -61,6 +61,16 @@ def _camera_qa_estado():
         return {'avaliado': False, 'resultado': 'nao_disponivel'}
 
 
+def _gles_gate_qa():
+    # Avaliacao passiva, uma vez por relatorio, sem criar contexto grafico.
+    try:
+        from pixelrush_qa_gles_gate_v327734 import diagnosticar
+        return diagnosticar()
+    except Exception:
+        return {'integracao_aprovada': False, 'ativa_gpu': False,
+                'fallback_cpu_preservado': True, 'motivos': ['erro_sonda_qa']}
+
+
 def _memoria_rss_mb():
     try:
         with open('/proc/self/status', encoding='ascii') as arquivo:
@@ -219,6 +229,7 @@ class QATelemetria:
             'gpu_ms_real': None, 'gpu_estado': 'nao_disponivel_no_pygame; usar Perfetto/gfxinfo Android',
             'renderer_backend_qa': _renderer_backend_qa(),
             'camera_backend_autotune_qa': _camera_qa_estado(),
+            'gles_camera_gate_qa': _gles_gate_qa(),
             'observacoes': [
                 'Fases principais exclusivas; subsistemas dentro delas: NAO somar duas vezes.',
                 'render_residual_estimado = renderizacao_e_ui menos passes medidos; nao representa um intervalo contiguo.',
@@ -237,12 +248,12 @@ class QATelemetria:
     def salvar(self):
         try:
             self.pasta.mkdir(parents=True, exist_ok=True)
-            arquivo = self.pasta / 'pixelrush_qa_v327733.json'
-            temporario = self.pasta / 'pixelrush_qa_v327733.json.tmp'
+            arquivo = self.pasta / 'pixelrush_qa_v327734.json'
+            temporario = self.pasta / 'pixelrush_qa_v327734.json.tmp'
             temporario.write_text(json.dumps(self.relatorio(), ensure_ascii=False, indent=2), encoding='utf-8')
             os.replace(temporario, arquivo)
-            csv_final = self.pasta / 'pixelrush_qa_frames_v327733.csv'
-            csv_tmp = self.pasta / 'pixelrush_qa_frames_v327733.csv.tmp'
+            csv_final = self.pasta / 'pixelrush_qa_frames_v327734.csv'
+            csv_tmp = self.pasta / 'pixelrush_qa_frames_v327734.csv.tmp'
             with csv_tmp.open('w', encoding='utf-8', newline='') as f:
                 campos = ['modo', 'bioma', 'total_ms', 'trabalho_ms', 'cpu_ms', 'intervalo_ms', 'rss_mb']
                 w = csv.DictWriter(f, fieldnames=campos)
