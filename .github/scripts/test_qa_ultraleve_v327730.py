@@ -48,6 +48,27 @@ class TesteUltraQA(unittest.TestCase):
         self.assertEqual(fundo.passes_evitados,16)
         self.assertEqual(fundo.pedidos,20)
 
+    def test_piso_animado_em_todos_quadros_mesmo_com_fundo_em_cache(self):
+        fundo=CacheFundoUltraQA(periodo=5)
+        tela=pygame.Surface((450,800)).convert()
+        for q in range(15):
+            if not fundo.reusar(tela,('cidade','limpo'),True):
+                tela.fill((37,61,91))
+                fundo.guardar(tela,('cidade','limpo'),True)
+            pygame.draw.rect(tela,(q+20,100,120),(0,730,450,70))
+            pygame.draw.rect(tela,(q,170,70),(95+q,650,16,32))
+            self.assertEqual(tela.get_at((2,750))[0],q+20)
+            self.assertEqual(tela.get_at((96+q,654))[0],q)
+        codigo=(Path(__file__).resolve().parents[2] /
+            'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
+        inicio=codigo.index('if cache_fundo_mobile.reusar(')
+        fim=codigo.index('if estado in ("JOGANDO", "PAUSA") and evento_corrida:',inicio)
+        trecho=codigo[inicio:fim]
+        self.assertLess(trecho.index('cache_fundo_mobile.guardar('),
+                        trecho.index('bg_parallax.draw_chao(display_surface)'))
+        self.assertLess(trecho.index('bg_parallax.draw_chao(display_surface)'),
+                        trecho.index('desenhar_clima_premium('))
+
     def test_invalida_em_cenario_clima_tutorial_e_portal(self):
         tela=pygame.Surface((450,800)).convert()
         cache=CacheFundoUltraQA(periodo=5)
