@@ -32,7 +32,7 @@ GPU real não foi medida.
 3. `pixelrush_qa_camera_v327733.py`: adapta SOMENTE o
    `CameraCinematica.aplicar` experimental para sondar backends
    NEON/SSE2 disponíveis. Só escolhe backend alternativo se
-   o resultado RGB do frame real E de outro padrão independente
+   o resultado RGB/RGBA do frame real E de outro padrão independente
    for byte-a-byte idêntico E medido pelo menos 20% mais rápido.
    Ao terminar, restaura o backend original global. Caso contrário,
    mantém `pygame.transform.smoothscale` anterior. O teste é
