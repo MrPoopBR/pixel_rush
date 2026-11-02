@@ -1,0 +1,153 @@
+name: Pixel Rush QA v3.277.39 - APK Android DEBUG (telemetria)
+
+on:
+  push:
+    branches:
+      - qa/android-full-performance-v3.277.39
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-apk-debug-v327739
+  cancel-in-progress: false
+
+jobs:
+  apk-debug:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/android-full-performance-v3.277.39'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    env:
+      PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: '0'
+      MAKEFLAGS: '-j4'
+      CMAKE_BUILD_PARALLEL_LEVEL: '4'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+    steps:
+      - name: Checkout QA (somente branch isolada)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Inspecionar configuracao e integridade antes do build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/qa_preflight_v327739.py
+          python3 -m compileall -q pixelrush_qa_async_export_v327737.py tests/test_qa_full_performance_v327737.py tests/test_qa_perf_v327738.py tests/test_qa_camera_city_v327739.py .github/scripts/qa_benchmark_camera_world_v327739.py pixelrush_cenarios_v398.py pixelrush_qa_scene_v327733.py pixelrush_qa_camera_v327733.py tests/test_qa_camera_scene_v327733.py pixelrush_world_v3130.py pixelrush_profissional_v3108.py pixelrush_fase_b_visuais_v3272.py pixelrush_fase_b_visuais_v3274.py tests/test_qa_performance_full_v327732.py pixelrush_qa_alpha_blit_v327731.py tests/test_qa_alpha_blit_v327731.py pixelrush_qa_ultraleve_v327730.py .github/scripts/test_qa_ultraleve_v327730.py pixelrush_qa_render_v327729.py .github/scripts/qa_preflight_v327739.py .github/scripts/test_qa_render_v327729.py pixelrush_qa_android_v327728.py pixelrush_profiler_v3204.py .github/scripts/qa_preflight_v327739.py .github/scripts/test_qa_android_v327728.py .github/scripts/test_pygame_zoom_v327721.py .github/scripts/test_pygame_perf_v327722.py .github/scripts/test_android_perf_v327723.py .github/scripts/test_android_tutorial_guided_v327724.py .github/scripts/test_android_fundo_cache_v327726.py .github/scripts/test_android_render_rle_v327727.py pixelrush_rle_prod_v327727.py pixelrush_city2_v3118.py pixelrush_city2_v3124.py pixelrush_biomes2_v3185.py pixelrush_tutorial_guia_prod_v327724.py pixelrush_fundo_mobile_v327726.py pixelrush_buffers_prod_v327710.py pixelrush_gamefeel_v3129.py pixelrush_gamefeel_v3129.py pixelrush_cinema_v3172.py main.py pixelrush_android_abertura_v327712.py pixelrush_android_storage_v327711.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py p4a-recipes/pygame-ce/__init__.py p4a-recipes/python3/__init__.py .github/scripts/test_android_stdlib_bootstrap.py .github/scripts/test_android_p4a_patches.py .github/scripts/test_android_stdlib_dt_needed.py .github/scripts/test_android_tutorial_retry_v327716.py .github/scripts/test_android_tutorial_fixes_v327717.py .github/scripts/test_android_tutorial_score_v327718.py .github/scripts/test_android_tutorial_cinematic_v327719.py
+          python3 .github/scripts/test_android_stdlib_bootstrap.py
+          python3 .github/scripts/test_android_p4a_patches.py
+          python3 .github/scripts/test_android_stdlib_dt_needed.py
+          # Teste pygame isolado do sistema; nao altera o ambiente de producao.
+          python3 -m venv /tmp/pixelrush-qa-pygame
+          /tmp/pixelrush-qa-pygame/bin/python -m pip install --disable-pip-version-check 'pygame-ce==2.5.8' 'numpy==2.3.0'
+          # Tests sob tests/ e .github/scripts/ importam os modulos da raiz.
+          export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_pygame_zoom_v327721.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_pygame_perf_v327722.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_perf_v327723.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_guided_v327724.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_fundo_cache_v327726.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_render_rle_v327727.py
+          SDL_VIDEODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_retry_v327716.py
+          SDL_VIDEODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_fixes_v327717.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_score_v327718.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_android_tutorial_cinematic_v327719.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_qa_android_v327728.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_qa_render_v327729.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/test_qa_ultraleve_v327730.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python tests/test_qa_alpha_blit_v327731.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python tests/test_qa_performance_full_v327732.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python tests/test_qa_camera_scene_v327733.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python tests/test_qa_full_performance_v327737.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python tests/test_qa_perf_v327738.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python tests/test_qa_camera_city_v327739.py
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy /tmp/pixelrush-qa-pygame/bin/python .github/scripts/qa_benchmark_camera_world_v327739.py
+          if [ -n "$(find . -maxdepth 1 -name '*.aab' -print -quit)" ]; then
+            echo 'Arquivo AAB inesperado na raiz.' >&2
+            exit 1
+          fi
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Python 3.14 para ferramenta Buildozer
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Liberar espaco para compilacao nativa
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: Instalar dependencias Linux de compilacao
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git zip unzip curl wget ca-certificates build-essential binutils patchelf \
+            autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev \
+            libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
+            libltdl-dev gettext autopoint ccache
+
+      - name: Configurar Buildozer 1.6.0 e dependencias de p4a/develop
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip wheel setuptools
+          python -m pip install 'buildozer==1.6.0' 'Cython==0.29.34' legacy-cgi
+          buildozer --version
+          python --version
+          java -version
+
+      - name: Compilar SOMENTE APK debug (sem secrets, sem release e sem AAB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset P4A_RELEASE_KEYSTORE P4A_RELEASE_KEYALIAS \
+            P4A_RELEASE_KEYSTORE_PASSWD P4A_RELEASE_KEYALIAS_PASSWD || true
+          test "${GITHUB_REF}" = 'refs/heads/qa/android-full-performance-v3.277.39'
+          echo 'Iniciando build DEBUG. Nunca executa android release.'
+          buildozer -v android debug 2>&1 | tee build-debug.log
+          test -n "$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          if find bin -maxdepth 1 -type f -name '*.aab' | grep -q .; then
+            echo 'AAB encontrado indevidamente em bin/' >&2
+            exit 1
+          fi
+
+      - name: Auditar ABI, extensoes pygame/NumPy, API 36 e paginas 16 KiB
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
+          python .github/scripts/android_debug_audit.py apk --apk "$APK" --report debug-apk-validation.json
+
+      - name: Enviar relatorios e log de diagnostico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327739-diagnostico
+          path: |
+            preflight-qa-v327739.json
+            debug-apk-validation.json
+            qa-benchmark-camera-world-v327739.json
+            build-debug.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enviar APK debug para teste (nunca AAB)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327739-apk-debug-nao-homologado
+          path: bin/*.apk
+          if-no-files-found: ignore
+          retention-days: 7
