@@ -4,6 +4,7 @@ import hashlib
 import os
 from pathlib import Path
 import random
+import sys
 import time
 import unittest
 
@@ -12,6 +13,7 @@ os.environ.setdefault('SDL_AUDIODRIVER', 'dummy')
 import pygame
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 
 def imagem(src):
