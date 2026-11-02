@@ -18,7 +18,7 @@ SECOES = (
     'fisica_jogador', 'inimigos_objetos', 'particulas_update',
     'mundo_2_5d', 'sprites_render', 'clima_render',
     'mundo_composicao_interna', 'profundidade_fundo',
-    'camera_smoothscale', 'camera_gamefeel',
+    'camera_smoothscale', 'camera_gamefeel', 'menus_fundo',
 )
 
 
@@ -152,7 +152,8 @@ class QATelemetria:
         if 'renderizacao_e_ui' in fases:
             fases['render_residual_estimado'] = max(0.0, fases['renderizacao_e_ui'] -
                 sum(fases.get(k, 0.0) for k in
-                    ('mundo_2_5d', 'profundidade_fundo', 'sprites_render', 'clima_render')))
+                    ('mundo_2_5d', 'profundidade_fundo', 'sprites_render',
+                     'clima_render', 'menus_fundo')))
         total = max(0, agora - self.inicio) / 1e6
         trabalho = max(0, total - fases.get('limitador_fps', 0))
         cpu = max(0, self.cpu_relogio() - entrada['cpu_inicial']) / 1e6
