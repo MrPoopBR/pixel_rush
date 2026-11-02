@@ -71,7 +71,7 @@ def checar():
                  'pixelrush_qa_render_v327729.py'):
         assert 'pixelrush_qa_gles_exact_v327736' not in Path(path).read_text('utf8'), 'GPU experimental ativada indevidamente'
     io=Path('pixelrush_qa_android_v327728.py').read_text('utf8')
-    assert 'pixelrush_qa_v327737' in io
+    assert 'pixelrush_qa_v327738' in io
     assert 'apresentacao_swap' in io
     assert 'salvar(esperar=False)' in io
     assert 'v3.277.38-QA-ANDROID-RC' in Path('VERSAO_ATUAL.txt').read_text('utf8')
