@@ -244,14 +244,23 @@ class CityPilotScene(PreviousCity):
             # Blit com recorte de viewport: nenhum pix fora da tela e menos RAM.
             r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
             if r.w>0:target.blit(tex,(max(0,x),0),r)
-        for sp in variant.sprites:
+        # QA v3.277.39: oscilacoes decorativas identicas reusadas neste quadro.
+        wind=1.5 if climate in ('vento','tempestade','nevasca') else 1.
+        marcador=(frame,wind)
+        if getattr(self,'_qa_movimentos_marcador',None)!=marcador:
+            self._qa_movimentos_marcador=marcador
+            self._qa_movimentos_cache={}
+        deslocamentos=self._qa_movimentos_cache.get(id(variant))
+        if deslocamentos is None:
+            deslocamentos=tuple(int(round(math.sin(frame*.025+sp.phase)*sp.sway*wind))
+                                 for sp in variant.sprites)
+            self._qa_movimentos_cache[id(variant)]=deslocamentos
+        for sp,dx in zip(variant.sprites,deslocamentos):
             asset=self.lib.assets.get(sp.kind)
             if asset is None:continue
             tex=getattr(asset,map_kind)
             width=tex.get_width()
-            wind=1.5 if climate in ('vento','tempestade','nevasca') else 1.
             # sway de no máximo 2px e y do sprite ancorado no chão.
-            dx=int(round(math.sin(frame*.025+sp.phase)*sp.sway*wind))
             px=x+sp.x*SCALE+dx
             if px>=WIDTH+2 or px+width<=-2:continue
             self._draw_sprite(target,sp.kind,px,sp.y*SCALE,frame,night,climate,map_kind,False)
