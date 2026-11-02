@@ -48,7 +48,7 @@ class TestGlesGate(unittest.TestCase):
         workflow=(ROOT/'.github/workflows/qa-apk-debug-v327734.yml').read_text('utf8')
         saida=(ROOT/'pixelrush_qa_android_v327728.py').read_text('utf8')
         bootstrap=(ROOT/'main.py').read_text('utf8')
-        self.assertIn('VERSAO = "v3.277.35-QA-ANDROID-RC"',tela)
+        self.assertIn('VERSAO = "v3.277.36-QA-ANDROID-RC"',tela)
         self.assertIn('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',tela)
         self.assertIn('FPS_RENDER = 30 if E_ANDROID else 60',tela)
         self.assertIn('PIXELRUSH_DEV_BUILD = False',tela)
