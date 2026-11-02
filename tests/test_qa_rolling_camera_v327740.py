@@ -82,6 +82,23 @@ class TestRollingQA(unittest.TestCase):
                         self.assertEqual(bytes_rgba(a),bytes_rgba(b),
                                          (formato,largura,f,scroll,'tela'))
 
+    def test_tres_camadas_2_5d_sobreposicao_pixel_exata(self):
+        fontes=[self._source(w,'rgba') for w in (173,450,900)]
+        compositores=[FaixaPersistenteQA() for _ in fontes]
+        for flags in (0,pygame.SRCALPHA):
+            for cache in compositores:
+                cache.invalidar()
+            for frame in range(90):
+                a=pygame.Surface((450,400),flags)
+                a.fill((30,45,90,127) if flags else (30,45,90))
+                b=a.copy()
+                for indice,(tex,cache) in enumerate(zip(fontes,compositores)):
+                    scroll=frame*(indice+1)*2
+                    blit_direto(a,tex,scroll,230)
+                    b.blit(cache.gerar(tex,scroll),(0,230))
+                self.assertEqual(bytes_rgba(a),bytes_rgba(b),
+                                 ('multiplas_camadas',flags,frame))
+
     def test_invalida_fonte_formato_e_teleporte(self):
         a=self._source(900,'rgba')
         b=self._source(450,'rgba')
