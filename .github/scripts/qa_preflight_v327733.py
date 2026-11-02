@@ -37,7 +37,7 @@ def executar():
         'pixelrush_fase_b_visuais_v3274.py': '99f786af7eacd863f6910d98c4ac81bbb99db1ee',
         'pixelrush_qa_android_v327728.py': '9874a114ad33e8339114482804a64aff1b1e9800',
         'pixelrush_qa_ultraleve_v327730.py': '1ab13d44739023b50a602aee815151e9003ec7ab',
-        'pixelrush_qa_scene_v327733.py': 'c06d1fd3d4dd1f436ce41dbe2b12027c74a1208f',
+        'pixelrush_qa_scene_v327733.py': '493a8b967ff235141c4f492eae5d8486617286e2',
         'pixelrush_qa_camera_v327733.py': '3d337e4cfd9d63066b54cd2ae1fa5ca417044535',
         'buildozer.spec': 'b40782e0f354dba033764f5db209e79b92b1684b',
     }
