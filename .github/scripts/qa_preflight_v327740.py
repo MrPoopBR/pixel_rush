@@ -35,7 +35,7 @@ PINNED={
     'pixelrush_qa_alpha_blit_v327731.py':'fefb6f0f32dae61cdc8368ced51da2234646fa89',
     'tests/test_qa_perf_v327738.py':'f476b4cf15570317357be0b283361b1a18c60068',
     'pixelrush_city2_v3118.py':'cdd9afa667dc9128565ff838ba24fa24dfe7ff6f',
-    'tests/test_qa_camera_city_v327739.py':'4c4f713a66756f349ccd6808a99d6faae3543211',
+    'tests/test_qa_camera_city_v327739.py':'c7015dd330b1d2ebbb7acef711bafb91384a951b',
     '.github/scripts/qa_benchmark_camera_world_v327739.py':'4389307bfcc94d8911d4598e14f2b26603a101a7',
     'pixelrush_qa_rolling_v327740.py':'19377868517c56227db45c3aab782c3021182780',
     'tests/test_qa_rolling_camera_v327740.py':'d5ccef48ae3c9107457e49f39c8c5cf283fc4f43',
