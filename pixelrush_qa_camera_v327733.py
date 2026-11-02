@@ -79,7 +79,7 @@ def _teste_real(imagem, tamanho):
                     pygame.transform.smoothscale(amostra, alt_tamanho), formato)
                 pygame.transform.set_smoothscale_backend(candidato)
                 obtido = pygame.image.tobytes(
-                    pygame.transform.smoothscale(amostra, alt_tamanho), 'RGB')
+                    pygame.transform.smoothscale(amostra, alt_tamanho), formato)
                 if obtido != esperado:
                     _RESULTADO['resultado'] = 'diferenca_de_pixels_teste2: ' + candidato
                     continue
