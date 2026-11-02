@@ -128,6 +128,31 @@ def mundo_2_5d():
             'resultado_apenas_sintetico':True}
 
 
+def staging_gpu_cpu():
+    """Comparar apenas preparacao CPU do RGBA, sem usar GL nem aparelho."""
+    import ctypes as C
+    tex=pygame.Surface((450,800),pygame.SRCALPHA)
+    for y in range(800):
+        pygame.draw.line(tex,(y%256,(y*5)%256,(y*9)%256,(y*11)%256),
+                         (0,y),(449,y))
+    dados=pygame.image.tobytes(tex,'RGBA',True)
+    copia=C.create_string_buffer(dados)
+    ponteiro=C.cast(C.c_char_p(dados),C.c_void_p)
+    identico=C.string_at(copia,len(dados))==C.string_at(ponteiro,len(dados))
+    def antigo():
+        raw=pygame.image.tobytes(tex,'RGBA',True)
+        buf=C.create_string_buffer(raw)
+        return C.string_at(buf,1)
+    def novo():
+        raw=pygame.image.tobytes(tex,'RGBA',True)
+        ptr=C.cast(C.c_char_p(raw),C.c_void_p)
+        return C.string_at(ptr,1)
+    return {'bytes_por_frame':len(dados),'pixels_exatos':identico,
+            'copia_buffer_antiga':medir(antigo,70,10),
+            'ponteiro_sem_copia':medir(novo,70,10),
+            'ressalva':'preparacao CPU; nao mede glTexSubImage2D nem FPS Android'}
+
+
 def executar():
     pygame.init();pygame.display.set_mode((450,800))
     try:
@@ -140,6 +165,7 @@ def executar():
             'mundo_2_5d':mundo_2_5d(),
             'gpu':{
                 'shader_gles2_sha256':hashlib.sha256((vs+fs).encode()).hexdigest(),
+                'preparacao_rgba_cpu':staging_gpu_cpu(),
                 'benchmark_real_android':False,
                 'renderer_egl_real_android':None,
                 'gpu_integracao_autorizada':gate_integracao(

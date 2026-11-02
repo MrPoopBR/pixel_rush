@@ -119,5 +119,26 @@ class TestQA739(unittest.TestCase):
         self.assertFalse(hasattr(main,"GLES2DirectPresenterQA"))
 
 
+    def test_upload_gles_pointer_mesmos_bytes_rgba(self):
+        # Prova os bytes enviados ao GL, sem abrir janela GPU na suite do jogo.
+        import ctypes as C
+        from pixelrush_qa_gles_present_v327735 import GLES2DirectPresenterQA
+        import inspect
+        for flags in (0,pygame.SRCALPHA):
+            s=pygame.Surface((120,95),flags)
+            for y in range(95):
+                pygame.draw.line(s,(y*3%255,y*11%255,y*19%255,y*17%255)
+                    if flags else (y*3%255,y*11%255,y*19%255),
+                    (0,y),(119,y))
+            dados=pygame.image.tobytes(s,'RGBA',True)
+            antigo=C.create_string_buffer(dados)
+            novo=C.cast(C.c_char_p(dados),C.c_void_p)
+            self.assertEqual(C.string_at(antigo,len(dados)),
+                             C.string_at(novo,len(dados)))
+        fonte=inspect.getsource(GLES2DirectPresenterQA.draw)
+        self.assertIn("data_ptr=C.cast(C.c_char_p(data),C.c_void_p)",fonte)
+        self.assertNotIn("create_string_buffer",fonte)
+
+
 if __name__=="__main__":
     unittest.main(verbosity=2)
