@@ -150,7 +150,7 @@ class TestGLESDirectQA(unittest.TestCase):
         prod=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
         self.assertNotIn('GLES2DirectPresenterQA',main)
         self.assertNotIn('GLES2DirectPresenterQA',prod)
-        self.assertIn('VERSAO = "v3.277.35-QA-ANDROID-RC"',prod)
+        self.assertIn('VERSAO = "v3.277.36-QA-ANDROID-RC"',prod)
         self.assertIn('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',prod)
         self.assertIn('FPS_RENDER = 30 if E_ANDROID else 60',prod)
         self.assertIn('PIXELRUSH_DEV_BUILD = False',prod)
