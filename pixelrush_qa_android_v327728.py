@@ -19,6 +19,9 @@ SECOES = (
     'mundo_2_5d', 'sprites_render', 'clima_render',
     'mundo_composicao_interna', 'profundidade_fundo',
     'camera_smoothscale', 'camera_gamefeel', 'menus_fundo',
+    'cenario_ceu', 'cenario_panorama', 'cenario_emenda',
+    'cenario_animacoes_fundo', 'cenario_animacoes_frente',
+    'cenario_reacao_noturna', 'cenario_foco_pista', 'cenario_acabamento',
 )
 
 
@@ -48,6 +51,14 @@ def _renderer_backend_qa():
     except Exception:
         # A telemetria nunca deve impedir uma corrida em SDL sem display.
         return {'smoothscale': None, 'sdl_video': None}
+
+
+def _camera_qa_estado():
+    try:
+        from pixelrush_qa_camera_v327733 import resultado
+        return resultado()
+    except (ImportError, RuntimeError):
+        return {'avaliado': False, 'resultado': 'nao_disponivel'}
 
 
 def _memoria_rss_mb():
@@ -207,6 +218,7 @@ class QATelemetria:
             'piores_100_quadros_sem_limitador': self.piores,
             'gpu_ms_real': None, 'gpu_estado': 'nao_disponivel_no_pygame; usar Perfetto/gfxinfo Android',
             'renderer_backend_qa': _renderer_backend_qa(),
+            'camera_backend_autotune_qa': _camera_qa_estado(),
             'observacoes': [
                 'Fases principais exclusivas; subsistemas dentro delas: NAO somar duas vezes.',
                 'render_residual_estimado = renderizacao_e_ui menos passes medidos; nao representa um intervalo contiguo.',
@@ -225,12 +237,12 @@ class QATelemetria:
     def salvar(self):
         try:
             self.pasta.mkdir(parents=True, exist_ok=True)
-            arquivo = self.pasta / 'pixelrush_qa_v327732.json'
-            temporario = self.pasta / 'pixelrush_qa_v327732.json.tmp'
+            arquivo = self.pasta / 'pixelrush_qa_v327733.json'
+            temporario = self.pasta / 'pixelrush_qa_v327733.json.tmp'
             temporario.write_text(json.dumps(self.relatorio(), ensure_ascii=False, indent=2), encoding='utf-8')
             os.replace(temporario, arquivo)
-            csv_final = self.pasta / 'pixelrush_qa_frames_v327732.csv'
-            csv_tmp = self.pasta / 'pixelrush_qa_frames_v327732.csv.tmp'
+            csv_final = self.pasta / 'pixelrush_qa_frames_v327733.csv'
+            csv_tmp = self.pasta / 'pixelrush_qa_frames_v327733.csv.tmp'
             with csv_tmp.open('w', encoding='utf-8', newline='') as f:
                 campos = ['modo', 'bioma', 'total_ms', 'trabalho_ms', 'cpu_ms', 'intervalo_ms', 'rss_mb']
                 w = csv.DictWriter(f, fieldnames=campos)
