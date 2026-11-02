@@ -38,6 +38,17 @@ def _destino():
     return Path(os.environ.get('ANDROID_PRIVATE') or os.getcwd()) / 'pixelrush_qa'
 
 
+def _renderer_backend_qa():
+    """Metadados tecnicos observacionais; nenhuma mudanca no render."""
+    try:
+        import pygame
+        backend = pygame.transform.get_smoothscale_backend()
+        driver = pygame.display.get_driver() if pygame.display.get_init() else None
+        return {'smoothscale': str(backend), 'sdl_video': str(driver) if driver else None}
+    except (ImportError, AttributeError, RuntimeError):
+        return {'smoothscale': None, 'sdl_video': None}
+
+
 def _memoria_rss_mb():
     try:
         with open('/proc/self/status', encoding='ascii') as arquivo:
@@ -193,6 +204,7 @@ class QATelemetria:
             'rss_atual_mb': self.rss_mb, 'rss_pico_observado_mb': self.rss_pico_mb,
             'piores_100_quadros_sem_limitador': self.piores,
             'gpu_ms_real': None, 'gpu_estado': 'nao_disponivel_no_pygame; usar Perfetto/gfxinfo Android',
+            'renderer_backend_qa': _renderer_backend_qa(),
             'observacoes': [
                 'Fases principais exclusivas; subsistemas dentro delas: NAO somar duas vezes.',
                 'render_residual_estimado = renderizacao_e_ui menos passes medidos; nao representa um intervalo contiguo.',
