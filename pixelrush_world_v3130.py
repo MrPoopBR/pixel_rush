@@ -425,8 +425,13 @@ class LivingWorld:
             strip=self._load('image')
             offset=self._scroll()%strip.get_width()
             left=-offset
+            operacoes=[]
             while left<WIDTH:
-                layer.blit(strip,(left,0));left+=strip.get_width()
+                operacoes.append((strip,(left,0)))
+                left+=strip.get_width()
+            # Mesmo blend e ordem dos strips; reduz fronteiras Python/SDL.
+            if operacoes:
+                layer.blits(operacoes,doreturn=False)
             self.damage.apply(layer,self.travel*LAYER_SPEEDS[1])
             surface.blit(layer,(0,TOP))
         else:
