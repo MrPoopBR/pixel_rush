@@ -95,6 +95,28 @@ def _stats(valores):
             'p99': percentil(.99), 'max': round(v[-1], 3)}
 
 
+def _resumir_grupos_qa(snapshot):
+    """Puro: recebe amostras copiadas; nao acessa pygame nem dados vivos."""
+    grupos = {}
+    for chave, dados in snapshot.items():
+        resumo = {nome: _stats(valores)
+                  for nome, valores in dados['amostras'].items()}
+        gaps = resumo.get('intervalo_entre_inicios_ms', {})
+        media_gap = gaps.get('media')
+        grupos[chave] = {
+            'quadros_observados': dados['quadros_observados'],
+            'fps_cadencia_estimado': round(1000 / media_gap, 2) if media_gap else None,
+            'metricas_ms': resumo,
+            'travamentos_trabalho': dados['travamentos_trabalho'],
+        }
+    return grupos
+
+
+def _preparar_exportacao_qa(relatorio):
+    relatorio['grupos'] = _resumir_grupos_qa(relatorio['grupos'])
+    return relatorio
+
+
 class QATelemetria:
     """Mede todos os frames; so escreve no disco de tempos em tempos ou ao sair."""
     def __init__(self, versao, edicao, caminho=None, relogio=None, cpu_relogio=None):
@@ -214,22 +236,22 @@ class QATelemetria:
             # Exportacao periodica sem esperar escrita, sync somente na saida.
             self.salvar(esperar=False)
 
-    def relatorio(self):
-        por_modo_bioma = {}
+    def relatorio(self, resumir=True):
+        # Snapshot imutavel das janelas de 1800 amostras. A ordenacao e
+        # calculada na thread de I/O nas gravacoes periodicas.
+        snapshot = {}
         for chave, amostras in self.agregados.items():
-            resumo = {nome: _stats(list(valores)) for nome, valores in amostras.items()}
-            gaps = resumo.get('intervalo_entre_inicios_ms', {})
-            media_gap = gaps.get('media')
-            por_modo_bioma[chave] = {
+            snapshot[chave] = {
                 'quadros_observados': self.quantidades[chave],
-                'fps_cadencia_estimado': round(1000 / media_gap, 2) if media_gap else None,
-                'metricas_ms': resumo, 'travamentos_trabalho': dict(self.picos[chave]),
+                'amostras': {nome: tuple(valores) for nome, valores in amostras.items()},
+                'travamentos_trabalho': dict(self.picos[chave]),
             }
+        por_modo_bioma = _resumir_grupos_qa(snapshot) if resumir else snapshot
         return {
             'schema': 'pixelrush.qa.android.v1', 'versao': self.versao, 'edicao': self.edicao,
             'quadros_observados': self.contagem, 'grupos': por_modo_bioma,
             'rss_atual_mb': self.rss_mb, 'rss_pico_observado_mb': self.rss_pico_mb,
-            'piores_100_quadros_sem_limitador': self.piores,
+            'piores_100_quadros_sem_limitador': tuple(self.piores),
             'gpu_ms_real': None, 'gpu_estado': 'nao_disponivel_no_pygame; usar Perfetto/gfxinfo Android',
             'renderer_backend_qa': _renderer_backend_qa(),
             'camera_backend_autotune_qa': _camera_qa_estado(),
@@ -242,7 +264,7 @@ class QATelemetria:
                 'FPS estimado por intervalo entre inicios, inclui limitador e pausas do SO.',
                 'Travamentos calculados por trabalho sem espera intencional do limitador.',
                 'Janela de 1800 amostras recentes por grupo, ultimos 4000 quadros em CSV.',
-                'A gravacao periodica a cada 600 frames pode acrescentar custo de I/O ao quadro seguinte.',
+                'A gravacao periodica a cada 600 frames prepara snapshots no quadro; percentis e JSON/CSV sao calculados no worker.',
                 'Nenhum save, entrada de jogador, identificador pessoal ou conteudo do frame coletado.',
             ],
             'exportacoes_realizadas': self.gravacoes, 'erros_exportacao': self.erros_escrita,
@@ -252,9 +274,8 @@ class QATelemetria:
     def salvar(self, esperar=True):
         """Grava snapshots fora do frame; a chamada final espera o ultimo disco.
 
-        O calculo dos percentis ainda e feito na thread principal para evitar
-        leitura concorrente dos dados do profiler. O I/O e a serializacao
-        JSON/CSV sao transferidos a uma thread sem acesso ao pygame.
+        Snapshots de deques sao criados no thread principal, enquanto percentis,
+        serializacao JSON/CSV e I/O rodam fora do frame no worker unico.
         """
         try:
             if self._qa_gravador is None:
@@ -265,11 +286,11 @@ class QATelemetria:
             # com a exportacao anterior e nao for uma gravacao final.
             if not esperar and gravador._pendente is not None and not gravador._pendente.done():
                 return False
-            relatorio = self.relatorio()
+            relatorio = self.relatorio(resumir=False)
             linhas = tuple(dict(x) for x in self.ultimos)
             aceito = gravador.enviar(
-                self.pasta, 'pixelrush_qa_v327737', relatorio, linhas,
-                esperar=esperar)
+                self.pasta, 'pixelrush_qa_v327738', relatorio, linhas,
+                esperar=esperar, preparar_relatorio=_preparar_exportacao_qa)
             self.gravacoes = gravador.concluidas
             self.erros_escrita = gravador.falhas
             self.ultima_falha = gravador.ultimo_erro
