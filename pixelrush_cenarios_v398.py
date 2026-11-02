@@ -138,11 +138,16 @@ def desenhar_panorama(surf, panorama, scroll, y=PANORAMA_Y):
     comprimento = panorama.get_width()
     offset = int(scroll) % comprimento
     p = 0
+    operacoes = []
     while p < W:
         n = min(W-p, comprimento-offset)
-        surf.blit(panorama, (p, y), (offset, 0, n, panorama.get_height()))
+        operacoes.append((panorama, (p,y),
+                         (offset,0,n,panorama.get_height())))
         p += n
         offset = 0
+    # Mesmos recortes e sobreposicoes; Surface.blits agrupa chamadas em C.
+    if operacoes:
+        surf.blits(operacoes, doreturn=False)
 
 
 def desenhar_emenda_panorama(surf, cor_ceu, bioma, noite, y=PANORAMA_Y):
