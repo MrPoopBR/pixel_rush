@@ -2528,6 +2528,15 @@ def desenhar_texto_centralizado(surface, texto, fonte_obj, cor_texto, cor_sombra
     surface.blit(surf_texto, (x_pos, y_pos))
 
 
+from functools import lru_cache as _qa_lru_cache_rotulos
+
+
+@_qa_lru_cache_rotulos(maxsize=64)
+def _qa_cache_escala_rotulo(fonte_surface, tamanho):
+    """QA 3.277.32: escala idêntica para texto estático em botões."""
+    return pygame.transform.smoothscale(fonte_surface, tamanho)
+
+
 def desenhar_rotulo_botao(superficie, texto, fonte_obj, cor_texto, cor_sombra, rect):
     """Desenha um rótulo centralizado horizontal e verticalmente dentro de um botão."""
     if _IDIOMA_ATUAL_I18N not in ('pt_BR', 'en_US'):
@@ -2553,8 +2562,8 @@ def desenhar_rotulo_botao(superficie, texto, fonte_obj, cor_texto, cor_sombra, r
                     altura / max(1, surf_texto.get_height()))
         tamanho = (max(1, int(surf_texto.get_width() * fator)),
                    max(1, int(surf_texto.get_height() * fator)))
-        surf_texto = pygame.transform.smoothscale(surf_texto, tamanho)
-        surf_sombra = pygame.transform.smoothscale(surf_sombra, tamanho)
+        surf_texto = _qa_cache_escala_rotulo(surf_texto, tamanho)
+        surf_sombra = _qa_cache_escala_rotulo(surf_sombra, tamanho)
     x = rect.centerx - surf_texto.get_width() // 2
     y = rect.centery - surf_texto.get_height() // 2
     superficie.blit(surf_sombra, (x + 1, y + 1))
