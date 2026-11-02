@@ -45,7 +45,8 @@ def _renderer_backend_qa():
         backend = pygame.transform.get_smoothscale_backend()
         driver = pygame.display.get_driver() if pygame.display.get_init() else None
         return {'smoothscale': str(backend), 'sdl_video': str(driver) if driver else None}
-    except (ImportError, AttributeError, RuntimeError):
+    except Exception:
+        # A telemetria nunca deve impedir uma corrida em SDL sem display.
         return {'smoothscale': None, 'sdl_video': None}
 
 
