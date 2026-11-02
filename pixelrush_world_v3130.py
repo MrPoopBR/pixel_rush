@@ -8,6 +8,7 @@ import math
 import json
 import os
 from collections import OrderedDict
+from functools import lru_cache
 import pygame
 from pixelrush_renderfx_v3125 import AtmosphereFlow, WorldDebris
 from pixelrush_art_guard_v3111 import verificar_arte
@@ -31,6 +32,15 @@ PROPS={
 'cidade_futurista':((1,50,125,260,'flicker'),(770,50,125,260,'flicker')),
 'ilhas_celestes':((0,15,178,418,'sway'),(724,10,175,418,'sway')),
 }
+@lru_cache(maxsize=96)
+def _qa_halo_pixel_exato(cor, alfas):
+    """QA 3.277.37: mesma ordem de circulos e RGBA, sem alocar por luz."""
+    g = pygame.Surface((42, 42), pygame.SRCALPHA)
+    for raio, alpha in zip((19, 15, 10, 6), alfas):
+        pygame.draw.circle(g, (*cor, alpha), (21, 21), raio)
+    return g
+
+
 COLORS={'cidade':(244,187,112),'neve':(255,216,173),'deserto':(255,201,121),
 'vulcao':(255,128,68),'floresta':(136,234,153),'cidade_futurista':(89,222,253),
 'ilhas_celestes':(146,243,215)}
@@ -138,8 +148,13 @@ class LivingWorld:
         if strip is None:return
         off=self._scroll()%strip.get_width()
         x=-off
+        operacoes=[]
         while x<WIDTH:
-            target.blit(strip,(x,TOP));x+=strip.get_width()
+            operacoes.append((strip,(x,TOP)))
+            x+=strip.get_width()
+        # Batch executado em C, EXATAMENTE mesma ordem e blend do blit.
+        if operacoes:
+            target.blits(operacoes, doreturn=False)
 
     def _get_modular(self):
         """Cria a arte uma vez por bioma. Nao ativa outras modificacoes."""
@@ -331,8 +346,15 @@ class LivingWorld:
                         deform_cache[rig_key]=pp
                     dx=0
                 if kind=='flicker':
-                    pp=pp.copy();pp.set_alpha(int(174+77*abs(math.sin(self.frame*.08+i)))*max(.5,self.night))
-                surface.blit(pp,(int(x)+dx-left_shift,TOP+sy+dy))
+                    # Equivalente a pp.copy().set_alpha(), sem copiar RGBA.
+                    alpha_antigo = pp.get_alpha()
+                    pp.set_alpha(int(174+77*abs(math.sin(self.frame*.08+i)))*max(.5,self.night))
+                    try:
+                        surface.blit(pp,(int(x)+dx-left_shift,TOP+sy+dy))
+                    finally:
+                        pp.set_alpha(alpha_antigo)
+                else:
+                    surface.blit(pp,(int(x)+dx-left_shift,TOP+sy+dy))
 
     def _lights(self,surface):
         if self.night<.10 and self.biome not in ('cidade_futurista','ilhas_celestes','vulcao'):return
@@ -342,10 +364,8 @@ class LivingWorld:
             if x>WIDTH+15:continue
             y=380+n%3*65
             # halo muito discreto, sem bolhas/brancos sobre o cenário
-            g=pygame.Surface((42,42),pygame.SRCALPHA)
-            for r in (19,15,10,6):
-                a=int((20-r)*.55*(.35+self.night))
-                pygame.draw.circle(g,(*color,max(0,a)),(21,21),r)
+            alfas=tuple(max(0,int((20-r)*.55*(.35+self.night))) for r in (19,15,10,6))
+            g=_qa_halo_pixel_exato(tuple(color),alfas)
             surface.blit(g,(x-21,y-21))
 
     def _weather(self,surface):
@@ -395,7 +415,13 @@ class LivingWorld:
             return
         if self.damage.chunks:
             # Somente cenografia (TOP..GROUND); máscara SDF remove pixels reais.
-            layer=pygame.Surface((WIDTH,GROUND-TOP),pygame.SRCALPHA)
+            # Buffer reutilizado quando ha SDF ativo: evita alocacao 450x500 RGBA.
+            layer=getattr(self,'_qa_damage_layer',None)
+            if layer is None or layer.get_size()!=(WIDTH,GROUND-TOP):
+                layer=pygame.Surface((WIDTH,GROUND-TOP),pygame.SRCALPHA)
+                self._qa_damage_layer=layer
+            else:
+                layer.fill((0,0,0,0))
             strip=self._load('image')
             offset=self._scroll()%strip.get_width()
             left=-offset
@@ -445,8 +471,21 @@ class LivingWorld:
             # nao desenhar tambem elimina uma composicao por quadro.
             return
         # A frente extrema só aparece nas bordas, com textura original da arte.
-        image=_source(self.biome)
-        for rect,x in (((0,310,124,188),-30),((776,310,124,188),WIDTH-16)):
-            tex=pygame.transform.smoothscale(image.subsurface(rect),(45,136))
-            tex.set_alpha(50)
-            surface.blit(tex,(x+int(math.sin(self.frame*.035)*2),GROUND-145))
+        cache=getattr(self,'_qa_foreground_cache',None)
+        if cache is None:
+            cache={}
+            self._qa_foreground_cache=cache
+        texturas=cache.get(self.biome)
+        if texturas is None:
+            image=_source(self.biome)
+            novas=[]
+            for rect in ((0,310,124,188),(776,310,124,188)):
+                tex=pygame.transform.smoothscale(image.subsurface(rect),(45,136))
+                tex.set_alpha(50)
+                novas.append(tex)
+            if len(cache)>=2:
+                cache.clear()
+            cache[self.biome]=texturas=tuple(novas)
+        deslocamento=int(math.sin(self.frame*.035)*2)
+        for tex,x in zip(texturas,(-30,WIDTH-16)):
+            surface.blit(tex,(x+deslocamento,GROUND-145))
