@@ -179,10 +179,10 @@ class TestPerformanceFullQA(unittest.TestCase):
                          'trabalho_ms':11.,'cpu_ms':9.,'intervalo_ms':16.7,
                          'rss_mb':48.5}
                     self.assertTrue(writer.enviar(
-                        td,'pixelrush_qa_v327739',doc,(row,),esperar=True))
-                final=json.loads((Path(td)/'pixelrush_qa_v327739.json').read_text('utf8'))
+                        td,'pixelrush_qa_v327740',doc,(row,),esperar=True))
+                final=json.loads((Path(td)/'pixelrush_qa_v327740.json').read_text('utf8'))
                 self.assertEqual(final['indice'],2)
-                with (Path(td)/'pixelrush_qa_frames_v327739.csv').open(newline='') as f:
+                with (Path(td)/'pixelrush_qa_frames_v327740.csv').open(newline='') as f:
                     linhas=list(csv.DictReader(f))
                 self.assertEqual(len(linhas),1)
                 self.assertEqual(linhas[0]['modo'],'corrida_normal')
@@ -195,22 +195,22 @@ class TestPerformanceFullQA(unittest.TestCase):
     def test_telemetria_flush_e_nomes(self):
         from pixelrush_qa_android_v327728 import QATelemetria
         with tempfile.TemporaryDirectory() as td:
-            qa=QATelemetria('v3.277.39-QA','LIMPA',caminho=td)
+            qa=QATelemetria('v3.277.40-QA','LIMPA',caminho=td)
             qa.iniciar('JOGANDO','cidade')
             qa.marcar('renderizacao_e_ui')
             qa.fim()
             self.assertTrue(qa.salvar())
-            destino=Path(td)/'pixelrush_qa_v327739.json'
+            destino=Path(td)/'pixelrush_qa_v327740.json'
             self.assertTrue(destino.exists())
             doc=json.loads(destino.read_text('utf8'))
-            self.assertEqual(doc['versao'],'v3.277.39-QA')
+            self.assertEqual(doc['versao'],'v3.277.40-QA')
             self.assertEqual(doc['quadros_observados'],1)
             self.assertIn('apresentacao_swap',__import__('pixelrush_qa_android_v327728').SECOES)
             qa._qa_gravador.finalizar()
 
     def test_versao_preservacao_fisica_e_gpu(self):
         src=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-        self.assertIn('VERSAO = "v3.277.39-QA-ANDROID-RC"',src)
+        self.assertIn('VERSAO = "v3.277.40-QA-ANDROID-RC"',src)
         for invariavel in ('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',
                            'FPS_RENDER = 30 if E_ANDROID else 60',
                            'PIXELRUSH_DEV_BUILD = False'):
