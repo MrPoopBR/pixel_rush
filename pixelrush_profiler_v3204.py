@@ -176,4 +176,9 @@ def executar_com_profiler(funcao, versao, edicao):
     finally:
         p.salvar()
         if _QA_ATUAL is not None:
-            _QA_ATUAL.salvar()
+            try:
+                _QA_ATUAL.salvar()  # bloqueante: nao perde o ultimo JSON/CSV
+            finally:
+                gravador = getattr(_QA_ATUAL, '_qa_gravador', None)
+                if gravador is not None:
+                    gravador.finalizar()  # encerra worker antes do processo sair
