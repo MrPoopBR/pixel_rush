@@ -211,12 +211,12 @@ class QATelemetria:
     def salvar(self):
         try:
             self.pasta.mkdir(parents=True, exist_ok=True)
-            arquivo = self.pasta / 'pixelrush_qa_v327731.json'
-            temporario = self.pasta / 'pixelrush_qa_v327731.json.tmp'
+            arquivo = self.pasta / 'pixelrush_qa_v327732.json'
+            temporario = self.pasta / 'pixelrush_qa_v327732.json.tmp'
             temporario.write_text(json.dumps(self.relatorio(), ensure_ascii=False, indent=2), encoding='utf-8')
             os.replace(temporario, arquivo)
-            csv_final = self.pasta / 'pixelrush_qa_frames_v327731.csv'
-            csv_tmp = self.pasta / 'pixelrush_qa_frames_v327731.csv.tmp'
+            csv_final = self.pasta / 'pixelrush_qa_frames_v327732.csv'
+            csv_tmp = self.pasta / 'pixelrush_qa_frames_v327732.csv.tmp'
             with csv_tmp.open('w', encoding='utf-8', newline='') as f:
                 campos = ['modo', 'bioma', 'total_ms', 'trabalho_ms', 'cpu_ms', 'intervalo_ms', 'rss_mb']
                 w = csv.DictWriter(f, fieldnames=campos)
