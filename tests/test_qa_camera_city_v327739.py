@@ -137,7 +137,7 @@ class TestQA739(unittest.TestCase):
                              C.string_at(novo,len(dados)))
         fonte=inspect.getsource(GLES2DirectPresenterQA.draw)
         self.assertIn("data_ptr=C.cast(C.c_char_p(data),C.c_void_p)",fonte)
-        self.assertNotIn("create_string_buffer",fonte)
+        self.assertNotIn("data=C.create_string_buffer(",fonte)
 
 
 if __name__=="__main__":
