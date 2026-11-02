@@ -2212,6 +2212,10 @@ def _estado_skin_jogador(jogador, frame_contador):
     return 'CORRER', (frame_contador // 2) % 10
 
 
+from functools import lru_cache as _qa_lru_skins_enquadradas
+
+
+@_qa_lru_skins_enquadradas(maxsize=96)
 def _sprite_skin_enquadrado(nome, estado, indice, largura, altura, margem=0):
     """Enquadra a silhueta visível inteira sem cortar cabeça, capa ou pés."""
     origem = _quadros_skin(nome)[estado][indice]
@@ -15414,6 +15418,7 @@ def main():
         if tamanho_final == tela_gamefeel.get_size():
             superficie_final = tela_gamefeel
         else:
+            _pro_sub_inicio("apresentacao_escala_final")
             superficie_final = superficies_escala.get(tamanho_final)
             if superficie_final is None:
                 try:
@@ -15426,9 +15431,14 @@ def main():
             else:
                 superficies_escala.move_to_end(tamanho_final)
             pygame.transform.scale(tela_gamefeel, tamanho_final, superficie_final)
+            _pro_sub_fim()
 
+        _pro_sub_inicio("apresentacao_blit_final")
         tela.blit(superficie_final, pos_final)
+        _pro_sub_fim()
+        _pro_sub_inicio("apresentacao_swap")
         pygame.display.flip()
+        _pro_sub_fim()
         _pro_marcar("limitador_fps")
         if monitor_diag is not None:
             monitor_diag.registrar_quadro(estado, cenario_atual, largura_render, altura_render,
