@@ -109,15 +109,9 @@ def _faixa_noturna(bioma, intensidade):
     return result
 
 
-def desenhar_legibilidade_jetpack(superficie, gate, frame=0, leve=False):
-    """Três faixas com X, chevrons e separadores: redundância sem depender de cores.
-
-    Nunca escreve em gate, usa o aviso real e não gera comandos ou temporizadores.
-    """
-    if not getattr(gate,'ligado',False) or int(getattr(gate,'aviso',0))<=0:
-        return False
-    faixa=max(0,min(2,int(gate.faixa)))
-    x0,y0=superficie.get_width()-89,262
+@lru_cache(maxsize=3)
+def _icone_laser_qa(faixa):
+    """QA v3.277.32: cache para as tres imagens fixas de aviso."""
     fundo=pygame.Surface((75,70),pygame.SRCALPHA)
     pygame.draw.rect(fundo,(8,27,43,220),(0,0,75,70),border_radius=8)
     pygame.draw.rect(fundo,(225,245,249,165),(0,0,75,70),2,border_radius=8)
@@ -135,7 +129,18 @@ def desenhar_legibilidade_jetpack(superficie, gate, frame=0, leve=False):
             # Seta dupla para faixa disponível, iconografia independente da cor.
             for dx in (31,39):
                 pygame.draw.lines(fundo,(13,54,65),False,[(dx,y+3),(dx+4,y+7),(dx,y+11)],2)
-    superficie.blit(fundo,(x0,y0))
+    return fundo
+
+def desenhar_legibilidade_jetpack(superficie, gate, frame=0, leve=False):
+    """Três faixas com X, chevrons e separadores: redundância sem depender de cores.
+
+    Nunca escreve em gate, usa o aviso real e não gera comandos ou temporizadores.
+    """
+    if not getattr(gate,'ligado',False) or int(getattr(gate,'aviso',0))<=0:
+        return False
+    faixa=max(0,min(2,int(gate.faixa)))
+    x0,y0=superficie.get_width()-89,262
+    superficie.blit(_icone_laser_qa(faixa),(x0,y0))
     return True
 
 
