@@ -48,7 +48,8 @@ def _teste_real(imagem, tamanho):
         t0 = time.perf_counter_ns()
         referencia = pygame.transform.smoothscale(imagem, tamanho, buffer)
         custo = (time.perf_counter_ns() - t0) / 1e6
-        referencia_bytes = pygame.image.tobytes(referencia, 'RGB')
+        formato = 'RGBA' if imagem.get_flags() & pygame.SRCALPHA else 'RGB'
+        referencia_bytes = pygame.image.tobytes(referencia, formato)
         _RESULTADO['tempo_original_ms'] = round(custo, 3)
         for candidato in ('NEON', 'SSE2'):
             if candidato == original:
@@ -61,7 +62,7 @@ def _teste_real(imagem, tamanho):
                 t1 = time.perf_counter_ns()
                 saida = pygame.transform.smoothscale(imagem, tamanho, buffer)
                 custo_novo = (time.perf_counter_ns() - t1) / 1e6
-                if pygame.image.tobytes(saida, 'RGB') != referencia_bytes:
+                if pygame.image.tobytes(saida, formato) != referencia_bytes:
                     _RESULTADO['resultado'] = 'diferenca_de_pixels: ' + candidato
                     continue
                 # Segunda prova com pixels independentes e zoom diferente.
@@ -75,7 +76,7 @@ def _teste_real(imagem, tamanho):
                 alt_tamanho = (45, 73)
                 pygame.transform.set_smoothscale_backend(original)
                 esperado = pygame.image.tobytes(
-                    pygame.transform.smoothscale(amostra, alt_tamanho), 'RGB')
+                    pygame.transform.smoothscale(amostra, alt_tamanho), formato)
                 pygame.transform.set_smoothscale_backend(candidato)
                 obtido = pygame.image.tobytes(
                     pygame.transform.smoothscale(amostra, alt_tamanho), 'RGB')
