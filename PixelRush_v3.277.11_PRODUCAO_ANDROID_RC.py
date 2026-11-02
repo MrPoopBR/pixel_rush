@@ -13687,11 +13687,13 @@ def main():
                         cenas_epicas.desenhar(display_surface, cenario_atual,
                                              bg_parallax.world.travel, frame_count, peso_noite,
                                              leve=(modo_grafico_leve(dados) or dados.get('acess_reduzir_efeitos', False)))
-                    bg_parallax.draw_chao(display_surface)
-                    if estado == 'JOGANDO' and not modo_grafico_leve(dados):
-                        desenhar_clima_premium(display_surface, cenario_atual, frame_count)
                     cache_fundo_mobile.guardar(
                         display_surface, _chave_fundo_mobile, _cache_fundo_mobile_ativo)
+                # O piso rola em todos os quadros, mesmo com fundo em cache.
+                # Sao exatamente os mesmos pixels e a mesma ordem de sobreposicao.
+                bg_parallax.draw_chao(display_surface)
+                if estado == 'JOGANDO' and not modo_grafico_leve(dados):
+                    desenhar_clima_premium(display_surface, cenario_atual, frame_count)
                 if estado in ("JOGANDO", "PAUSA") and evento_corrida:
                     ex = int(evento_corrida_x)
                     if evento_corrida == "PLATAFORMA":
