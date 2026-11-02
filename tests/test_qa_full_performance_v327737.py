@@ -122,7 +122,7 @@ class TestPerformanceFullQA(unittest.TestCase):
         world._source=lambda biome: imagem
         try:
             stub=world.LivingWorld.__new__(world.LivingWorld)
-            stub.biome='deserto'
+            stub.biome='vulcao'
             stub.lightweight=False
             for frame in (0,1,13,41,201):
                 stub.frame=frame
@@ -139,7 +139,7 @@ class TestPerformanceFullQA(unittest.TestCase):
                 self.assertEqual(pix(esperado),pix(saida),str(frame))
             cache=stub._qa_foreground_cache
             self.assertEqual(len(cache),1)
-            self.assertEqual(len(cache['deserto']),2)
+            self.assertEqual(len(cache['vulcao']),2)
         finally:
             world._source=source
 
