@@ -118,7 +118,7 @@ class PerformanceQA327732(unittest.TestCase):
         source=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
         world=(ROOT/'pixelrush_world_v3130.py').read_text('utf8')
         code=(ROOT/'pixelrush_profissional_v3108.py').read_text('utf8')
-        assert 'VERSAO = "v3.277.45-QA-ANDROID-RC"' in source
+        assert 'VERSAO = "v3.277.46-QA-ANDROID-RC"' in source
         for invariant in ('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',
                           'FPS_RENDER = 30 if E_ANDROID else 60',
                           'PIXELRUSH_DEV_BUILD = False',
