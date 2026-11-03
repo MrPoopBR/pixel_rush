@@ -20,10 +20,17 @@ class Crop32QA:
 
     def __init__(self, library_path):
         path=Path(library_path)
-        if not path.is_file():
+        # QA v3.277.42: no Android a biblioteca e instalada no diretório
+        # nativo lib/arm64-v8a do APK; dlopen usa o SONAME do linker Android.
+        # Na bancada desktop permanecem validos os caminhos absolutos.
+        if path.is_file():
+            load_name=str(path.resolve())
+        elif path.name==str(library_path) and str(library_path).endswith('.so'):
+            load_name=str(library_path)
+        else:
             raise NativeCameraUnavailable('Biblioteca QA nativa ausente')
         try:
-            self.lib=C.CDLL(str(path.resolve()))
+            self.lib=C.CDLL(load_name)
             fun=self.lib.pixelrush_crop_camera32
         except (OSError,AttributeError) as e:
             raise NativeCameraUnavailable('Biblioteca QA nativa invalida') from e
