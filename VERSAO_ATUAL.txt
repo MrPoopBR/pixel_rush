@@ -57,3 +57,5 @@ QA v3.277.58: fallback e escalonador de RAM compartilham a protecao de mapas 2.5
 QA v3.277.58 - evidência final: GitHub Actions #41714045870 passou 11/11 testes integrados offline, AST/SHA e 180 variacoes de culling Neve/Deserto byte RGBA. #16 concluida em implementacao/teste offline; placar 14/32 offline, 18/32 parciais, zero homologacao Android. Clima preserva RGBA oculto e transicoes. Sem APK/AAB/Android; QA_CHANGELOG_v327758.md e QA_TRACKER_32_v327758.md atualizados.
 
 QA v3.277.59: empréstimo geometry do World 450x500 ativado no QA (sem segunda cópia/surface), sementes de partículas de Neve/Deserto e atmosfera da Cidade pré-computadas com fallback; gates Pygame offline, sem Android/APK/AAB. QA_TRACKER_32_v327759.md e QA_CHANGELOG_v327759.md.
+
+QA v3.277.59 evidência offline final: CI #41717619668 passou 18/18 testes integrados e preflight; dois LivingWorld reais e troca Cidade/Neve mantiveram cache/oclusão/bytes. #2 concluída somente em implementação+QA offline; placar 15/32, 17 parciais, zero Android. Benchmark Linux geometry: snapshot 0.577948ms, borrow 0.613193ms (sem alegar aumento FPS). Nenhum APK/AAB/Android.

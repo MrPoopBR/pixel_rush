@@ -7,15 +7,15 @@
 ## Resultados discriminados
 
 - **32 de 32 frentes auditadas no código**, incluindo os módulos QA, integração no `main.py` e engine Android.
-- **14 de 32 concluídas em nível de implementação/testes offline direcionados** (12 anteriores + #26 GC cooperativo + #16 culling modular validado no código real); esta categoria **não significa homologação Android**. O gate de #26 passou em teste local sintético de 901 flips pygame-ce, não em corrida Android.
-- **18 de 32 possuem integração ou componentes, mas ainda não cumprem TODOS os critérios de conclusão.** Avanços reais nesta operação nas #2, #7, #10, #16, #22, #23, #24, #25 e #26. Algumas ficam parciais por escopo dos algoritmos, outras exigem hardware.
+- **15 de 32 concluídas em nível de implementação/testes offline direcionados** (12 anteriores + #26 GC cooperativo + #16 culling modular validado no código real); esta categoria **não significa homologação Android**. O gate de #26 passou em teste local sintético de 901 flips pygame-ce, não em corrida Android.
+- **17 de 32 possuem integração ou componentes, mas ainda não cumprem TODOS os critérios de conclusão.** Avanços reais nesta operação nas #2, #7, #10, #16, #22, #23, #24, #25 e #26. Algumas ficam parciais por escopo dos algoritmos, outras exigem hardware.
 - **0 de 32 homologadas como pacote Android completo** nesta tarefa, porque não foi solicitado nem executado APK, Android, Perfetto ou teste final do aparelho.
-- **Não converter as 19 frentes parciais em concluídas artificialmente**: GPU/GLES/PBO/NEON/driver precisam do gate no hardware, e scroll incremental não comprovou desempenho superior para atlas SDL-RLE usados no caminho real.
+- **Não converter as 17 frentes parciais em concluídas artificialmente**: GPU/GLES/PBO/NEON/driver precisam do gate no hardware, e scroll incremental não comprovou desempenho superior para atlas SDL-RLE usados no caminho real.
 
 | # | Melhoria | Estado de implementação | Evidência / pendência |
 |---:|---|---|---|
 |1|Zoom GPU|Integrada, não aprovada|Ponte shader com opt-in e fallback SDL; igualdade de pixels e latência Android não demonstradas.|
-|2|Compositor 2.5D persistente|Integrada, gate real pendente|Cache fundo 5:1 mantido; memo técnica de mesmo frame por instância com weakrefs, sem copiar pixels.|
+|2|Compositor 2.5D persistente|**Concluída em implementação e gate offline v759**|Cache temporal de fundo 5:1, buffers por mundo, memo técnica mesmo frame com weakrefs e geometry emprestado; prova LivingWorld real (Cidade/Neve, dois mundos e switch) no CI #41717619668. Android pendente.|
 |3|Híbrido CPU/GPU|Integrada, não aprovada|Staging/GLES via ponte; por segurança, não ativado no Android sem prova de HUD/input/roundtrip.|
 |4|Zoom e pós-processamento unificados|Integrada, parcial|Contrato único da apresentação QA já usado; transformações GPU/CPU não foram eliminadas integralmente.|
 |5|Scroll incremental pixel-exato|Integrada, fallback|Rotas não-RLE com clipping; origem RLE usa blit original byte-exato, sem prometer vantagem CPU.|
@@ -67,7 +67,7 @@
 
 **Preservação:** `main.py`, branch main, DEV, tutorial, física, hitboxes, cadência de fundo 5:1, pixels e iluminação, sombras/clima, câmera, controles, HUD, lojas/desbloqueios, pets, saves, sons, assets, shaders e workflows de produção não foram alterados nesta branch. A engine QA recebeu apenas ligação do prewarm e versão; Buildozer só versão. **Não ativar GLES, GPU zoom, PBO nem C/NEON sem prova no Android.**
 
-**Pendências de conclusão real:** #1/#3/#8/#12/#28/#29/#32 dependem do aparelho; #2/#4/#5/#7/#10/#18/#20/#22/#23/#24/#25 ainda exigem cobertura/medição completa ou otimização funcional adicional. O trabalho feito nesta operação não pode ser renomeado 32/32 sem evidência. Não existe dependência de teste do usuário para continuar *implementando*; existe dependência de hardware para a homologação de determinados recursos.
+**Pendências de conclusão real:** #1/#3/#8/#12/#28/#29/#32 dependem do aparelho; #4/#5/#7/#10/#18/#20/#22/#23/#24/#25 ainda exigem cobertura/medição completa ou otimização funcional adicional. O trabalho feito nesta operação não pode ser renomeado 32/32 sem evidência. Não existe dependência de teste do usuário para continuar *implementando*; existe dependência de hardware para a homologação de determinados recursos.
 
 ## Revisao de integração v3.277.58 (mesma branch QA)
 
@@ -98,7 +98,7 @@ A verificação com pygame-ce 2.5.8 revelou que blitar `SRCALPHA=(0,0,0,0)` sobr
 
 - #2/#7/#10/#24: buffer geometry 450x500 já pertencente a LivingWorld._city_surfaces emprestado por padrão no QA, sem segunda Surface/cópia. Ambiente de referência: pixelrush_city2_v3124 e pixelrush_biomes2_v3128 continuam com snapshot se o destino não pertence ao World. Rollback PIXELRUSH_QA_GEOMETRY_BORROW=0. Resultado RGBA e ambient_occlusion sujeitos ao novo gate.
 - #18/#20: sementes das partículas Neve/Deserto e fatores invariantes da atmosfera da Cidade pré-computados, sem alterar quantidade, posição, cor, ordenação, RNG ou buffer meteorológico. Rollbacks PIXELRUSH_QA_MODULAR_SEEDS=0 e PIXELRUSH_QA_CITY_PARTICLE_SEEDS=0.
-- 18 frentes continuam parciais até gates e/ou implementação integral; nenhuma rota GPU/NEON/PBO/VSync ativada sem aparelho. Placar provisório 14/32 offline, 18/32 parciais, 0 Android.
+- 17 frentes continuam parciais até gates e/ou implementação integral; nenhuma rota GPU/NEON/PBO/VSync ativada sem aparelho. Placar provisório 14/32 offline, 18/32 parciais, 0 Android.
 
 ### Bloqueante encontrado e corrigido na primeira CI v759
 
@@ -108,3 +108,10 @@ O renderizador de Cidade v3118 usa caches/metadados _qa_uniform_tech, _qa_scaled
 
 - Execução https://github.com/MrPoopBR/pixel_rush/actions/runs/41717129303: **16/16 testes offline aprovados**, mais preflight AST/SHA. A primeira execução https://github.com/MrPoopBR/pixel_rush/actions/runs/41716396740 detectou falta de _qa_uniform_tech na hierarquia real e foi corrigida pelo bootstrap QA, não ocultada.
 - Novo teste de integração do LivingWorld real instalado pelo QA vai verificar 2 instâncias simultâneas (normal e leve), channel geometry com/sem empréstimo, ambient_occlusion, memo no mesmo frame, troca de Cidade→Neve, e microbench de CPU. **Ainda não executado neste commit**: não pressupor aprovação nem desempenho superior Android.
+
+## Fechamento comprovado da frente #2 e custo do geometry (CI v759)
+
+- **GitHub Actions #41717619668** (https://github.com/MrPoopBR/pixel_rush/actions/runs/41717619668), commit e57a80263380c60fe255b18094ce031dbd717410: **18/18 testes offline aprovados**, mais preflight de AST/versão/integridade. Os 2 testes novos executam o instalador QA, dois LivingWorld Cidade (qualidades diferentes), o cache de geometry com e sem empréstimo, valores de ambient_occlusion, memo de mesmo frame e troca Cidade→Neve com limpeza/invalidação. Nenhum teste Android.
+- **Critério #2 (concluída offline)**: buffer do mundo persiste, cache de fundo temporal 5:1 existente, memo por instância/estado do frame testada no caminho real, transição de bioma e oclusão preservadas. Scroll incremental entre diferentes frames é **#5, que permanece parcial**; #2 não implica GPU homologada.
+- **Benchmark do host Linux (somente referência):** mediana de 15 renderizações de geometry: snapshot **0,577948 ms**, empréstimo **0,613193 ms**. Não foi demonstrado ganho de CPU nesse host; a melhoria comprovável é a eliminação de uma Surface/cópia RGBA de 900.000 bytes por cena quando usa o buffer próprio. Não afirmar redução de latência Android. Manter fallback PIXELRUSH_QA_GEOMETRY_BORROW=0 para perfilagem no hardware.
+- **Status vigente:** **15/32 implementadas e validadas offline**, **17/32 ainda parciais**, **0/32 homologadas em Android**. #7/#10/#18/#20/#24 continuam parciais embora tenham melhorias novas; nenhum recurso dependente de hardware foi promovido artificialmente. A evidência v758 de 14/32 é histórica e permanece acima para rastreabilidade.

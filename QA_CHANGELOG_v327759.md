@@ -16,3 +16,10 @@ A CI #41716396740 revelou AttributeError: CityPilotScene não possuía _qa_unifo
 ## CI e gate de integração adicional
 
 A execução GitHub Actions #41717129303 confirmou 16/16 testes offline e hashes protegidos. Foi criado tests/test_qa_world_real_v327759.py, conectado ao mesmo workflow, para verificar o caminho LivingWorld real por meio de hooks instalados como no main QA, duas instâncias, troca de bioma e mediana de render geometry em CPU. Valores de benchmark serão informados somente após log; são da máquina do CI, não do Android. Sem APK/AAB/Android.
+
+## Resultado do pacote v759
+
+- Execução de integração [#41717619668](https://github.com/MrPoopBR/pixel_rush/actions/runs/41717619668): 18/18 testes offline e preflight estático aprovados. Casos adicionais percorrem World real, múltiplas instâncias, memo, aliases, cena de Neve e oclusão.
+- **#2 Compositor 2.5D persistente:** concluído em implementação e gate offline, graças à prova do caminho World/QA (não #5 scroll incremental nem Android). Tracker vigente **15/32 concluídas offline**, **17/32 parciais**, **0/32 homologadas Android**.
+- Medição de CPU da geometry no runner Linux: snapshot 0,577948 ms vs. empréstimo 0,613193 ms (mediana de 15); o empréstimo evita a Surface extra de 900 KB, **não se afirmou FPS superior**. A flag de fallback continua disponível.
+- Preservação comprovada por preflight AST e arquivos protegidos; não houve recompilação ou teste Android, merge com main, modificação física, saves, pets, DEV ou jogabilidade.
