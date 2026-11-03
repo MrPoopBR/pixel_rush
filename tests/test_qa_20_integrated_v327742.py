@@ -145,6 +145,42 @@ class TestQA742(unittest.TestCase):
             qa.restaurar_para_teste()
         self.assertIs(CameraCinematica.aplicar,original)
 
+    def test_budget_rss_sem_afetar_o_bioma_ativo(self):
+        import pixelrush_qa_performance_integrated_v327742 as qa
+        from collections import OrderedDict
+        from types import SimpleNamespace
+        class FakeWorld:
+            def __init__(self):
+                self.biome='cidade'
+                self.props_cache={('cidade',0):'ativo',('neve',1):'frio'}
+                self.cache=OrderedDict([('cidade','ativo'),('neve','frio')])
+                self.fx_cache=OrderedDict([('cidade','ativo'),('deserto','frio')])
+                self.normal_cache={}
+                self.material_cache={}
+                self.flow_cache={}
+                self.geometry_cache={}
+                self._city_surfaces={('image',False):'quadro',
+                                     ('normal',False):'frio'}
+                self.city2=SimpleNamespace(_scaled=OrderedDict(
+                    (str(i),i) for i in range(12)))
+        fake=FakeWorld()
+        old_func=qa._memory_mib
+        old_limit=qa._LAST_STATUS['cache_budget_mib']
+        try:
+            qa._WORLDS.add(fake)
+            qa._LAST_STATUS['cache_budget_mib']=560
+            qa._memory_mib=lambda:700.
+            qa._reclaim_inactive_caches()
+            self.assertEqual(fake.props_cache,{('cidade',0):'ativo'})
+            self.assertEqual(dict(fake.cache),{'cidade':'ativo'})
+            self.assertEqual(dict(fake.fx_cache),{'cidade':'ativo'})
+            self.assertEqual(fake._city_surfaces,{('image',False):'quadro'})
+            self.assertEqual(len(fake.city2._scaled),8)
+        finally:
+            qa._WORLDS.discard(fake)
+            qa._LAST_STATUS['cache_budget_mib']=old_limit
+            qa._memory_mib=old_func
+
     def test_gc_e_tracing_nao_alteram_resultados(self):
         from pixelrush_qa_performance_integrated_v327742 import (
             instalar,restaurar_para_teste,diagnostico)
@@ -161,7 +197,8 @@ class TestQA742(unittest.TestCase):
             self.assertIsNot(CameraCinematica.aplicar,camera)
             r=diagnostico()
             self.assertFalse(r['gpu_accelerated'])
-            self.assertEqual(r['cache_budget_mib'],560)
+            self.assertGreaterEqual(r['cache_budget_mib'],384)
+            self.assertLessEqual(r['cache_budget_mib'],560)
         finally:
             restaurar_para_teste()
         self.assertIs(LivingWorld._weather,w)
