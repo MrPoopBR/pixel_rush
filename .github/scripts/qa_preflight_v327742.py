@@ -53,6 +53,8 @@ PINNED={
     'tests/test_qa_scroll_auto_v327742.py':'47d7598f07d8857369f11ebabc4edb8f68319f7e',
     'tests/test_qa_gles_pbo_v327742.py':'6b05e9bcda8e7e87a475801f6f07d478492ecb02',
     '.github/scripts/qa_benchmark_all32_v327742.py':'52afc16803edff0364b10d1b383ea33e733181f0',
+    'pixelrush_biomes2_v3126.py':'06abc1cff35dc32db15d732f3e2d76888b240787',
+    'tests/test_qa_modular_batch_v327742.py':'12999ec4f632bc0d093e87187751f6e036961fff',
     'tests/test_qa_full_performance_v327737.py':'87dfb7b52c12a782422cc77d76eb21f97532407e',
 }
 
@@ -131,6 +133,7 @@ def checar():
     for marker in ('tests/test_qa_20_integrated_v327742.py',
                    'tests/test_qa_scroll_auto_v327742.py',
                    'qa_benchmark_all32_v327742.py',
+                   'tests/test_qa_modular_batch_v327742.py',
                    'qa_native/libpixelrush_camera_crop_v327741.so',
                    'Compilar biblioteca C/NEON antes do APK'):
         # O ultimo gate verifica a etapa cujo nome explicita o empacotamento.
@@ -161,7 +164,9 @@ def checar():
                  'tests/test_qa_20_integrated_v327742.py',
                  'tests/test_qa_scroll_auto_v327742.py',
                  'tests/test_qa_gles_pbo_v327742.py',
-                 '.github/scripts/qa_benchmark_all32_v327742.py'):
+                 '.github/scripts/qa_benchmark_all32_v327742.py',
+                 'pixelrush_biomes2_v3126.py',
+                 'tests/test_qa_modular_batch_v327742.py'):
         ast.parse(Path(path).read_text('utf8'),filename=path)
     return {
         'resultado':'APROVADO_GATES_ESTATICOS_APENAS',
