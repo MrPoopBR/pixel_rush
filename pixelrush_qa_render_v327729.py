@@ -100,4 +100,6 @@ def restaurar_para_teste():
         from pixelrush_qa_city_weather_v327749 import restaurar_para_teste as restaurar_clima
         restaurar_tiles()
         restaurar_clima()
+        from pixelrush_qa_gles_bridge_v327749 import restaurar_para_teste as restaurar_bridge
+        restaurar_bridge()
         _INSTALADO = False
