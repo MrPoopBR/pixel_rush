@@ -380,7 +380,7 @@ def checar():
     # v750: integralmente em caminho QA, nao so classes de laboratorio.
     qa750={
         'pixelrush_qa_unified_post_v327750.py':'2a0b6aad2e7738bfed7cf927c212349c749ef5bd',
-        'pixelrush_qa_incremental_scene_v327750.py':'5e72d85cbe6f95ed90765053567a79ebf028d369',
+        'pixelrush_qa_incremental_scene_v327750.py':'d70fabf326fac11fd13d2f686335904d1cce7294',
         'pixelrush_qa_cache_trim_v327748.py':'60c0894f53b7e475d2551a9e6f2c710c3f472e11',
         'pixelrush_city2_v3124.py':'312cd332b478aa3dc4ea187faf14e00b769d4486',
         'pixelrush_biomes2_v3128.py':'0cd5c2b12bbf6bb08a178de23d3a999fe0db5480',
