@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.61-QA-ANDROID-RC"
+VERSAO = "v3.277.62-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -13192,7 +13192,8 @@ def main():
         from pixelrush_qa_precarregamento_visual_v327757 import PrecargaVisuaisQA
         _qa_precarga_visuais = PrecargaVisuaisQA(
             dados.get('skin_equipada','AZUL'), SKINS_ATIVAS_PROD,
-            dados.get('pet_equipado'), _quadros_skin, pet5_precarregar)
+            dados.get('pet_equipado'), _quadros_skin, pet5_precarregar,
+            aquecer_tiles=True)
 
     rodando = True
     while rodando:

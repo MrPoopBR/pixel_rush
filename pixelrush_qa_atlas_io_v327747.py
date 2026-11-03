@@ -109,6 +109,15 @@ def instalar_no_boot_qa():
         _ULTIMO={'executado':False,'motivo':'desativado_por_env'}
         return dict(_ULTIMO)
     try:
+        # A producao ja aquece os atlas em thread propria. Quando o
+        # escalonador menu QA esta ativo, nao varrer tiles integralmente
+        # no boot: cada hash sera calculado em pequenas fatias no menu.
+        if (os.environ.get('PIXELRUSH_QA_TILES_IO_MENU','1')=='1' and
+                os.environ.get('PIXELRUSH_QA_TILES_IO_PREWARM','1')=='1' and
+                os.environ.get('PIXELRUSH_QA_ATLAS_IO_DEDUP','1')=='1'):
+            _ULTIMO={'executado':False,'motivo':'tiles_adiados_para_menu',
+                     'atlas_prod_preparados_pelo_carregador_original':True}
+            return dict(_ULTIMO)
         # A produção já dispara hash+page-cache dos mesmos quatro .atlas
         # em pixelrush_preparacao_prod_v32778.instalar(). Não executar
         # a MESMA leitura duplicada no QA antes do menu. Aquecer apenas
