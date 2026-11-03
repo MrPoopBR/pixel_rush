@@ -185,6 +185,8 @@ class SrcAlpha755(unittest.TestCase):
         # O caminho real deve cair no blit original, sem criar OrderedDict.
         import pixelrush_qa_incremental_scene_v327750 as mod
         from pixelrush_city2_v3125 import CityPilotScene
+        import pixelrush_city2_v3118 as city_core
+        old_accelerator=city_core.acelerar_textura_estatica
         mod.restaurar_para_teste()
         previous=CityPilotScene._render_chunk
         with patch.dict(os.environ,{
@@ -192,6 +194,12 @@ class SrcAlpha755(unittest.TestCase):
                 "PIXELRUSH_QA_CLASSIC_INCREMENTAL":"0",
                 "PIXELRUSH_QA_CITY_SCROLL_SCOPE":"static"}):
             try:
+                def rle_requerido(surface):
+                    surface.set_alpha(255,pygame.RLEACCEL)
+                    return surface
+                # Independe do id-cache global do acelerador de sprites:
+                # RLE pedido explicitamente na textura escala do fixture.
+                city_core.acelerar_textura_estatica=rle_requerido
                 mod.instalar()
                 scene=CityPilotScene()
                 low=pygame.Surface((450,250),pygame.SRCALPHA,32)
@@ -214,6 +222,7 @@ class SrcAlpha755(unittest.TestCase):
                 self.assertFalse(mod.tem_cache_cena(scene))
             finally:
                 mod.restaurar_para_teste()
+                city_core.acelerar_textura_estatica=old_accelerator
         self.assertIs(CityPilotScene._render_chunk,previous)
 
 
