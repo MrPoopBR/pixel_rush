@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.68-QA-ANDROID-RC"
+VERSAO = "v3.277.69-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -13195,9 +13195,18 @@ def main():
     if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1' and (
             os.environ.get('PIXELRUSH_QA_PRELOAD_VISUAL','1')=='1'):
         from pixelrush_qa_precarregamento_visual_v327757 import PrecargaVisuaisQA
+        from pixelrush_qa_pet_preload_v327769 import preparar_pet_compativel
+
+        def _qa_preparar_pet_menu(pet_id):
+            # Studio real ainda e COMING SOON: preparar SOMENTE as
+            # Surfaces transparentes usadas na corrida e no popup.
+            # Nao reativa pets nem altera sprites, saves, estados ou RNG.
+            return preparar_pet_compativel(
+                pet_id, pet5_precarregar, _quadros_pet_estado)
+
         _qa_precarga_visuais = PrecargaVisuaisQA(
             dados.get('skin_equipada','AZUL'), SKINS_ATIVAS_PROD,
-            dados.get('pet_equipado'), _quadros_skin, pet5_precarregar,
+            dados.get('pet_equipado'), _quadros_skin, _qa_preparar_pet_menu,
             aquecer_tiles=True)
 
     rodando = True
