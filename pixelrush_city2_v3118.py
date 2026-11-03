@@ -288,21 +288,25 @@ class CityPilotScene(PreviousCity):
 
     def _render_chunk(self,target,variant,flip,x,frame,night,climate,phase,map_kind='image',only_sprites=False):
         if not only_sprites:
-            metadata=None
-            if _QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS:
-                metadata=(id(variant),map_kind,id(getattr(variant,map_kind)))
-            # QA754: no blit SDL de duas Surfaces SRCALPHA, alfa 0
-            # pode escrever RGB oculto quando o destino tambem tem
-            # alfa 0. Cortar o bbox seria visivelmente igual, MAS
-            # mudaria bytes RGBA, logo evitar o atalho nesse formato.
-            # Para destinos RGB sem alpha por pixel, a omissao e exata.
-            destino_rgb=not bool(target.get_flags() & pygame.SRCALPHA)
-            if (_QA_SKIP_EMPTY_BASE and destino_rgb and
+            # QA755: raster SRCALPHA nao pode perder RGB oculto no alpha0.
+            # Excecao comprovada: normal/flow usam fill alpha=255 em TODO
+            # o target (ver marcador temporario em v3124 render_scene).
+            # O SRCALPHA resultante permanece opaco em todos os blits.
+            # Image/fxmask/geometry SRCALPHA jamais usam recorte por alpha.
+            pode_recortar=(not (target.get_flags() & pygame.SRCALPHA) or
+                            (map_kind in ('normal','flow') and
+                             getattr(self,'_qa_opaque_safe_target',None) is target))
+            # Evita a criacao de tuple/id/getattr no quinto quadro image
+            # SRCALPHA, onde nao ha nenhuma otimizacao de bbox permitida.
+            metadata=(id(variant),map_kind,id(getattr(variant,map_kind))
+                      ) if (pode_recortar and
+                            (_QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS)) else None
+            if (_QA_SKIP_EMPTY_BASE and pode_recortar and
                     metadata in self._qa_empty_base_maps):
-                pass  # Sem pixels RGB/alpha alterados, sprites preservados.
+                pass  # O blit ausente nao alteraria nenhum byte RGBA.
             elif x<WIDTH and x+SCENE_W>0:
                 area=(self._qa_alpha_bounds.get(metadata)
-                      if _QA_ALPHA_BOUNDS and destino_rgb else None)
+                      if _QA_ALPHA_BOUNDS and pode_recortar else None)
                 if area is not None:
                     # QA754: nao processar pixels transparentes fora do bbox.
                     # A area e calculada no boot e escalada exatamente 2x.
