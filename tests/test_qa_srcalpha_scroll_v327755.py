@@ -136,6 +136,8 @@ class SrcAlpha755(unittest.TestCase):
     def test_scroll_rgba_hidden_0_respeita_cobertura_fonte(self):
         import pixelrush_qa_incremental_scene_v327750 as mod
         from pixelrush_city2_v3125 import CityPilotScene
+        import pixelrush_city2_v3118 as city_core
+        saved_accel=city_core.acelerar_textura_estatica
         mod.restaurar_para_teste()
         original=CityPilotScene._render_chunk
         with patch.dict(os.environ,{
@@ -143,6 +145,9 @@ class SrcAlpha755(unittest.TestCase):
                 "PIXELRUSH_QA_CLASSIC_INCREMENTAL":"0",
                 "PIXELRUSH_QA_CITY_SCROLL_SCOPE":"static"}):
             try:
+                # Testar cache de fato em atlas NAO RLE; a rota RLE real
+                # possui gate próprio de fallback byte-exato abaixo.
+                city_core.acelerar_textura_estatica=lambda surf:surf
                 mod.instalar()
                 scene=CityPilotScene()
                 low=pygame.Surface((450,250),pygame.SRCALPHA,32)
@@ -171,7 +176,45 @@ class SrcAlpha755(unittest.TestCase):
                 self.assertLessEqual(len(mod._CIDADE.get(scene,{})),2)
             finally:
                 mod.restaurar_para_teste()
+                city_core.acelerar_textura_estatica=saved_accel
         self.assertIs(CityPilotScene._render_chunk,original)
+
+
+    def test_scroll_rle_alpha_zero_mantem_rgb_oculto_sem_cache(self):
+        # SDL-RLE nao equivale a RGBA_MAX intermediario em destino alpha=0.
+        # O caminho real deve cair no blit original, sem criar OrderedDict.
+        import pixelrush_qa_incremental_scene_v327750 as mod
+        from pixelrush_city2_v3125 import CityPilotScene
+        mod.restaurar_para_teste()
+        previous=CityPilotScene._render_chunk
+        with patch.dict(os.environ,{
+                "PIXELRUSH_QA_CITY_INCREMENTAL":"1",
+                "PIXELRUSH_QA_CLASSIC_INCREMENTAL":"0",
+                "PIXELRUSH_QA_CITY_SCROLL_SCOPE":"static"}):
+            try:
+                mod.instalar()
+                scene=CityPilotScene()
+                low=pygame.Surface((450,250),pygame.SRCALPHA,32)
+                low.fill((83,49,101,0))
+                pygame.draw.rect(low,(204,51,91,197),(25,31,170,66))
+                variant=SimpleNamespace(image=low,sprites=[])
+                for alpha in (0,1,81,255):
+                    for j,x in enumerate((-898,-700,-695,-690,-450,
+                                          -445,-442,-180,0)):
+                        expected=pygame.Surface((450,500),pygame.SRCALPHA,32)
+                        expected.fill((29,71,113,alpha))
+                        got=expected.copy()
+                        previous(scene,expected,variant,False,x,j,.2,
+                                 "limpo",.5,"image")
+                        scene._render_chunk(got,variant,False,x,j,.2,
+                                            "limpo",.5,"image")
+                        self.assertEqual(bytes_rgba(expected),bytes_rgba(got),
+                                         ("rle",alpha,j,x))
+                self.assertGreater(mod.diagnostico()["cidade_rle_direto"],0)
+                self.assertFalse(mod.tem_cache_cena(scene))
+            finally:
+                mod.restaurar_para_teste()
+        self.assertIs(CityPilotScene._render_chunk,previous)
 
 
 if __name__=="__main__":
