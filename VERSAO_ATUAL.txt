@@ -1,4 +1,4 @@
-Pixel Rush v3.277.49-QA-ANDROID-RC (diagnostico isolado, APK debug)
+Pixel Rush v3.277.50-QA-ANDROID-RC (diagnostico isolado, APK debug)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -35,3 +35,5 @@ QA v3.277.47: diagnostico de 32 frentes, I/O atlas SHA antes da corrida QA sem a
 QA v3.277.48: sob pressao de RSS, limpeza de caches frios distribuida entre apresentacoes sem coincidir com o 5o quadro, fallback anterior preservado; calculos invariantes de chuva/neve/areia/cinzas/vento extraidos dos loops SDL; testes RGBA e benchmark offline; sem APK/Android. Nao altera fisica, HUD, biomas, sorteio, saves, pets, DEV ou recursos. Mais frentes parciais permanecem abertas.
 
 QA v3.277.49: otimizacao isolada no caminho do compositor da Cidade 2.5D (plano de tiles reutilizado entre passes image/normal/geometry) e atmosfera/reflexos da Cidade real, preservando valores e primitivas SDL. Novo CI manual, testes RGB/RGBA especificados para execucao posterior. Nenhuma alteracao de jogabilidade, fisica, HUD, arte, saves, pets ou entrada do jogador; sem APK/AAB/Android. Para homologacao 32/32 ainda faltam gates real Android e GPU.
+
+QA v3.277.50: unificacao real camera/zoom, escala e apresentacao no loop QA com fallback ao bloco anterior; scroll incremental de pixels Cidade e mundo classico opt-in; reuso pixel-exato da geometria v3124/v3128 sem Surface.copy() por quadro; alivio RSS de vinhetas noturnas frias, preservando nivel atual. Tudo isolado; regressao/benchmark pygame-ce manual ainda nao executados. Nenhum APK/Android/AAB; fisica, HUD, saves, pets, main, DEV e assets preservados.
