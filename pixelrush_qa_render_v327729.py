@@ -91,4 +91,8 @@ def restaurar_para_teste():
     if _INSTALADO:
         from pixelrush_world_v3130 import LivingWorld
         LivingWorld._city_surface = _ORIGINAL
+        from pixelrush_qa_city_tiles_v327749 import restaurar_para_teste as restaurar_tiles
+        from pixelrush_qa_city_weather_v327749 import restaurar_para_teste as restaurar_clima
+        restaurar_tiles()
+        restaurar_clima()
         _INSTALADO = False
