@@ -20,7 +20,21 @@ import pygame
 GAME_NAME='PixelRush_v3.277.11_PRODUCAO_ANDROID_RC'
 
 def game_module():
-    return importlib.import_module(GAME_NAME)
+    # O nome historico tem pontos (v3.277.11), nao e um nome Python importavel.
+    # Executar com spec explicito, sem disparar o guard if __name__=='__main__'.
+    name='pixelrush_qa_game_v327746'
+    if name in sys.modules:
+        return sys.modules[name]
+    arquivo=ROOT/(GAME_NAME+'.py')
+    spec=importlib.util.spec_from_file_location(name, arquivo)
+    modulo=importlib.util.module_from_spec(spec)
+    sys.modules[name]=modulo
+    try:
+        spec.loader.exec_module(modulo)
+    except Exception:
+        sys.modules.pop(name,None)
+        raise
+    return modulo
 
 def rgba(s):
     return pygame.image.tobytes(s,'RGBA')

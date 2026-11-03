@@ -80,7 +80,7 @@ PINNED={
     'QA_AUDITORIA_QUINTO_QUADRO_v327745.md':'7cb8c580529e7184fc3014782f04512893a87272',
     'pixelrush_qa_biome_preheat_v327746.py':'674f3a487083093cb6fdbddd75a9646fb60a49aa',
     'tests/test_qa_preheat_buffer_v327746.py':'18ca6d3acdea24d5bf89c6dab0d67995af77fc1f',
-    'tests/test_qa_buffer_full_v327746.py':'25aede624684fc28f8455d9ab2c8fb6c9ffb89fc',
+    'tests/test_qa_buffer_full_v327746.py':'5630a6f06a651fa1ce9abd15aa2cf17ec6cd8cb2',
     '.github/scripts/qa_benchmark_preheat_buffer_v327746.py':'3e1489655fc466b70e50bfd5198ca7e9a0878845',
     'QA_TRACKER_32_v327746.md':'3ecd954bc340848c04d29e5abb15e305d23af26c',
     'QA_CHANGELOG_v327746.md':'c62348df2face7f63613f5e1aec74e40107e1595',
