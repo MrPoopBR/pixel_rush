@@ -1,4 +1,4 @@
-Pixel Rush v3.277.41-QA-ANDROID-RC (diagnostico isolado, APK debug)
+Pixel Rush v3.277.42-QA-ANDROID-RC (diagnostico isolado, APK debug)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -20,3 +20,4 @@ QA v3.277.38: lotes pixel-exatos nos passes de profundidade e destruição SDF; 
 QA v3.277.39: calculo do fator de vento por chunk em vez de por sprite; testes pixel-exatos camera RGB/RGBA, benchmark CPU e auditoria GPU. Relatorios v327739, somente QA e sem habilitar shaders experimentais.
 QA v3.277.40: experimento compositor 2.5D persistente isolado (scroll/dirty stripes) validado RGB/RGBA, nao ativado por ausencia de ganho de frame completo em Linux; matriz de benchmarks camera smoothscale/backends e gate GPU GLES Android. Relatorios v327740; main e gameplay sem mudancas.
 QA v3.277.41: bancada nativa C recorte camera diretamente com pesos inteiros 8/16 bits, SIMD NEON AArch64 experimental, testes pixel-exatos RGB/RGBA e cenas reais, benchmark CPU e GLES2/GLES3 com gates Android. Native/GLES NAO ativos no jogo; main, fisica, saves, pets, visual e AAB preservados. JSON/CSV QA v327741.
+QA v3.277.42: 20 frentes de desempenho — culling conservador sprites e clima, pool de sementes meteorologicas, reuso da Surface noturna, governanca RSS de cache, pausas GC, Perfetto/SDL, camera C/NEON empacotada com seletor por pixels/benchmark, alternativas GLES preservadas. Fisica, jogabilidade e visual originais; sem Android hardware test ate o teste final. Relatorios v327742.

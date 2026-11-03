@@ -73,6 +73,14 @@ def _gles_gate_qa():
                 'fallback_cpu_preservado': True, 'motivos': ['erro_sonda_qa']}
 
 
+def _performance_32_estado():
+    try:
+        from pixelrush_qa_performance_integrated_v327742 import diagnostico
+        return diagnostico()
+    except (ImportError,RuntimeError,AttributeError):
+        return {'ativo':False,'motivo':'nao_inicializado'}
+
+
 def _memoria_rss_mb():
     try:
         with open('/proc/self/status', encoding='ascii') as arquivo:
@@ -255,6 +263,7 @@ class QATelemetria:
             'gpu_ms_real': None, 'gpu_estado': 'nao_disponivel_no_pygame; usar Perfetto/gfxinfo Android',
             'renderer_backend_qa': _renderer_backend_qa(),
             'camera_backend_autotune_qa': _camera_qa_estado(),
+            'qa_20_fases_performance': _performance_32_estado(),
             'gles_camera_gate_qa': _gles_gate_qa(),
             'observacoes': [
                 'Fases principais exclusivas; subsistemas dentro delas: NAO somar duas vezes.',
@@ -289,7 +298,7 @@ class QATelemetria:
             relatorio = self.relatorio(resumir=False)
             linhas = tuple(dict(x) for x in self.ultimos)
             aceito = gravador.enviar(
-                self.pasta, 'pixelrush_qa_v327741', relatorio, linhas,
+                self.pasta, 'pixelrush_qa_v327742', relatorio, linhas,
                 esperar=esperar, preparar_relatorio=_preparar_exportacao_qa)
             self.gravacoes = gravador.concluidas
             self.erros_escrita = gravador.falhas
