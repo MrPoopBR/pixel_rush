@@ -58,6 +58,10 @@ def instalar():
     # C/NEON usa a camera original ate provar igualdade e ganho no frame real.
     from pixelrush_qa_camera_native_auto_v327742 import instalar as instalar_camera_native_qa
     instalar_camera_native_qa()
+    # Scroll incremental 2.5D so liga quando o frame COMPLETO vence
+    # o blit direto e 16 comparacoes de pixels sao idênticas.
+    from pixelrush_qa_scroll_auto_v327742 import instalar as instalar_scroll_qa
+    instalar_scroll_qa()
     # QA v3.277.42: pool meteorologico, limite de cache e Perfetto opcionais;
     # sempre reaproveita o compositor e a camera originais.
     from pixelrush_qa_performance_integrated_v327742 import instalar as instalar_perf_qa
