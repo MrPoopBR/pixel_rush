@@ -188,6 +188,12 @@ class ModularBiomeScene(Previous):
             low.blit(self._weather,(0,0))
         pygame.transform.scale(low,(WIDTH,HEIGHT),target)
         if map_kind=='geometry':
-            if self._geometry_view is None:self._geometry_view=target.copy()
-            else:self._geometry_view.blit(target,(0,0))
+            # QA750: copia somente na primeira passagem. Nos quadros
+            # seguintes faz escrita exata 1:1 sem alpha-blend anterior.
+            if (self._geometry_view is None or
+                    self._geometry_view.get_size()!=target.get_size() or
+                    self._geometry_view.get_bitsize()!=target.get_bitsize()):
+                self._geometry_view=target.copy()
+            else:
+                pygame.transform.scale(target,target.get_size(),self._geometry_view)
         self._last_state=(travel,frame,night,climate,phase)
