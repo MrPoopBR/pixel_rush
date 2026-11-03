@@ -20,6 +20,7 @@ sys.path.insert(0,str(ROOT))
 import pygame
 from pixelrush_city2_v3125 import CityPilotScene
 import pixelrush_city2_v3124 as city
+import pixelrush_city2_v3118 as city_core
 import pixelrush_qa_incremental_scene_v327750 as rolling
 from pixelrush_qa_audit_offline_v327744 import rss_mib
 
@@ -73,8 +74,9 @@ def bench_scene():
         city._QA_TECH_OPAQUE_BOUNDS=default
 
 
-def bench_scroll():
+def bench_scroll(use_rle):
     rolling.restaurar_para_teste()
+    old_accel=city_core.acelerar_textura_estatica
     previous={k:os.environ.get(k) for k in (
         "PIXELRUSH_QA_CITY_INCREMENTAL",
         "PIXELRUSH_QA_CLASSIC_INCREMENTAL",
@@ -83,6 +85,13 @@ def bench_scroll():
                       PIXELRUSH_QA_CLASSIC_INCREMENTAL="0",
                       PIXELRUSH_QA_CITY_SCROLL_SCOPE="static")
     old=CityPilotScene._render_chunk
+    if use_rle:
+        def requested_rle(surface):
+            surface.set_alpha(255,pygame.RLEACCEL)
+            return surface
+        city_core.acelerar_textura_estatica=requested_rle
+    else:
+        city_core.acelerar_textura_estatica=lambda surface:surface
     orig=[]
     new=[]
     checked=0
@@ -113,12 +122,19 @@ def bench_scroll():
             if rgba(a)!=rgba(b):
                 raise AssertionError(("RGBA_SCROLL",i,x))
             checked+=1
+        diagnostico=rolling.diagnostico()
+        if use_rle:
+            assert diagnostico["cidade_rle_direto"]>0
+        else:
+            assert diagnostico["cidade_hit"]>0
         return {"frames_rgba_identicos":checked,
+                "fonte_rle":use_rle,
                 "blit_direto":timings(orig),"scroll_qa755":timings(new),
-                "diagnostico":rolling.diagnostico(),
+                "diagnostico":diagnostico,
                 "scroll_ativado_no_jogo":False}
     finally:
         rolling.restaurar_para_teste()
+        city_core.acelerar_textura_estatica=old_accel
         for k,v in previous.items():
             if v is None:os.environ.pop(k,None)
             else:os.environ[k]=v
@@ -134,7 +150,8 @@ def main():
         "pygame_ce":pygame.version.ver,
         "rss_antes_mib":rss_inicial,
         "srcalpha_normal_flow":bench_scene(),
-        "scroll_srcalpha_rgb_oculto":bench_scroll(),
+        "scroll_srcalpha_rgb_oculto":bench_scroll(False),
+        "scroll_rle_fallback":bench_scroll(True),
         "rss_depois_mib":rss_mib(),
         "homologacao_final":False,
         "teste_android_real":False,
@@ -144,6 +161,7 @@ def main():
     }
     assert out["srcalpha_normal_flow"]["frames_rgba_identicos"]==96
     assert out["scroll_srcalpha_rgb_oculto"]["frames_rgba_identicos"]==124
+    assert out["scroll_rle_fallback"]["frames_rgba_identicos"]==124
     path=ROOT/"qa-benchmark-srcalpha-scroll-v327755.json"
     path.write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf8")
     print(json.dumps(out,ensure_ascii=False,indent=2))
