@@ -25,6 +25,7 @@ MODULES=(
     'pixelrush_qa_city_weather_v327749.py',
     'pixelrush_qa_city_bootstrap_v327759.py',
     'tests/test_qa_geometry_weather_v327759.py',
+    'tests/test_qa_world_real_v327759.py',
     'tests/test_qa_cache_gc_v327758.py',
     'tests/test_qa_fechamento32_v327757.py',
     'tests/test_qa_fechamento_modular_v327757.py',

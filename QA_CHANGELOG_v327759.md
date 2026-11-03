@@ -12,3 +12,7 @@
 ## Correção do bloqueador da Cidade na mesma branch/versão
 
 A CI #41716396740 revelou AttributeError: CityPilotScene não possuía _qa_uniform_tech na hierarquia v3122→v3125, apesar de herdar o render v3118 que o exige. Para não alterar o construtor artístico real nem criar outra Cidade, o QA instala pixelrush_qa_city_bootstrap_v327759, que calcula os metadados originais de forma tardia e segura sobre as Surfaces já finalizadas, antes do primeiro render. O fallback só esvazia os índices, nunca desativa a existência dos atributos. Este patch foi acompanhado de comparação byte RGBA dos seis canais e restaurador de hooks no teste. **O bug foi comprovado no CI; a correção só será classificada validada quando a próxima execução passar.**
+
+## CI e gate de integração adicional
+
+A execução GitHub Actions #41717129303 confirmou 16/16 testes offline e hashes protegidos. Foi criado tests/test_qa_world_real_v327759.py, conectado ao mesmo workflow, para verificar o caminho LivingWorld real por meio de hooks instalados como no main QA, duas instâncias, troca de bioma e mediana de render geometry em CPU. Valores de benchmark serão informados somente após log; são da máquina do CI, não do Android. Sem APK/AAB/Android.
