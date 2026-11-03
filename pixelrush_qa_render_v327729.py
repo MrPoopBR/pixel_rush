@@ -55,6 +55,9 @@ def instalar():
     # Sem backend seguro: mantem smoothscale nativo original.
     from pixelrush_qa_camera_v327733 import instalar as instalar_camera_qa
     instalar_camera_qa()
+    # C/NEON usa a camera original ate provar igualdade e ganho no frame real.
+    from pixelrush_qa_camera_native_auto_v327742 import instalar as instalar_camera_native_qa
+    instalar_camera_native_qa()
     # QA v3.277.42: pool meteorologico, limite de cache e Perfetto opcionais;
     # sempre reaproveita o compositor e a camera originais.
     from pixelrush_qa_performance_integrated_v327742 import instalar as instalar_perf_qa
