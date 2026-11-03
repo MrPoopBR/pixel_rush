@@ -23,6 +23,7 @@ MODULES=(
     'pixelrush_qa_render_v327729.py',
     'pixelrush_biomes2_v3128.py',
     'pixelrush_qa_city_weather_v327749.py',
+    'pixelrush_qa_city_bootstrap_v327759.py',
     'tests/test_qa_geometry_weather_v327759.py',
     'tests/test_qa_cache_gc_v327758.py',
     'tests/test_qa_fechamento32_v327757.py',
@@ -63,6 +64,7 @@ def main():
     assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
     assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
     assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
     assert '_PARTICLE_SEEDS' in (ROOT/'pixelrush_qa_city_weather_v327749.py').read_text('utf8')
     result={'schema':'pixelrush.qa.preflight.v327758','status':'AST_E_PINS_APROVADOS',

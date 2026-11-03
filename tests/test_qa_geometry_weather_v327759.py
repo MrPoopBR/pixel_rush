@@ -16,6 +16,7 @@ import pixelrush_qa_city_weather_v327749 as weather
 from pixelrush_biomes2_v3126 import ModularBiomeScene as Base
 from pixelrush_citylife_v3123 import CityLifeDirector
 from pixelrush_city2_v3125 import CityPilotScene
+from pixelrush_qa_city_bootstrap_v327759 import instalar as instalar_bootstrap, restaurar_para_teste as restaurar_bootstrap
 
 def raw(surface):
     return pygame.image.tobytes(surface, 'RGBA')
@@ -25,14 +26,21 @@ class GeometryWeather759(unittest.TestCase):
     def setUpClass(cls):
         pygame.init()
         pygame.display.set_mode((450, 800))
+        instalar_bootstrap()
     @classmethod
     def tearDownClass(cls):
         weather.restaurar_para_teste()
+        restaurar_bootstrap()
         pygame.quit()
 
     def test_cidade_geometry_sem_copia_equivalente(self):
         scene = CityPilotScene()
         scene.visual_quality = 1
+        self.assertIsInstance(scene._qa_uniform_tech,dict)
+        self.assertIsInstance(scene._qa_scaled_alias,dict)
+        self.assertIsInstance(scene._qa_empty_base_maps,set)
+        self.assertIsInstance(scene._qa_alpha_bounds,dict)
+        self.assertIsInstance(scene._qa_cloud_sprite_cache,dict)
         target = pygame.Surface((450, 500), pygame.SRCALPHA)
         scene._qa_geometry_borrow_target = None
         scene.render_scene(target, 191.5, 151, .43, 'limpo', .5, map_kind='geometry')
@@ -51,6 +59,23 @@ class GeometryWeather759(unittest.TestCase):
         scene.render_scene(target, 191.5, 151, .43, 'limpo', .5, map_kind='geometry')
         self.assertIsNot(scene._geometry_view, target)
         self.assertEqual(expected, raw(scene._geometry_view))
+
+    def test_bootstrap_cidade_uniforme_vs_fallback_rgba(self):
+        scene=CityPilotScene()
+        scene.visual_quality=1
+        # Preservar RGBA escondido, inclusive tipos tecnicos e imagem.
+        for kind in ('image','geometry','normal','flow','material','fxmask'):
+            original=scene._qa_uniform_tech
+            dest=pygame.Surface((450,500),pygame.SRCALPHA)
+            scene.render_scene(dest,137.25,53,.38,'limpo',.5,map_kind=kind)
+            expected=raw(dest)
+            scene._qa_uniform_tech={}
+            dest2=pygame.Surface((450,500),pygame.SRCALPHA)
+            try:
+                scene.render_scene(dest2,137.25,53,.38,'limpo',.5,map_kind=kind)
+            finally:
+                scene._qa_uniform_tech=original
+            self.assertEqual(expected,raw(dest2),kind)
 
     def _mock_scene(self, biome):
         def draw(dst, layer, travel, kind):

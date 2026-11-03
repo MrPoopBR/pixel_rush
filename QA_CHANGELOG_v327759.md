@@ -8,3 +8,7 @@
 4. **Metadados**: versão engine, VERSAO_ATUAL e buildozer numerico atualizados. Sem invocar Buildozer nem alterar APP ID, main, DEV, pets, física, saves, clima visual ou arte.
 
 **Contagem conservadora antes dos novos gates:** 14/32 concluídas offline, 18 parciais e 0 Android. Somente promova números mediante logs de testes integrados.
+
+## Correção do bloqueador da Cidade na mesma branch/versão
+
+A CI #41716396740 revelou AttributeError: CityPilotScene não possuía _qa_uniform_tech na hierarquia v3122→v3125, apesar de herdar o render v3118 que o exige. Para não alterar o construtor artístico real nem criar outra Cidade, o QA instala pixelrush_qa_city_bootstrap_v327759, que calcula os metadados originais de forma tardia e segura sobre as Surfaces já finalizadas, antes do primeiro render. O fallback só esvazia os índices, nunca desativa a existência dos atributos. Este patch foi acompanhado de comparação byte RGBA dos seis canais e restaurador de hooks no teste. **O bug foi comprovado no CI; a correção só será classificada validada quando a próxima execução passar.**
