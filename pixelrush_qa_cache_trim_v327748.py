@@ -60,6 +60,13 @@ class EscalonadorTrimQA:
             # cerca de 11 MiB por Cidade. Sob RSS alto, conservar o
             # nivel atual e vizinhos; liberar somente texturas frias,
             # parcelado nos mesmos passos ja fora do quinto quadro.
+            # QA753: enquanto Cidade inativa, as duas Surfaces de
+            # scroll de 450x500 sao frias. Remover em lote no mesmo
+            # escalonador de RSS, nunca no quinto quadro ou bioma ativo.
+            if city is not None and world.biome!='cidade':
+                from pixelrush_qa_incremental_scene_v327750 import tem_cache_cena
+                if tem_cache_cena(city):
+                    yield (mundo_ref,'_qa_city_incremental_cache',None)
             veils=getattr(city,'_night_veils',None)
             if veils and len(veils)>4:
                 for key in tuple(veils):
@@ -80,6 +87,11 @@ class EscalonadorTrimQA:
         if world is None:
             return False
         active=world.biome
+        if attr=='_qa_city_incremental_cache':
+            if active=='cidade':
+                return False
+            from pixelrush_qa_incremental_scene_v327750 import descartar_cena
+            return bool(descartar_cena(getattr(world,'city2',None)))
         if attr=='_city_scaled':
             city=getattr(world,'city2',None)
             scaled=getattr(city,'_scaled',None)
