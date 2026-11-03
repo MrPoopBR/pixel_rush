@@ -23,3 +23,7 @@ A execução GitHub Actions #41717129303 confirmou 16/16 testes offline e hashes
 - **#2 Compositor 2.5D persistente:** concluído em implementação e gate offline, graças à prova do caminho World/QA (não #5 scroll incremental nem Android). Tracker vigente **15/32 concluídas offline**, **17/32 parciais**, **0/32 homologadas Android**.
 - Medição de CPU da geometry no runner Linux: snapshot 0,577948 ms vs. empréstimo 0,613193 ms (mediana de 15); o empréstimo evita a Surface extra de 900 KB, **não se afirmou FPS superior**. A flag de fallback continua disponível.
 - Preservação comprovada por preflight AST e arquivos protegidos; não houve recompilação ou teste Android, merge com main, modificação física, saves, pets, DEV ou jogabilidade.
+
+## Refinamento após benchmark da areia
+
+A primeira versão com acesso indexado aos pares de sementes estava mais lenta na areia em teste pygame local. Agora as partículas ativas são percorridas diretamente em tuplas pré-computadas (Neve: 18/6; Areia: 12/4); o fallback contém o loop aritmético original sem overhead adicional. Teste isolado de 12 linhas: 6,796 µs original vs 6,498 µs direto neste host; não extrapolar para aparelho. RGBA, clima, quantidades e timing sem alteração intencional. Placar permanece 15/32 concluídas offline, 17/32 parciais.
