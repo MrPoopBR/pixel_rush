@@ -9,6 +9,7 @@ import os
 import statistics
 import time
 from functools import wraps
+from weakref import WeakKeyDictionary
 
 import pygame
 from pixelrush_qa_rolling_v327740 import FaixaPersistenteQA
@@ -17,7 +18,7 @@ _INSTALLED=False
 _ORIGINAL=None
 _REPORT={'avaliado':False,'ativo':False,'resultado':'nao_avaliado',
          'ganho_p50':None,'testes_pixel_exatos':0,'tamanho_cache_bytes':0}
-_MANAGER={}
+_MANAGER=WeakKeyDictionary()
 
 
 def status():
@@ -26,8 +27,7 @@ def status():
 
 def _draw_reference(target,texture,offset):
     width=texture.get_width()
-    x=-offset%width
-    x=-x
+    x=-offset
     operations=[]
     while x<450:
         operations.append((texture,(x,230)))
@@ -86,13 +86,13 @@ def instalar():
     def _blit_scroll_qa(self,target,strip):
         if strip is None or os.environ.get('PIXELRUSH_QA_SCROLL_AUTO','1')!='1':
             return _ORIGINAL(self,target,strip)
-        entry=_MANAGER.get(id(self))
+        entry=_MANAGER.get(self)
         # World instance is retained by its owner; store it to avoid false
         # matches from identity reuse across world switches.
-        if entry is None or entry[0] is not self or entry[1] is not strip:
-            _MANAGER[id(self)]=(self,strip,None)
-            entry=_MANAGER[id(self)]
-        approved=entry[2]
+        if entry is None or entry[0] is not strip:
+            _MANAGER[self]=(strip,None)
+            entry=_MANAGER[self]
+        approved=entry[1]
         if approved is None:
             allow,results,reason=_bench(strip,target)
             _REPORT['avaliado']=True
@@ -102,10 +102,10 @@ def instalar():
             _REPORT['testes_pixel_exatos']=results['pixels_testados'] if results else 0
             _REPORT['tamanho_cache_bytes']=450*500*4 if allow else 0
             if not allow:
-                _MANAGER[id(self)]=(self,strip,False)
+                _MANAGER[self]=(strip,False)
                 return _ORIGINAL(self,target,strip)
             rolling=FaixaPersistenteQA(450)
-            _MANAGER[id(self)]=(self,strip,rolling)
+            _MANAGER[self]=(strip,rolling)
             approved=rolling
         if approved is False:
             return _ORIGINAL(self,target,strip)
