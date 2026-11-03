@@ -13183,8 +13183,21 @@ def main():
     monitor_diag = (MonitorDiagnostico.from_environment()
                     if os.environ.get('PIXELRUSH_DIAGNOSTICO', '0') == '1' else None)
 
+    # Fechamento 32 #22: pré-carregar somente arte já autorizada,
+    # na tela de menu, em microtarefas independentes. Não antecipar
+    # animação do gameplay, compras, dados salvos ou sorteio.
+    _qa_precarga_visuais = None
+    if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1' and (
+            os.environ.get('PIXELRUSH_QA_PRELOAD_VISUAL','1')=='1'):
+        from pixelrush_qa_precarregamento_visual_v327757 import PrecargaVisuaisQA
+        _qa_precarga_visuais = PrecargaVisuaisQA(
+            dados.get('skin_equipada','AZUL'), SKINS_ATIVAS_PROD,
+            dados.get('pet_equipado'), _quadros_skin, pet5_precarregar)
+
     rodando = True
     while rodando:
+        if _qa_precarga_visuais is not None and estado in ('INICIO','LOJA','CONFIG','UPGRADES'):
+            _qa_precarga_visuais.passo(estado)
         # Somente rótulo de telemetria: replay não executa a simulação da corrida.
         # Fisica, eventos, sorteio, renderizacao e replay permanecem intocados.
         _qa_estado = ("JOGANDO_TUTORIAL_QA" if
