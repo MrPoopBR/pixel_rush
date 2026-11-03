@@ -1,4 +1,4 @@
-Pixel Rush v3.277.52-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
+Pixel Rush v3.277.53-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -41,3 +41,5 @@ QA v3.277.50: unificacao real camera/zoom, escala e apresentacao no loop QA com 
 QA v3.277.51: Cidade noturna sem alocacao RGBA/blit full-frame via pygame.BLEND_RGBA_MULT direto (flag regressao original), recorte SDL nativo sem Rect por tile, scroll 2.5D experimental incluindo chunks com sprites originais, RSS preserva mapas GPU ativos, buffers geometria validam flags/masks antes do reuso. Gates e benchmark manuais preparados, sem homologacao final. Nenhum APK/Android/AAB; main, DEV, saves, pets, hud, fisica, visual, regras/arte e caches 5:1 preservados.
 
 QA v3.277.52: Neve/Deserto pulam overlay meteorologico completamente invisivel; atlas modular diurno nivel zero reutiliza Surface src RGB/RGBA sem copia; plano de tiles Cidade auto desliga no SDL CPU single-pass e gerador nao pode repetir render apos excecao do consumidor; geometria zero-copy world-owned opt-in OFF ate gate. Auditoria 20 parciais documentada, suite manual preparada, sem homologacao final, APK ou Android. Preservados main/DEV, fisica, sprites, HUD, saves, pets, assets, efeitos e cache 5:1.
+
+QA v3.277.53: Cidade evita render do primeiro plano v3125 RGBA comprovadamente transparente (validado no init) e strip classico usa um blit SDL quando suficiente; scroll incremental experimental otimizado para far/mid estaticos com modo all opcional, source RGBAmasks preservada e limpeza RSS de caches de Cidade inativa; sondagem periodica RSS/driver deslocada de frame 180 para 181 no QA sem mudar o periodo 180, rollback por flag. Gates pygame-ce e benchmark prontos, sem homologacao final nem APK/Android. main, DEV, fisica, HUD, saves, pets, visuais, efeitos, politica de fundo 5:1 e AAB preservados.
