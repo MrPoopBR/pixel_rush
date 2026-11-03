@@ -34,7 +34,7 @@ PINNED={
     'pixelrush_qa_async_export_v327737.py':'0995f9f16b8298ea90418eab048d093f082d3985',
     'pixelrush_qa_alpha_blit_v327731.py':'fefb6f0f32dae61cdc8368ced51da2234646fa89',
     'tests/test_qa_perf_v327738.py':'2ba50cb13af7021d2af102c1865297cd278e8489',
-    'pixelrush_city2_v3118.py':'ffb1a5a67da379e1f49efc5bcd596445c05d0cc2',
+    'pixelrush_city2_v3118.py':'4dfc743bd9982e3dbf9446b3ede0965de826c355',
     'tests/test_qa_camera_city_v327739.py':'c7015dd330b1d2ebbb7acef711bafb91384a951b',
     '.github/scripts/qa_benchmark_camera_world_v327739.py':'4389307bfcc94d8911d4598e14f2b26603a101a7',
     'pixelrush_qa_rolling_v327740.py':'19377868517c56227db45c3aab782c3021182780',
@@ -513,7 +513,7 @@ def checar():
         assert proibido not in workflow753.lower()
     # QA754: melhorias no render real, sem novo backend/sem homologar FPS.
     novos754 = {
-        'tests/test_qa_alpha_bounds_scroll_v327754.py':'5660385a45b7e8e328064f0f137fef7543ff3b42',
+        'tests/test_qa_alpha_bounds_scroll_v327754.py':'9013039a9218a147a05ac579452cfe9596d778a8',
         '.github/scripts/qa_benchmark_alpha_scroll_v327754.py':'c73f5c562f9c472ca7ad7da00d9704e47ef42b2b',
     }
     for nome,sha in novos754.items():
@@ -528,6 +528,9 @@ def checar():
     assert 'get_bounding_rect(min_alpha=1)' in cidade754
     assert 'self._qa_empty_base_maps' in cidade754
     assert 'self._qa_alpha_bounds' in cidade754
+    assert 'destino_rgb=not bool(target.get_flags() & pygame.SRCALPHA)' in cidade754
+    assert '_QA_SKIP_EMPTY_BASE and destino_rgb' in cidade754
+    assert '_QA_ALPHA_BOUNDS and destino_rgb' in cidade754
     assert 'bbox.x*SCALE,bbox.y*SCALE' in cidade754
     assert '(x+area[0],area[1]),area' in cidade754
     assert "PIXELRUSH_QA_NEAR_PLAN_ON_DEMAND','1'" in pipeline754
