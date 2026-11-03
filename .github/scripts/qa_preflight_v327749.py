@@ -339,7 +339,7 @@ def checar():
         assert gitblob(path)==sha,'modulo QA749 inesperadamente alterado: '+path
         ast.parse(Path(path).read_text('utf8'),filename=path)
     for path,sha in {
-        'pixelrush_qa_gles_bridge_v327749.py':'d9278a3f54b13e78ac12e1ca8625879f22ca0413',
+        'pixelrush_qa_gles_bridge_v327749.py':'cb7f49d292cc833344940b1dbf23d20655181d80',
         'tests/test_qa_gles_bridge_v327749.py':'6c19ca01e9b6df3fe2a6453aa91394572470b3c3',
     }.items():
         assert gitblob(path)==sha,'bridge QA749 inesperado: '+path
@@ -362,6 +362,8 @@ def checar():
     assert 'self.presenter.draw(self.staging,zoom=self.zoom' in bridge
     assert 'gpu_ativo' in bridge and 'input_sdl_preservado' in bridge
     assert 'PIXELRUSH_QA_GPU_ZOOM' in bridge
+    assert 'PIXELRUSH_QA_GLES3_CONTEXT' in bridge
+    assert 'pedir_es3' in bridge
     assert "_instalar_camera_gpu()" in bridge
     assert "shader_pixel_exato_solicitado" in bridge
     assert "'GLES2'" in bridge
