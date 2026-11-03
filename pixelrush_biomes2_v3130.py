@@ -207,4 +207,6 @@ class ModularBiomeScene(Previous):
         offset=max(0.,travel)*DEPTH[layer][0]*.5;first=int(offset//LW);shift=int(offset%LW)
         # Different coprime lengths/strides prevent the old four-tile refrain.
         count=COUNTS[layer];stride={'far':5,'mid':7,'near':9}[layer]
-        for j in range(2):dst.blit(self._tile_map(layer,((first+j)*stride)%count,kind),(j*LW-shift,0))
+        dst.blit(self._tile_map(layer,(first*stride)%count,kind),(-shift,0))
+        if shift:
+            dst.blit(self._tile_map(layer,((first+1)*stride)%count,kind),(LW-shift,0))
