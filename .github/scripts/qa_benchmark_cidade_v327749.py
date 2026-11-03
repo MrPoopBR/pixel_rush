@@ -29,24 +29,24 @@ def render_city():
         travel=frame*7.35
         clima=('limpo','chuva','tempestade')[frame%3]
         noite=(0,.23,.56,.91)[frame%4]
+        expected=[]
+        tile_plan.restaurar_para_teste()
         for kind in maps:
             ref=pygame.Surface((450,500),pygame.SRCALPHA)
-            trial=ref.copy()
-            ref.fill((25,41,69,211));trial.blit(ref,(0,0))
-            tile_plan.restaurar_para_teste()
+            ref.fill((25,41,69,211))
             t=time.process_time_ns()
             scene.render_scene(ref,travel,frame,noite,clima,.51,map_kind=kind)
             old.append(time.process_time_ns()-t)
-            tile_plan.instalar()
-            try:
-                t=time.process_time_ns()
-                scene.render_scene(trial,travel,frame,noite,clima,.51,map_kind=kind)
-                optimized.append(time.process_time_ns()-t)
-            finally:
-                # Conserva cache ate o fim do conjunto de mapas, a repeticao
-                # entre mapas e a caracteristica central sob teste.
-                pass
-            if pygame.image.tobytes(ref,'RGBA')!=pygame.image.tobytes(trial,'RGBA'):
+            expected.append(pygame.image.tobytes(ref,'RGBA'))
+        # Uma unica ativacao permite reuso ENTRE canais do mesmo frame.
+        tile_plan.instalar()
+        for kind,pixels_esperados in zip(maps,expected):
+            trial=pygame.Surface((450,500),pygame.SRCALPHA)
+            trial.fill((25,41,69,211))
+            t=time.process_time_ns()
+            scene.render_scene(trial,travel,frame,noite,clima,.51,map_kind=kind)
+            optimized.append(time.process_time_ns()-t)
+            if pygame.image.tobytes(trial,'RGBA')!=pixels_esperados:
                 raise AssertionError(('cidade',kind,frame))
             equal+=1
     out={'quadros_rgba_identicos':equal,'original':resumo(old),
