@@ -513,7 +513,7 @@ def checar():
         assert proibido not in workflow753.lower()
     # QA754: melhorias no render real, sem novo backend/sem homologar FPS.
     novos754 = {
-        'tests/test_qa_alpha_bounds_scroll_v327754.py':'9013039a9218a147a05ac579452cfe9596d778a8',
+        'tests/test_qa_alpha_bounds_scroll_v327754.py':'6f376b185428a41d305fddf206fd807111d791f5',
         '.github/scripts/qa_benchmark_alpha_scroll_v327754.py':'c73f5c562f9c472ca7ad7da00d9704e47ef42b2b',
     }
     for nome,sha in novos754.items():
