@@ -37,6 +37,10 @@ _FLIP_SAMPLES=deque(maxlen=256)
 _CLEANUP_SAMPLES=deque(maxlen=128)
 _TRIMMER=None
 _TRIMMER_FALLBACK=False
+# QA753: leitura RSS, diagnostico de driver e planejamento dos caches
+# ficam no frame seguinte ao 180 (181,361,...), NAO no redraw 5:1.
+# Legacy/regressoes QA748 usam PIXELRUSH_QA_TRIM_PROBE_PHASE=0.
+_TRIM_PROBE_PHASE=0
 
 
 def _ram_budget_mib():
@@ -283,7 +287,9 @@ def _wrap_flip():
         # A varredura antiga disparava INTEIRA no frame 180, multiplo de 5.
         # Sob pressao RSS, agenda em 180 e so trabalha nos outros 4 frames,
         # com no maximo 12 entradas por apresentacao. Fallback antigo intacto.
-        if _LAST_STATUS['frames']%180==0:
+        if ((_TRIMMER is None and _LAST_STATUS['frames']%180==0) or
+                (_TRIMMER is not None and _LAST_STATUS['frames']>180 and
+                 _LAST_STATUS['frames']%180==_TRIM_PROBE_PHASE)):
             inicio_limpeza=time.perf_counter_ns()
             try:
                 if _TRIMMER is None:
@@ -322,6 +328,8 @@ def _wrap_flip():
 def diagnostico():
     out=dict(_LAST_STATUS)
     out['limpeza_parcelada_qa']=_TRIMMER.diagnostico() if _TRIMMER is not None else None
+    out['cache_trim_sonda_fase_180']=_TRIM_PROBE_PHASE
+    out['sonda_memoria_fora_quinto_quadro']=bool(_TRIMMER is not None and _TRIM_PROBE_PHASE==1)
     if _GC_PAUSES:
         s=sorted(_GC_PAUSES)
         out['gc_pause_p95_ms']=round(s[round(.95*(len(s)-1))],3)
@@ -341,7 +349,7 @@ def diagnostico():
 
 
 def instalar():
-    global _INSTALLED,_GPU_TRACE,_TRIMMER,_TRIMMER_FALLBACK
+    global _INSTALLED,_GPU_TRACE,_TRIMMER,_TRIMMER_FALLBACK,_TRIM_PROBE_PHASE
     if _INSTALLED:
         return
     _LAST_STATUS['cache_budget_mib']=_ram_budget_mib()
@@ -354,6 +362,11 @@ def instalar():
             _TRIMMER=EscalonadorTrimQA(limite_por_passo=12)
         except (ImportError,RuntimeError,ValueError,MemoryError):
             _TRIMMER=None
+    # Com limpeza parcelada, sondar somente no quadro 181, nao no 180
+    # (a corrida atualiza o cache do fundo a cada 5 frames).
+    # O fallback de varredura antiga mantem a fase 0.
+    _TRIM_PROBE_PHASE=(1 if _TRIMMER is not None and
+        os.environ.get('PIXELRUSH_QA_TRIM_PROBE_PHASE','1')=='1' else 0)
     _LAST_STATUS['cache_trim_fallback']=_TRIMMER is None
     _wrap_world()
     _wrap_trace_camera()
