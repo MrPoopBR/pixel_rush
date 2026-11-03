@@ -47,10 +47,10 @@ jobs:
         run: python .github/scripts/qa_preflight_v327757.py
       - name: Gates de memória, GC, precarga, RNG e multi-instância
         shell: bash
-        run: python -m unittest tests.test_qa_fechamento32_v327757 -v
+        run: python tests/test_qa_fechamento32_v327757.py
       - name: Gates 2.5D snow/desert RGBA incl. RGB oculto
         shell: bash
-        run: python -m unittest tests.test_qa_fechamento_modular_v327757 -v
+        run: python tests/test_qa_fechamento_modular_v327757.py
       - name: Garantir que não houve homologação nem empacotamento
         shell: bash
         run: |
