@@ -13,6 +13,14 @@ import os
 # QA752: alias zero-copy apenas quando World possui a Surface destino.
 # OFF ate testes integrais de ambient_occlusion, multiinstancia e GPU.
 _QA_BORROW_GEOMETRY=os.environ.get('PIXELRUSH_QA_GEOMETRY_BORROW','0')=='1'
+# Fechamento #2/#10: um mesmo canal técnico pode ser solicitado diversas
+# vezes no MESMO frame (GPU/oclusão/reflexos). O cache é por LivingWorld,
+# condicionado ao estado completo, instância, Surface e qualidade. Imagem
+# principal/FG continuam sempre desenhados. Desligue para rollback.
+_QA_TECH_SAME_FRAME=os.environ.get('PIXELRUSH_QA_TECH_SAME_FRAME','1')=='1'
+_QA_TECH_KINDS=frozenset(('geometry','normal','material','flow','fxmask'))
+_QA_TECH_STATS={'consultas':0,'hits':0,'renders':0,'invalidados':0}
+
 
 _INSTALADO = False
 _ORIGINAL = None
@@ -37,6 +45,22 @@ def instalar():
         # render_scene executa fill completo para cada kind, inclusive image.
         from pixelrush_world_v3130 import MODULAR_BIOMES
         cena = self._get_modular() if self.biome in MODULAR_BIOMES else self.city2
+        # O world retorna essas Surfaces exclusivamente para leitura/SDL.
+        # Nunca reutilizar em outro frame, bioma, scene ou mutação de
+        # parâmetros. Isto evita recompor o mesmo mapa várias vezes
+        # no frame5, sem nenhum copy/blit adicional de 450x500.
+        assinatura=None
+        if _QA_TECH_SAME_FRAME and kind in _QA_TECH_KINDS:
+            assinatura=(kind,self.biome,self.frame,self.travel,self.night,
+                        self.climate,self.phase,bool(self.lightweight),
+                        id(cena),getattr(cena,'visual_quality',None),id(surf))
+            _QA_TECH_STATS['consultas']+=1
+            estados=getattr(self,'_qa_technical_frame_states',None)
+            if estados is not None and estados.get(kind)==assinatura:
+                _QA_TECH_STATS['hits']+=1
+                return surf
+            if estados is not None and kind in estados:
+                _QA_TECH_STATS['invalidados']+=1
         # A instrumentacao interna confirma onde o mundo 2.5D gasta CPU.
         from pixelrush_profiler_v3204 import sub_inicio, sub_fim
         sub_inicio('mundo_composicao_interna')
@@ -53,6 +77,13 @@ def instalar():
             if emprestimo:
                 cena._qa_geometry_borrow_target=None
             sub_fim()
+        if assinatura is not None:
+            estados=getattr(self,'_qa_technical_frame_states',None)
+            if estados is None:
+                estados={}
+                self._qa_technical_frame_states=estados
+            estados[kind]=assinatura
+            _QA_TECH_STATS['renders']+=1
         # QA751: mapa nao-image pode estar em uso pela GPU real neste frame.
         # Guardar apenas biome/frame (nunca Surface extra) para o trim RSS
         # impedir desalocacoes/recriacao do mesmo mapa sob pressao.
