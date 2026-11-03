@@ -67,7 +67,15 @@ def overlay_por_quadro(game,destino,bg,frame):
 
 def comparar_bioma(game,bioma,frames=24,cronometrar=False):
     from pixelrush_qa_ultraleve_v327730 import CacheFundoUltraQA
+    # Cada caminho tem seu proprio mundo/parallax/clima/caches de instancia.
+    # Restaura o RNG para iniciar as duas instancias com exatamente os
+    # mesmos parametros sem perturbar a sequencia de RNG do restante do teste.
+    rng_inicial=random.getstate()
     bg,clima,cenas=criar_contexto(game,bioma,'limpo')
+    rng_final=random.getstate()
+    random.setstate(rng_inicial)
+    bg_alt,clima_alt,cenas_alt=criar_contexto(game,bioma,'limpo')
+    random.setstate(rng_final)
     ref=pygame.Surface((450,800)).convert()
     alt=ref.copy()
     scratch=ref.copy()
@@ -85,6 +93,13 @@ def comparar_bioma(game,bioma,frames=24,cronometrar=False):
         bg.peso_noite=night
         bg.world.night=night
         bg.world.climate=clima.tipo
+        clima_alt.tipo=clima.tipo
+        clima_alt.tempo=frame
+        bg_alt.clima_tipo=clima.tipo
+        bg_alt.update(8.8)
+        bg_alt.peso_noite=night
+        bg_alt.world.night=night
+        bg_alt.world.climate=clima.tipo
         chave=(bioma,clima.tipo,night>=.5,False,ref.get_size())
         start=pygame.time.get_ticks() # timing real abaixo usa perf_counter_ns
         from time import perf_counter_ns
@@ -102,11 +117,11 @@ def comparar_bioma(game,bioma,frames=24,cronometrar=False):
         # Mesmo novo desenho, mesmo estado; a superficie offscreen nunca
         # recebe o HUD, evitando contaminacao dos frames reutilizados.
         if not hit:
-            desenhar_fundo_integral(game,scratch,bg,clima,cenas,frame,cor,night)
+            desenhar_fundo_integral(game,scratch,bg_alt,clima_alt,cenas_alt,frame,cor,night)
         t4=perf_counter_ns()
         alt.blit(scratch,(0,0))
         t5=perf_counter_ns()
-        overlay_por_quadro(game,alt,bg,frame)
+        overlay_por_quadro(game,alt,bg_alt,frame)
         t6=perf_counter_ns()
         if rgba(ref)!=rgba(alt):
             raise AssertionError('divergencia do fundo integral %s frame %d (clima=%s noite=%s)'%
