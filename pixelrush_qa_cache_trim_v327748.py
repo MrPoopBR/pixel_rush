@@ -7,6 +7,7 @@ trabalho e distribuido, maximo 12 entradas inspecionadas por apresentacao.
 Nao toca estados/itens de gameplay e nunca remove caches do bioma ativo.
 """
 from weakref import ref
+from pixelrush_qa_cache_policy_v327758 import mapa_tecnico_quente
 
 class EscalonadorTrimQA:
     def __init__(self, limite_por_passo=12):
@@ -122,11 +123,10 @@ class EscalonadorTrimQA:
             # QA751: se uma pospassagem ainda consome este mapa, desalocar
             # sob pressao provocaria outra Surface de 450x500 no frame seguinte.
             # Ausencia de marcador mantém semantica legada de limpeza.
-            ultimo=getattr(world,'_qa_surface_last_used',{}).get(key)
-            if frio and ultimo is not None:
-                biome_uso,frame_uso=ultimo
-                frame_atual=getattr(world,'frame',frame_uso)
-                frio=(biome_uso!=active or frame_atual-frame_uso>180)
+            if frio:
+                # Mesma politica do fallback: ausência de marcador NÃO
+                # autoriza descartar o mapa ainda em uso pelo compositor.
+                frio=not mapa_tecnico_quente(world,key)
         elif attr in ('_qa_mirror_props','_qa_deform_buffers'):
             frio=isinstance(key,tuple) and key and key[0]!=active
         elif attr=='props_cache':

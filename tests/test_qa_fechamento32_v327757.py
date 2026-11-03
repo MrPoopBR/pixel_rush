@@ -65,7 +65,7 @@ class Fechamento32QA(unittest.TestCase):
                 for _ in range(181):pygame.display.flip()
                 diag=qa.diagnostico()
                 self.assertEqual(diag['frames'],181)
-                self.assertEqual(diag['coletas_0'],6)
+                self.assertEqual(diag['coletas_0'],5)
                 self.assertEqual(diag['coletas_1'],1)
                 self.assertEqual(diag['coletas_no_quinto_quadro'],0)
             finally:

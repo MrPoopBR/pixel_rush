@@ -52,15 +52,18 @@ def instalar():
         # fisica/ticks e NAO executam o render nem alteram RNG.
         if _FRAMES%5!=1:
             return resultado
-        if _FRAMES>=30 and _FRAMES%30==1:
-            gc.collect(0)
-            _STATS['coletas_0']+=1
-        if _FRAMES>=180 and _FRAMES%180==1:
-            gc.collect(1)
-            _STATS['coletas_1']+=1
+        # A geracao maior inclui as menores. Coletas concorrentes no
+        # mesmo flip aumentavam a pausa dos quadros 181/901 sem vantagem.
+        # Manter fase 1 mod 5 e prioridade da geracao mais abrangente.
         if _FRAMES>=900 and _FRAMES%900==1:
             gc.collect(2)
             _STATS['coletas_2']+=1
+        elif _FRAMES>=180 and _FRAMES%180==1:
+            gc.collect(1)
+            _STATS['coletas_1']+=1
+        elif _FRAMES>=30 and _FRAMES%30==1:
+            gc.collect(0)
+            _STATS['coletas_0']+=1
         return resultado
 
     try:

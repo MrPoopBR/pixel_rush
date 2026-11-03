@@ -206,9 +206,16 @@ def _reclaim_inactive_caches():
                         count+=1
         # Keep the HOT destination buffers. Only cold maps are freed; those
         # are deterministically reconstructed by the original code as needed.
-        cold=[key for key in world._city_surfaces
-              if key[0] in ('geometry','flow','material','normal','fxmask')]
-        for key in cold:
+        # Mesmo no fallback de RSS, nao provocar recompilacao de mapas
+        # tecnicos usados no frame atual. Protecao por instancia/frame,
+        # sem criar outra Surface ou depender de aceleracao GPU.
+        from pixelrush_qa_cache_policy_v327758 import mapa_tecnico_quente
+        for key in tuple(world._city_surfaces):
+            if not (isinstance(key,tuple) and key and key[0] in
+                    ('geometry','flow','material','normal','fxmask')):
+                continue
+            if mapa_tecnico_quente(world,key):
+                continue
             world._city_surfaces.pop(key,None)
             count+=1
         city=getattr(world,'city2',None)
