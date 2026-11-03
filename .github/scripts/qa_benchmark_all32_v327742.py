@@ -63,6 +63,32 @@ def main():
     results['cidade_noite']={'alocacao_original_por_frame':mediana(old_veil,35),
                               'reuso_alfa_mesmos_pixels':mediana(reused_veil,35),
                               'pixel_exato':True}
+    # QA v3.277.42: custo dos 28 circulos/clima estaticos vs cache (7 blits).
+    # Somente nuvens opacas; mesma imagem final RGB/RGBA.
+    cloud_color=(245,238,231)
+    cloudtile=pygame.Surface((48,33),pygame.SRCALPHA)
+    for dx,dy,rad in ((0,0,15),(-12,5,10),(13,5,11),(4,-6,9)):
+        pygame.draw.circle(cloudtile,cloud_color,(22+dx,15+dy),rad)
+    manual=pygame.Surface((450,500),pygame.SRCALPHA)
+    precomp=manual.copy()
+    coords=[(int((i*97+26-120*.047)%(450+120))-50,37+(i%3)*26)
+            for i in range(7)]
+    def desenhar_circulos():
+        manual.fill((0,0,0,0))
+        for cx,cy in coords:
+            for dx,dy,rad in ((0,0,15),(-12,5,10),(13,5,11),(4,-6,9)):
+                pygame.draw.circle(manual,cloud_color,(cx+dx,cy+dy),rad)
+    def desenhar_precompostas():
+        precomp.fill((0,0,0,0))
+        for cx,cy in coords:
+            precomp.blit(cloudtile,(cx-22,cy-15))
+    desenhar_circulos();desenhar_precompostas()
+    if pygame.image.tobytes(manual,'RGBA')!=pygame.image.tobytes(precomp,'RGBA'):
+        raise AssertionError('nuvens pre-renderizadas divergentes')
+    results['nuvens_cidade']={'28_circulos_original':mediana(desenhar_circulos,80),
+                             '7_blits_cacheados':mediana(desenhar_precompostas,80),
+                             'pixel_exato':True}
+
     out={'schema':'pixelrush.qa.32.v327742.benchmark.v1',
          'plataforma':'Linux SDL dummy; nao Android',
          'pygame':pygame.version.ver,'resultados':results,
