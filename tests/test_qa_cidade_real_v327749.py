@@ -39,7 +39,9 @@ class CidadeRealQA749(unittest.TestCase):
                             [(x,id(variant),flip) for x,variant,flip in original],
                             [(x,id(variant),flip) for x,variant,flip in otimizado])
                         cache=scene._layer_tiles(travel,layer)
-                        self.assertIsInstance(cache,tuple)
+                        self.assertEqual(
+                            [(x,id(v),flip) for x,v,flip in cache],
+                            [(x,id(v),flip) for x,v,flip in original])
             self.assertGreater(qa.estatisticas()['hits'],0)
             self.assertLessEqual(qa.estatisticas()['max_tiles_retidos'],20)
         finally:
