@@ -9,6 +9,8 @@ MODULAR_BIOMES=('neve','deserto') if os.getenv('PIXELRUSH_DESERTO_2_0')=='1' els
 # QA752: bypass somente de um overlay SRCALPHA inteiramente transparente.
 # Flag fixa no import (fora do quinto quadro); fallback literal preservado.
 _QA_SKIP_INERT_WEATHER=os.environ.get('PIXELRUSH_QA_MODULAR_WEATHER_SKIP','1')=='1'
+# Nivel 0 nao multiplica cor nem altera emissao: e a Surface original.
+_QA_SHARE_DAYLIGHT=os.environ.get('PIXELRUSH_QA_SHARE_DAYLIGHT','1')=='1'
 # speed, atmospheric mix, ground anchor, decoration ceiling/floor
 DEPTH={'far':(.10,.34,200,(70,227)), 'mid':(.25,.15,204,(80,229)), 'near':(.52,0.,230,(110,231))}
 
@@ -121,6 +123,12 @@ class ModularBiomeScene(Previous):
         if self.biome!='neve' or layer=='far':warm[:]=False
         # Quantized night palettes are prebuilt, so scrolling never allocates tiles.
         for level in range(5):
+            if level==0 and _QA_SHARE_DAYLIGHT:
+                # Nao duplicar 225x250 RGBA para o dia: fator RGB 1.0;
+                # lampadas quentes ja possuem a cor exata na fonte.
+                # O atlas base e imutavel durante draw(). Sem alteracao RNG.
+                self._night_tiles[(pose,layer,index,level)]=src
+                continue
             dest=src.copy();arr=pygame.surfarray.pixels3d(dest)
             factor=1-np.array((.42,.39,.27))*level/4
             arr[:]=rgb*factor;arr[warm]=rgb[warm];del arr
