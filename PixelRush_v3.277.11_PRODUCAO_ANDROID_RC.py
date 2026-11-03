@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.65-QA-ANDROID-RC"
+VERSAO = "v3.277.66-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -10761,6 +10761,11 @@ def main():
     textos_flut = pygame.sprite.Group()
     particulas = pygame.sprite.Group()
 
+    # QA766: utiliza o pool original da engine; apenas extras ja mortos
+    # sao descartados, e ambiente reutiliza dicionarios entre biomas.
+    if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1':
+        from pixelrush_qa_particle_reuse_v327766 import instalar as instalar_pool_particulas_qa
+        instalar_pool_particulas_qa(ParallaxBackground,Particula)
     bg_parallax = ParallaxBackground()
     gamefeel = GameFeel()
     gpu_processor = GpuPostProcessor(LARGURA_VIRTUAL, ALTURA_VIRTUAL,

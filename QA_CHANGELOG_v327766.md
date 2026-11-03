@@ -1,0 +1,5 @@
+# PIXEL RUSH — Changelog v3.277.66-QA
+
+Na branch de fechamento única, iniciado desde v3.277.65. Implementado pixelrush_qa_particle_reuse_v327766.py e ligação no main da engine QA antes da instancia ParallaxBackground. A lógica reutiliza os dicionários de partículas de ambiente em trocas de bioma sem alterar valores ou ordem do RNG e ajusta APENAS o descarte de objetos excedentes mortos do PoolManager original (256 disponíveis). Não limita número de explosões ativas nem mexe em PoolManager de produção, moedas, saves, física, jogos, sprites, pets ou conteúdo desativado.
+
+Nova suíte de 3 testes baseada em AST das classes reais da engine, compara pixels RGBA e RNG entre método original e wrapper QA nos oito biomas, valida o pico de 300 Particula sem remover qualquer objeto ativo e os dois fallbacks por flag. #4 pipeline final CPU teve gates aprovados na CI #41724644441, 38/38 testes totais, e passa a concluída apenas offline. #20 segue aguardando execução integrada da nova suíte. Placar conservador de entrada 18/32 offline, 14 parciais, zero Android. Sem APK/AAB/ADB, nem alterações em main.py, produção/DEV, shaders, física, pets, saves ou assets.

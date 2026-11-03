@@ -18,6 +18,8 @@ MODULES=(
     'pixelrush_qa_cache_policy_v327758.py',
     'pixelrush_qa_cache_trim_v327748.py',
     'pixelrush_qa_memory_budget_v327765.py',
+    'pixelrush_qa_particle_reuse_v327766.py',
+    'tests/test_qa_particle_reuse_v327766.py',
     'pixelrush_qa_unified_post_v327750.py',
     'tests/test_qa_memory_budget_v327765.py',
     'tests/test_qa_unified_post_v327765.py',
@@ -55,7 +57,7 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.65-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.66-QA-ANDROID-RC"' in engine
     assert "_qa_precarga_visuais.passo(estado)" in engine
     assert "instalar_render_qa()" in (ROOT/'main.py').read_text('utf8')
     perf=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
@@ -68,13 +70,114 @@ def main():
     assert 'modular_cache_fria' in policy
     assert (ROOT/'QA_TRACKER_32_v327765.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327765.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327766.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327766.md').is_file()
+    assert 'instalar_pool_particulas_qa(ParallaxBackground,Particula)' in engine
     assert "elif _FRAMES>=180 and _FRAMES%180==1:" in gc
     assert "elif _FRAMES>=30 and _FRAMES%30==1:" in gc
     biome=(ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.65$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.66,spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327766,spec)
+    assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327760.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327760.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327761.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327761.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327762.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327762.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327763.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327763.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327765.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327765.md').is_file()
+    assert 'pressao_cache=pressionado' in perf
+    assert 'cache_surface_mib' in perf
+    assert 'aquecer_tiles=True' in engine
+    assert 'tiles_adiados_para_menu' in (ROOT/'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
+    assert 'instalar_geometry_retire_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert '_QA_SAFE_CLOUD_CACHE' in (ROOT/'pixelrush_qa_scene_v327733.py').read_text('utf8')
+    assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
+    assert '_PARTICLE_SEEDS' in (ROOT/'pixelrush_qa_city_weather_v327749.py').read_text('utf8')
+    result={'schema':'pixelrush.qa.preflight.v327758','status':'AST_E_PINS_APROVADOS',
+            'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
+            'android_homologado':False,'gpu_hardware':False}
+    Path('qa-preflight-v327758.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+    print(json.dumps(result,indent=2))
+if __name__=='__main__':
+    main()
+,spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327765$',spec)
+    assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327760.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327760.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327761.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327761.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327762.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327762.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327763.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327763.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327765.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327765.md').is_file()
+    assert 'pressao_cache=pressionado' in perf
+    assert 'cache_surface_mib' in perf
+    assert 'aquecer_tiles=True' in engine
+    assert 'tiles_adiados_para_menu' in (ROOT/'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
+    assert 'instalar_geometry_retire_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert '_QA_SAFE_CLOUD_CACHE' in (ROOT/'pixelrush_qa_scene_v327733.py').read_text('utf8')
+    assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
+    assert '_PARTICLE_SEEDS' in (ROOT/'pixelrush_qa_city_weather_v327749.py').read_text('utf8')
+    result={'schema':'pixelrush.qa.preflight.v327758','status':'AST_E_PINS_APROVADOS',
+            'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
+            'android_homologado':False,'gpu_hardware':False}
+    Path('qa-preflight-v327758.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+    print(json.dumps(result,indent=2))
+if __name__=='__main__':
+    main()
+,spec)
+    assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327760.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327760.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327761.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327761.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327762.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327762.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327763.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327763.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327765.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327765.md').is_file()
+    assert 'pressao_cache=pressionado' in perf
+    assert 'cache_surface_mib' in perf
+    assert 'aquecer_tiles=True' in engine
+    assert 'tiles_adiados_para_menu' in (ROOT/'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
+    assert 'instalar_geometry_retire_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert '_QA_SAFE_CLOUD_CACHE' in (ROOT/'pixelrush_qa_scene_v327733.py').read_text('utf8')
+    assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
+    assert '_PARTICLE_SEEDS' in (ROOT/'pixelrush_qa_city_weather_v327749.py').read_text('utf8')
+    result={'schema':'pixelrush.qa.preflight.v327758','status':'AST_E_PINS_APROVADOS',
+            'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
+            'android_homologado':False,'gpu_hardware':False}
+    Path('qa-preflight-v327758.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+    print(json.dumps(result,indent=2))
+if __name__=='__main__':
+    main()
+,spec)
     assert re.search(r'(?m)^android\.numeric_version = 327765$',spec)
     assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
