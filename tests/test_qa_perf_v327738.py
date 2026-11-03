@@ -88,7 +88,7 @@ class TestDeepPerformanceV327738(unittest.TestCase):
     def test_percentis_exatamente_iguais_e_fora_da_thread_principal(self):
         import pixelrush_qa_android_v327728 as qa_module
         with tempfile.TemporaryDirectory() as pasta:
-            qa = qa_module.QATelemetria('v3.277.40-QA', 'LIMPA', caminho=pasta)
+            qa = qa_module.QATelemetria('v3.277.41-QA', 'LIMPA', caminho=pasta)
             chave = 'corrida_normal|cidade'
             qa.agregados[chave]['quadro_total_ms'].extend((10.,12.,100.,50.))
             qa.agregados[chave]['intervalo_entre_inicios_ms'].extend((16.,17.,19.))
@@ -113,11 +113,11 @@ class TestDeepPerformanceV327738(unittest.TestCase):
             self.assertTrue(chamadores)
             self.assertTrue(all(nome.startswith('pixelrush-qa-io')
                                 for nome in chamadores),chamadores)
-            destino = Path(pasta)/'pixelrush_qa_v327740.json'
+            destino = Path(pasta)/'pixelrush_qa_v327741.json'
             documento = json.loads(destino.read_text('utf8'))
             self.assertEqual(documento['grupos'],referencia['grupos'])
             self.assertEqual(documento['grupos'][chave]['quadros_observados'],4)
-            with (Path(pasta)/'pixelrush_qa_frames_v327740.csv').open(newline='') as f:
+            with (Path(pasta)/'pixelrush_qa_frames_v327741.csv').open(newline='') as f:
                 linhas = list(csv.DictReader(f))
             self.assertEqual(len(linhas),1)
             self.assertEqual(linhas[0]['modo'],'corrida_normal')
@@ -125,7 +125,7 @@ class TestDeepPerformanceV327738(unittest.TestCase):
 
     def test_inalterado_produto_fisica_e_build_debug(self):
         fonte = (ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-        self.assertIn('VERSAO = "v3.277.40-QA-ANDROID-RC"',fonte)
+        self.assertIn('VERSAO = "v3.277.41-QA-ANDROID-RC"',fonte)
         self.assertIn('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',fonte)
         self.assertIn('FPS_RENDER = 30 if E_ANDROID else 60',fonte)
         self.assertIn('PIXELRUSH_DEV_BUILD = False',fonte)

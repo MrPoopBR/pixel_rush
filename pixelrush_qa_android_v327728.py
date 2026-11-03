@@ -289,7 +289,7 @@ class QATelemetria:
             relatorio = self.relatorio(resumir=False)
             linhas = tuple(dict(x) for x in self.ultimos)
             aceito = gravador.enviar(
-                self.pasta, 'pixelrush_qa_v327740', relatorio, linhas,
+                self.pasta, 'pixelrush_qa_v327741', relatorio, linhas,
                 esperar=esperar, preparar_relatorio=_preparar_exportacao_qa)
             self.gravacoes = gravador.concluidas
             self.erros_escrita = gravador.falhas
