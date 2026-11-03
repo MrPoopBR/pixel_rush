@@ -8,6 +8,11 @@ Foregound permanece com o caminho original, sem risco a mapas com transparencia.
 Compatibilidade testada com SDL dummy pixel a pixel, multiplos canais e cenas.
 """
 import pygame
+import os
+
+# QA752: alias zero-copy apenas quando World possui a Surface destino.
+# OFF ate testes integrais de ambient_occlusion, multiinstancia e GPU.
+_QA_BORROW_GEOMETRY=os.environ.get('PIXELRUSH_QA_GEOMETRY_BORROW','0')=='1'
 
 _INSTALADO = False
 _ORIGINAL = None
@@ -35,11 +40,18 @@ def instalar():
         # A instrumentacao interna confirma onde o mundo 2.5D gasta CPU.
         from pixelrush_profiler_v3204 import sub_inicio, sub_fim
         sub_inicio('mundo_composicao_interna')
+        emprestimo=_QA_BORROW_GEOMETRY and kind=='geometry'
+        if emprestimo:
+            # O mesmo mundo mantem a Surface viva em _city_surfaces.
+            # Nao emprestar destinos de testes externos ou efemeros.
+            cena._qa_geometry_borrow_target=surf
         try:
             cena.render_scene(surf, self.travel, self.frame, self.night,
                               self.climate, self.phase, foreground_only=False,
                               map_kind=kind)
         finally:
+            if emprestimo:
+                cena._qa_geometry_borrow_target=None
             sub_fim()
         # QA751: mapa nao-image pode estar em uso pela GPU real neste frame.
         # Guardar apenas biome/frame (nunca Surface extra) para o trim RSS
