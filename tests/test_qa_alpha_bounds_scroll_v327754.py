@@ -103,23 +103,26 @@ class CidadeAlphaScroll754(unittest.TestCase):
         from pixelrush_city2_v3125 import CityPilotScene
         import pixelrush_city2_v3118 as base
         scene=CityPilotScene()
-        variant=scene.layers[0].variants[0]
         flags=(base._QA_ALPHA_BOUNDS,base._QA_SKIP_EMPTY_BASE)
         try:
             for initial_alpha in (0,1,17,147,255):
-                a=pygame.Surface((450,500),pygame.SRCALPHA,32)
-                a.fill((18,37,71,initial_alpha))
-                b=a.copy()
-                base._QA_ALPHA_BOUNDS=False
-                base._QA_SKIP_EMPTY_BASE=False
-                scene._render_chunk(a,variant,False,-465,42,.4,
-                                    'limpo',.55,'image')
-                base._QA_ALPHA_BOUNDS=True
-                base._QA_SKIP_EMPTY_BASE=True
-                scene._render_chunk(b,variant,False,-465,42,.4,
-                                    'limpo',.55,'image')
-                self.assertEqual(raw_rgba(a),raw_rgba(b),
-                                 ("hidden_rgba",initial_alpha))
+                for layer in scene.layers:
+                    variant=layer.variants[0]
+                    for kind in ('image','geometry','normal',
+                                 'flow','fxmask','material'):
+                        a=pygame.Surface((450,500),pygame.SRCALPHA,32)
+                        a.fill((18,37,71,initial_alpha))
+                        b=a.copy()
+                        base._QA_ALPHA_BOUNDS=False
+                        base._QA_SKIP_EMPTY_BASE=False
+                        scene._render_chunk(a,variant,False,-465,42,.4,
+                                            'limpo',.55,map_kind=kind)
+                        base._QA_ALPHA_BOUNDS=True
+                        base._QA_SKIP_EMPTY_BASE=True
+                        scene._render_chunk(b,variant,False,-465,42,.4,
+                                            'limpo',.55,map_kind=kind)
+                        self.assertEqual(raw_rgba(a),raw_rgba(b),
+                                         ("hidden_rgba",initial_alpha,layer.name,kind))
         finally:
             base._QA_ALPHA_BOUNDS,base._QA_SKIP_EMPTY_BASE=flags
 
