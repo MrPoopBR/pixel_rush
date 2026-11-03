@@ -50,7 +50,7 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.62-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.63-QA-ANDROID-RC"' in engine
     assert "_qa_precarga_visuais.passo(estado)" in engine
     assert "instalar_render_qa()" in (ROOT/'main.py').read_text('utf8')
     perf=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
@@ -66,8 +66,8 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.62$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327762$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.63$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327763$',spec)
     assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
@@ -78,6 +78,8 @@ def main():
     assert (ROOT/'QA_CHANGELOG_v327761.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327762.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327762.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327763.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327763.md').is_file()
     assert 'aquecer_tiles=True' in engine
     assert 'tiles_adiados_para_menu' in (ROOT/'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
     assert 'instalar_geometry_retire_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')

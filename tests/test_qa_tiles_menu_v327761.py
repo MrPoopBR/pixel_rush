@@ -120,6 +120,32 @@ class TilesMenu761(unittest.TestCase):
             self.assertEqual(limited.diagnostico()['arquivos'][0]['status'],
                              'orcamento_total')
 
+    def test_tiles_prod_reais_sha_completos_em_ate_32_passos(self):
+        # Gate real contra os binarios oficiais: nenhuma aproximação
+        # por fixture para estes três hashes de producao.
+        from pixelrush_tiles_prod_v32777 import _DIR, _HASHES
+        self.assertEqual(set(_HASHES),{'neve','deserto','cidade_futurista'})
+        esperados=sum((_DIR/(nome+'.tiles')).stat().st_size for nome in _HASHES)
+        self.assertLessEqual(esperados,125*1024*1024)
+        random_antes=random.getstate()
+        leitor=PrecargaTilesMenuQA()
+        passos=0
+        while not leitor.finalizado and passos<32:
+            anterior=leitor.diagnostico()['bytes_lidos']
+            leitor.passo()
+            atual=leitor.diagnostico()['bytes_lidos']
+            self.assertLessEqual(atual-anterior,64*1024)
+            passos+=1
+        r=leitor.diagnostico()
+        self.assertTrue(r['finalizado'],msg='tile oficial nao aquecido em 32 quadros de menu')
+        self.assertEqual(r['bytes_lidos'],esperados)
+        self.assertEqual(len(r['arquivos']),len(_HASHES))
+        self.assertTrue(all(x['status']=='sha_ok' for x in r['arquivos']),r)
+        self.assertEqual(random_antes,random.getstate())
+        self.assertEqual(r['superficies_criadas'],0)
+        print('QA_TILES_PROD_MENU_GATE',{'passos':passos,'bytes':esperados,
+                                         'sha_ok':len(_HASHES)})
+
     def test_boot_qa_transfere_tiles_ao_menu_sem_rehash(self):
         import pixelrush_qa_atlas_io_v327747 as atlas
         with patch.dict(os.environ,{
