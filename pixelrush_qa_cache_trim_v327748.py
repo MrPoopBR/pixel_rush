@@ -56,6 +56,14 @@ class EscalonadorTrimQA:
                 # O LRU nunca cai abaixo das 8 entradas conservadas.
                 for key in tuple(scaled):
                     yield (mundo_ref,'_city_scaled',key)
+            # QA750: as 13 vinhetas noturnas 450x500 RGBA ocupavam
+            # cerca de 11 MiB por Cidade. Sob RSS alto, conservar o
+            # nivel atual e vizinhos; liberar somente texturas frias,
+            # parcelado nos mesmos passos ja fora do quinto quadro.
+            veils=getattr(city,'_night_veils',None)
+            if veils and len(veils)>4:
+                for key in tuple(veils):
+                    yield (mundo_ref,'_city_night_veil',key)
         if self._fonte:
             for key in tuple(self._fonte):
                 yield (None,'_SOURCE',key)
@@ -80,6 +88,19 @@ class EscalonadorTrimQA:
                     scaled.pop(key,None)
                     return True
             return False
+        if attr=='_city_night_veil':
+            city=getattr(world,'city2',None)
+            veils=getattr(city,'_night_veils',None)
+            if veils is None or key not in veils or len(veils)<=4:
+                return False
+            # Nunca descartar o nivel ativo nem transicoes imediatas
+            # da cidade atual, para nao provocar frame5 de recompilacao.
+            if active=='cidade':
+                current=max(0,min(12,int(getattr(world,'night',0.)*12+.5)))
+                if isinstance(key,int) and abs(key-current)<=1:
+                    return False
+            veils.pop(key,None)
+            return True
         cache=getattr(world,attr,None)
         if cache is None or key not in cache:
             return False
