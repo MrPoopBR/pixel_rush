@@ -45,15 +45,23 @@ class CityPilotScene(CidadeAnterior):
             # Escurece apenas os prédios, sem escurecer o céu de novo.
             if night>.12:
                 key = min(12, max(0, int(night*12 + .5)))
-                veil = self._night_veils.get(key)
-                if veil is None:
-                    import pygame
-                    veil = pygame.Surface(target.get_size(), pygame.SRCALPHA)
-                    # Multiplicacao RGB que preserva alpha=0 nas regiões do céu.
-                    veil.fill((255-key*8, 255-key*7, 255-key*4, 255))
-                    self._night_veils[key] = veil
+                # QA751: um fill especial (em C/SDL) multiplica diretamente
+                # os canais do destino, com os MESMOS fatores e arredondamento
+                # de blit RGBA_MULT de uma Surface uniforme 450x500. Evita
+                # criar/manter ate 13 Surfaces RGBA (~11 MiB) e um blit inteiro.
+                # Testes direcionados pygame-ce 2.5.8: RGB/RGBA byte-identicos.
+                import os
                 import pygame
-                target.blit(veil, (0,0), special_flags=pygame.BLEND_RGBA_MULT)
+                cor=(255-key*8,255-key*7,255-key*4,255)
+                if os.environ.get('PIXELRUSH_QA_DIRECT_NIGHT_MULT','1')=='1':
+                    target.fill(cor,special_flags=pygame.BLEND_RGBA_MULT)
+                else:
+                    veil = self._night_veils.get(key)
+                    if veil is None:
+                        veil=pygame.Surface(target.get_size(),pygame.SRCALPHA)
+                        veil.fill(cor)
+                        self._night_veils[key]=veil
+                    target.blit(veil,(0,0),special_flags=pygame.BLEND_RGBA_MULT)
             if near_tiles:
                 self.life.draw_windows_lights(target,near_tiles,night,frame,quality,'image')
             self.life.draw_atmosphere(target,travel,frame,night,climate,quality)
