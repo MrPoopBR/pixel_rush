@@ -15,6 +15,7 @@ Duas flags, avaliadas no boot: PIXELRUSH_QA_CITY_EMPTY_FG=0 e
 PIXELRUSH_QA_STRIP_ONE_BLIT=0, restauram os caminhos originais.
 """
 import os
+import pygame
 from functools import wraps
 from weakref import WeakKeyDictionary
 
@@ -52,8 +53,9 @@ def instalar():
                     # FG de v3125 eh zero-SRCALPHA. Nenhuma nova Surface
                     # persistente, so resultado booleano por instancia.
                     empty=bool(layers) and all(
+                        len(layer.variants)>0 for layer in layers) and all(
                         not variant.sprites
-                        and bool(variant.image.get_flags() & 0x00010000)
+                        and bool(variant.image.get_flags() & pygame.SRCALPHA)
                         and variant.image.get_colorkey() is None
                         and variant.image.get_bounding_rect(min_alpha=1).width==0
                         for layer in layers for variant in layer.variants)
