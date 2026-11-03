@@ -48,7 +48,7 @@ def finalizar_quadro(imagem, tela, tamanho_final, pos_final, superficies_escala,
     else:
         _STATUS['camera_ignorada']+=1
     marcar('apresentacao')
-    if tuple(tamanho_final)==imagem.get_size():
+    if tamanho_final==imagem.get_size():
         superficie_final=imagem
         _STATUS['sem_escala']+=1
     else:
@@ -74,7 +74,10 @@ def finalizar_quadro(imagem, tela, tamanho_final, pos_final, superficies_escala,
         # Mesmo objeto Surface, mesma dimensao e (0,0): blit sobre si mesma
         # era trabalho redundante. Nunca supor igualdade a partir de pixels.
         if (superficie_final is tela and pos_final==(0,0) and
-                superficie_final.get_size()==tela.get_size()):
+                superficie_final.get_size()==tela.get_size() and
+                not (tela.get_flags() & pygame.SRCALPHA) and
+                tela.get_colorkey() is None and
+                tela.get_alpha() in (None,255)):
             _STATUS['blits_redundantes_pulados']+=1
         else:
             tela.blit(superficie_final,pos_final)
