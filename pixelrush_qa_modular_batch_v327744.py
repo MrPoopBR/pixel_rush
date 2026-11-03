@@ -2,8 +2,10 @@
 """QA v3.277.44: batching opcional no render modular REAL (v3128/v3130).
 
 Somente altera chamadas SDL blit->blits de dois tiles RGBA mantendo ordem,
-coordenadas, camadas, chunks, alfa e estado do jogo. Desligado por padrao.
-Liberar para runtime apenas com igualdade de pixels e ganho no dispositivo.
+coordenadas, camadas, chunks, alfa e estado do jogo. QA749 ligado por padrao SOMENTE na branch isolada: a equivalencia RGBA
+ja foi demonstrada para os mapas de Cidade/Neve/Deserto em testes offline
+anteriores; o ganho de CPU ainda precisa ser confirmado antes de homologar.
+Desligue imediatamente com PIXELRUSH_QA_MODULAR_BATCH=0.
 """
 import os
 from functools import wraps
@@ -17,7 +19,7 @@ def instalar():
     if _INSTALLED:
         return
     # Nenhum monkeypatch ou import adicional no caminho normal.
-    if os.environ.get('PIXELRUSH_QA_MODULAR_BATCH','0')!='1':
+    if os.environ.get('PIXELRUSH_QA_MODULAR_BATCH','1')!='1':
         return
     from pixelrush_biomes2_v3128 import ModularBiomeScene as SnowScene, DEPTH, LW
     from pixelrush_biomes2_v3130 import ModularBiomeScene as CurrentScene, COUNTS
