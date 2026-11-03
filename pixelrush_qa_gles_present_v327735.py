@@ -210,8 +210,33 @@ class GLES2DirectPresenterQA:
         data_ptr=C.cast(C.c_char_p(data),C.c_void_p)
         t0=time.perf_counter_ns()
         self._f['glBindTexture'](0x0DE1,self.texture)
-        self._f['glTexSubImage2D'](0x0DE1,0,0,0,self.width,self.height,
-                                   0x1908,0x1401,data_ptr)
+        # QA v3.277.42: PBO GLES3 opcional. A classe continua somente no
+        # laboratorio: nenhum caminho do jogo importa este presenter.
+        if not hasattr(self,'_qa_pbo'):
+            self._qa_pbo=None
+            self._qa_pbo_disabled=False
+            import os
+            if os.environ.get('PIXELRUSH_QA_GLES_PBO','0')=='1':
+                try:
+                    from pixelrush_qa_gles_pbo_v327742 import UploadGLES3PBOQA
+                    self._qa_pbo=UploadGLES3PBOQA(self)
+                except (ImportError,RuntimeError,OSError,AttributeError):
+                    self._qa_pbo_disabled=True
+        usado_pbo=False
+        if self._qa_pbo is not None:
+            try:
+                self._qa_pbo.enviar(data,self.width,self.height)
+                usado_pbo=True
+            except (RuntimeError,ValueError,OSError,AttributeError):
+                self._qa_pbo_disabled=True
+                try:
+                    self._qa_pbo.fechar()
+                except (RuntimeError,OSError):
+                    pass
+                self._qa_pbo=None
+        if not usado_pbo:
+            self._f['glTexSubImage2D'](0x0DE1,0,0,0,self.width,self.height,
+                                       0x1908,0x1401,data_ptr)
         self._f['glUniform2f'](self.u_expanded,float(w),float(h))
         self._f['glUniform2f'](self.u_crop,float(ex),float(h-self.height-sy))
         self._f['glDrawArrays'](0x0004,0,6)
@@ -232,12 +257,20 @@ class GLES2DirectPresenterQA:
         self.frame_count+=1
 
     def diagnostico(self):
+        pbo=getattr(self,'_qa_pbo',None)
         return {'renderer':self.renderer,'gl_version':self.version,
                 'video_driver':pygame.display.get_driver(),
                 'swap_method':self.swap_method,'frames':self.frame_count,
                 'gpu_to_cpu_readbacks':self.readbacks,
-                'integrado_ao_jogo':False,'equivalencia_visual_aprovada':False}
+                'integrado_ao_jogo':False,'equivalencia_visual_aprovada':False,
+                'qa_pbo_ativo':pbo is not None,
+                'qa_pbo_desabilitado':getattr(self,'_qa_pbo_disabled',False),
+                'qa_pbo_stats':pbo.diagnostico() if pbo else None}
 
     def close(self):
         # Apenas encerra a janela propria do harness, nunca do jogo em producao.
+        pbo=getattr(self,'_qa_pbo',None)
+        if pbo is not None:
+            try:pbo.fechar()
+            except (RuntimeError,OSError):pass
         pygame.display.quit()
