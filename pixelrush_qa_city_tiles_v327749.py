@@ -36,7 +36,8 @@ def instalar():
         _STATUS['chamadas']+=1
         if not isinstance(travel,(int,float)):
             _STATUS['fallbacks']+=1
-            return _ORIGINAL(travel,layer)
+            yield from _ORIGINAL(travel,layer)
+            return
         try:
             cached=getattr(layer,_CACHE_ATTR,None)
             if (cached is not None and cached[0]==travel and
@@ -44,17 +45,20 @@ def instalar():
                     cached[3] is layer.variants and
                     cached[4] is layer.flips):
                 _STATUS['hits']+=1
-                return cached[1]
+                yield from cached[1]
+                return
             tiles=tuple(_ORIGINAL(travel,layer))
             setattr(layer,_CACHE_ATTR,
                     (travel,tiles,layer.sequence,layer.variants,layer.flips))
             _LAYER_REFS[id(layer)]=layer
             _STATUS['misses']+=1
             _STATUS['max_tiles_retidos']=max(_STATUS['max_tiles_retidos'],len(tiles))
-            return tiles
+            yield from tiles
+            return
         except (AttributeError,TypeError,ValueError,MemoryError):
             _STATUS['fallbacks']+=1
-            return _ORIGINAL(travel,layer)
+            yield from _ORIGINAL(travel,layer)
+            return
 
     # Preserva a assinatura estatica da versao real v3118->v3125.
     CityPilotScene._layer_tiles=staticmethod(plano)
