@@ -72,6 +72,11 @@ class EscalonadorTrimQA:
             if veils and len(veils)>4:
                 for key in tuple(veils):
                     yield (mundo_ref,'_city_night_veil',key)
+            # QA767: framebuffer SDF 450x500 so e necessario ENQUANTO
+            # ha chunks destrutiveis ativos. Nao o reter indefinidamente
+            # apos eventos SDF ja encerrados; nunca remover durante dano.
+            if getattr(world,'_qa_damage_layer',None) is not None:
+                yield (mundo_ref,'_qa_damage_layer',None)
             # QA762: trims inativos dos biomas modulares. Somente entradas
             # dos dicionarios derivados e lazy; nunca tiles fonte nem
             # _night_tiles precompiladas da Neve. A cada passo, revalidar
@@ -110,6 +115,14 @@ class EscalonadorTrimQA:
                 cache.pop(key,None)
                 return True
             return False
+        if attr=='_qa_damage_layer':
+            dano=getattr(world,'damage',None)
+            if dano is None or getattr(dano,'chunks',None):
+                return False
+            if getattr(world,'_qa_damage_layer',None) is None:
+                return False
+            world._qa_damage_layer=None
+            return True
         if attr=='_qa_city_incremental_cache':
             if active=='cidade':
                 return False

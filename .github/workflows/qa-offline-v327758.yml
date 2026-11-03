@@ -1,4 +1,4 @@
-name: PIXEL RUSH QA 3.277.66 — pooling de partículas reais (sem Android)
+name: PIXEL RUSH QA 3.277.67 — buffer SDF frio e pooling offline (sem Android)
 
 on:
   push:
@@ -74,6 +74,8 @@ jobs:
         run: python tests/test_qa_unified_post_v327765.py
       - name: Particulas ambientais oito biomas e explosoes com pool real
         run: python tests/test_qa_particle_reuse_v327766.py
+      - name: Buffer de dano SDF sem chunks, RAM global e rollback
+        run: python tests/test_qa_damage_memory_v327767.py
       - name: Evidência offline (não é homologação Android)
         if: always()
         uses: actions/upload-artifact@v4

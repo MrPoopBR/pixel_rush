@@ -221,6 +221,14 @@ def _reclaim_inactive_caches():
                 continue
             world._city_surfaces.pop(key,None)
             count+=1
+        # QA767: o buffer SDF de 900 KiB nao precisa permanecer
+        # depois que os chunks de dano sumiram. Ja estamos no
+        # fallback de RSS APOS a apresentacao; nenhum alvo ativo cai.
+        dano=getattr(world,'damage',None)
+        if (dano is not None and not getattr(dano,'chunks',None) and
+                getattr(world,'_qa_damage_layer',None) is not None):
+            world._qa_damage_layer=None
+            count+=1
         # QA762: fallback RSS aplica a mesma politica conservadora de
         # derivacoes modulares do trim parcelado. Nao liberar fonte/poses,
         # nem _night_tiles de neve (precomputadas sem refill lazy).

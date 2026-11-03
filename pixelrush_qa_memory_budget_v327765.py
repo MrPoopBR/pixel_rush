@@ -9,7 +9,7 @@ import pygame
 
 _CACHE_WORLD=('props_cache','cache','fx_cache','normal_cache','material_cache',
               'flow_cache','geometry_cache','_qa_mirror_props',
-              '_qa_deform_buffers','_city_surfaces')
+              '_qa_deform_buffers','_city_surfaces','_qa_damage_layer')
 _CACHE_CITY=('_scaled','_night_veils','_qa_cloud_sprite_cache')
 _CACHE_MODULAR=('_maps','_composites','_night_tiles')
 
