@@ -26,6 +26,10 @@ _QA_ALPHA_BOUNDS=os.environ.get('PIXELRUSH_QA_CITY_ALPHA_BOUNDS','1')=='1'
 # os bytes SDL, formato, alpha e cor-chave forem identicos.
 # Hash BLAKE2b apenas agrupa candidatos; igualdade crua obrigatoria.
 _QA_DEDUP_TECH_SCALED=os.environ.get('PIXELRUSH_QA_CITY_DEDUP_TECH_SCALED','1')=='1'
+# QA756: atlas técnicos de cor opaca 100% uniforme viram um fill SDL
+# diretamente no destino, sem alocar/ampliar/blitar Surface 900x500.
+# Validação integral dos bytes somente no bootstrap; zero scan no quadro 5.
+_QA_UNIFORM_TECH_FILL=os.environ.get('PIXELRUSH_QA_CITY_UNIFORM_TECH_FILL','1')=='1'
 
 import math
 import random
@@ -66,10 +70,13 @@ class CityPilotScene(PreviousCity):
         self._qa_alpha_bounds={}
         self._qa_scaled_alias={}
         self._qa_scaled_alias_hits=0
+        self._qa_uniform_tech={}
+        self._qa_uniform_tech_hits=0
         # O dicionario temporario não fica retido depois do bootstrap;
         # só guarda referencias a pixels JA existentes enquanto compara.
         iguais={}
-        if _QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS or _QA_DEDUP_TECH_SCALED:
+        if (_QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS or
+                _QA_DEDUP_TECH_SCALED or _QA_UNIFORM_TECH_FILL):
             for layer in self.layers:
                 for variant in layer.variants:
                     for kind in ('image','geometry','fxmask',
@@ -77,6 +84,31 @@ class CityPilotScene(PreviousCity):
                         tex=getattr(variant,kind,None)
                         if tex is None:
                             continue
+                        # Fonte original inteira RGBA opaca e uniforme.
+                        # Conferir bytes RAW, inclusive pitch e masks, fora
+                        # do frame5. Qualquer erro cai no renderer antigo.
+                        if (_QA_UNIFORM_TECH_FILL and
+                                kind in ('geometry','fxmask','normal',
+                                         'material','flow') and
+                                tex.get_size()==(LOW_W,LOW_H) and
+                                tex.get_bitsize()==32 and
+                                tex.get_pitch()==LOW_W*4 and
+                                tex.get_flags() & pygame.SRCALPHA and
+                                tex.get_colorkey() is None and
+                                tex.get_alpha() in (None,255)):
+                            color=tex.get_at((0,0))
+                            if color.a==255:
+                                try:
+                                    pixels=memoryview(tex.get_view('0'))
+                                    try:
+                                        first=pixels[:4].tobytes()
+                                        if pixels.tobytes()==first*(LOW_W*LOW_H):
+                                            self._qa_uniform_tech[
+                                                (id(variant),kind)]=(id(tex),tuple(color))
+                                    finally:
+                                        pixels.release()
+                                except (pygame.error,BufferError,ValueError,MemoryError):
+                                    pass
                         if (_QA_DEDUP_TECH_SCALED and
                                 kind in ('geometry','fxmask','normal',
                                          'material','flow') and
@@ -339,38 +371,51 @@ class CityPilotScene(PreviousCity):
                                     climate, map_kind, flip)
 
     def _render_chunk(self,target,variant,flip,x,frame,night,climate,phase,map_kind='image',only_sprites=False):
-        if not only_sprites:
-            # QA755: raster SRCALPHA nao pode perder RGB oculto no alpha0.
-            # Excecao comprovada: normal/flow usam fill alpha=255 em TODO
-            # o target (ver marcador temporario em v3124 render_scene).
-            # O SRCALPHA resultante permanece opaco em todos os blits.
-            # Image/fxmask/geometry SRCALPHA jamais usam recorte por alpha.
-            pode_recortar=(not (target.get_flags() & pygame.SRCALPHA) or
-                            (map_kind in ('normal','flow') and
-                             getattr(self,'_qa_opaque_safe_target',None) is target))
-            # Evita a criacao de tuple/id/getattr no quinto quadro image
-            # SRCALPHA, onde nao ha nenhuma otimizacao de bbox permitida.
-            metadata=(id(variant),map_kind,id(getattr(variant,map_kind))
-                      ) if (pode_recortar and
-                            (_QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS)) else None
-            if (_QA_SKIP_EMPTY_BASE and pode_recortar and
-                    metadata in self._qa_empty_base_maps):
-                pass  # O blit ausente nao alteraria nenhum byte RGBA.
-            elif x<WIDTH and x+SCENE_W>0:
-                area=(self._qa_alpha_bounds.get(metadata)
-                      if _QA_ALPHA_BOUNDS and pode_recortar else None)
-                if area is not None:
-                    # QA754: nao processar pixels transparentes fora do bbox.
-                    # A area e calculada no boot e escalada exatamente 2x.
-                    target.blit(self._scaled_surface(variant,map_kind),
-                                (x+area[0],area[1]),area)
-                elif _QA_NATIVE_CLIP:
-                    target.blit(self._scaled_surface(variant,map_kind),(x,0))
-                else:
-                    # QA751 fallback manual; SDL clips preservados.
-                    tex=self._scaled_surface(variant,map_kind)
-                    r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
-                    if r.w>0:target.blit(tex,(max(0,x),0),r)
+        # QA756: fill C/SDL preserva bytes do blit de atlas escalado
+        # quando TODO pixel original eh RGBA com alpha 255 e mesma cor.
+        # Image/animacoes nunca entram aqui. Metadado tem identidade
+        # de fonte para nao reutilizar ao trocar uma Surface.
+        solido=None
+        if _QA_UNIFORM_TECH_FILL and not only_sprites:
+            entry=self._qa_uniform_tech.get((id(variant),map_kind))
+            if entry is not None and id(getattr(variant,map_kind))==entry[0]:
+                solido=entry[1]
+        if solido is not None:
+            target.fill(solido,(x,0,SCENE_W,SCENE_H))
+            self._qa_uniform_tech_hits+=1
+        else:
+            if not only_sprites:
+                # QA755: raster SRCALPHA nao pode perder RGB oculto no alpha0.
+                # Excecao comprovada: normal/flow usam fill alpha=255 em TODO
+                # o target (ver marcador temporario em v3124 render_scene).
+                # O SRCALPHA resultante permanece opaco em todos os blits.
+                # Image/fxmask/geometry SRCALPHA jamais usam recorte por alpha.
+                pode_recortar=(not (target.get_flags() & pygame.SRCALPHA) or
+                                (map_kind in ('normal','flow') and
+                                 getattr(self,'_qa_opaque_safe_target',None) is target))
+                # Evita a criacao de tuple/id/getattr no quinto quadro image
+                # SRCALPHA, onde nao ha nenhuma otimizacao de bbox permitida.
+                metadata=(id(variant),map_kind,id(getattr(variant,map_kind))
+                          ) if (pode_recortar and
+                                (_QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS)) else None
+                if (_QA_SKIP_EMPTY_BASE and pode_recortar and
+                        metadata in self._qa_empty_base_maps):
+                    pass  # O blit ausente nao alteraria nenhum byte RGBA.
+                elif x<WIDTH and x+SCENE_W>0:
+                    area=(self._qa_alpha_bounds.get(metadata)
+                          if _QA_ALPHA_BOUNDS and pode_recortar else None)
+                    if area is not None:
+                        # QA754: nao processar pixels transparentes fora do bbox.
+                        # A area e calculada no boot e escalada exatamente 2x.
+                        target.blit(self._scaled_surface(variant,map_kind),
+                                    (x+area[0],area[1]),area)
+                    elif _QA_NATIVE_CLIP:
+                        target.blit(self._scaled_surface(variant,map_kind),(x,0))
+                    else:
+                        # QA751 fallback manual; SDL clips preservados.
+                        tex=self._scaled_surface(variant,map_kind)
+                        r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
+                        if r.w>0:target.blit(tex,(max(0,x),0),r)
         # QA v3.277.39: vento depende apenas do clima, nao de cada sprite.
         wind=1.5 if climate in ('vento','tempestade','nevasca') else 1.
         for sp in variant.sprites:
