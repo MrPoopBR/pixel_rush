@@ -70,6 +70,11 @@ def instalar():
     # sempre reaproveita o compositor e a camera originais.
     from pixelrush_qa_performance_integrated_v327742 import instalar as instalar_perf_qa
     instalar_perf_qa()
+    # QA v3.277.47: aquece somente paginas dos atlas SHA fora do jogo,
+    # sem instanciar cenas SDL, sem alterar sorteio, RAM do processo nem
+    # o periodo original 5:1. Fallback em qualquer falha de leitura.
+    from pixelrush_qa_atlas_io_v327747 import instalar_no_boot_qa
+    instalar_no_boot_qa()
     _INSTALADO = True
 
 

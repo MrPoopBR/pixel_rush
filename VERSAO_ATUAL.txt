@@ -1,4 +1,4 @@
-Pixel Rush v3.277.46-QA-ANDROID-RC (diagnostico isolado, APK debug)
+Pixel Rush v3.277.47-QA-ANDROID-RC (diagnostico isolado, APK debug)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -29,3 +29,5 @@ QA v3.277.44: auditoria combinada de memoria e stutters; cache ativo da cidade p
 QA v3.277.45 (diagnostico OFFLINE): testes pygame-ce focalizados em quinto quadro, copia RGB e pressao RSS forcada; benchmark por fase em 3.300 frames (cidade/neve/deserto e stress simulado); microexperimentos de buffers pixel-exatos sem habilitar otimizacoes. Politica fundo periodo=5, fisica, gameplay, aparencia, assets, saves, pets, DEV e AAB preservados. NENHUM APK/Android. QA_CHANGELOG_v327745.md.
 
 QA v3.277.46 — carregador real PROD/atlas SHA com pre-aquecimento controlado APENAS fora da corrida, limite de 1 slot e budget RSS; benchmark do buffer do quinto quadro com fundo, profundidade, clima e cenas epicas reais, equivalencia RGBA e status das 32 frentes. Sem alterar fisica/visual/gameplay/main/DEV/assets/pets/saves/AAB. Nao foi compilado APK nem testado Android. QA_CHANGELOG_v327746.md.
+
+QA v3.277.47: diagnostico de 32 frentes, I/O atlas SHA antes da corrida QA sem alterar RNG/SDL/jogabilidade; localizacao de divergencias RGBA do quinto quadro, mantendo fallback; pygame-ce offline sem APK/Android. QA_CHANGELOG_v327747.md.

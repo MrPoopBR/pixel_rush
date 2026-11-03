@@ -189,7 +189,7 @@ class SafePerf743(unittest.TestCase):
     def test_exportacao_periodica_e_final_em_json_csv(self):
         from pixelrush_qa_android_v327728 import QATelemetria
         with tempfile.TemporaryDirectory(prefix='pixelrush-qa743-') as temp:
-            qa = QATelemetria('v3.277.46-QA', 'LIMPA', caminho=temp)
+            qa = QATelemetria('v3.277.47-QA', 'LIMPA', caminho=temp)
             for _ in range(625):
                 qa.iniciar('JOGANDO', 'cidade')
                 qa.marcar('renderizacao_e_ui')
@@ -198,12 +198,12 @@ class SafePerf743(unittest.TestCase):
             self.assertTrue(qa.salvar(esperar=True))
             if qa._qa_gravador:
                 qa._qa_gravador.finalizar()
-            path = Path(temp) / 'pixelrush_qa_v327746.json'
-            csv = Path(temp) / 'pixelrush_qa_frames_v327746.csv'
+            path = Path(temp) / 'pixelrush_qa_v327747.json'
+            csv = Path(temp) / 'pixelrush_qa_frames_v327747.csv'
             self.assertTrue(path.is_file())
             self.assertTrue(csv.is_file())
             document = json.loads(path.read_text('utf8'))
-            self.assertEqual(document['versao'], 'v3.277.46-QA')
+            self.assertEqual(document['versao'], 'v3.277.47-QA')
             self.assertEqual(document['quadros_observados'],625)
             self.assertIn('corrida_normal|cidade', document['grupos'])
             self.assertTrue(csv.read_text('utf8').startswith('modo,bioma,total_ms'))

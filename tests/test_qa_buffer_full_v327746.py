@@ -90,14 +90,20 @@ def comparar_bioma(game,bioma,frames=24,cronometrar=False):
         clima.tipo={'cidade':('limpo','chuva','tempestade'),'neve':('limpo','nevasca','neve'),'deserto':('limpo','areia','tempestade_areia')}[bioma][(i//5)%3]
         bg.clima_tipo=clima.tipo
         clima.tempo=frame
+        rng_pre_update=random.getstate()
         bg.update(8.8)
+        rng_pos_update=random.getstate()
         bg.peso_noite=night
         bg.world.night=night
         bg.world.climate=clima.tipo
         clima_alt.tipo=clima.tipo
         clima_alt.tempo=frame
         bg_alt.clima_tipo=clima.tipo
-        bg_alt.update(8.8)
+        random.setstate(rng_pre_update)
+        try:
+            bg_alt.update(8.8)
+        finally:
+            random.setstate(rng_pos_update)
         bg_alt.peso_noite=night
         bg_alt.world.night=night
         bg_alt.world.climate=clima.tipo
