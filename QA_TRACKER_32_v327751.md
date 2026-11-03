@@ -110,7 +110,7 @@ Status #1, #3 e #29 alterados de PENDENTE para PARCIAL pela presença de uma int
 
 ## Atualização da v3.277.51 — código mais leve no quinto quadro
 
-**Ação de impacto direto sem trocar visual:** `pixelrush_city2_v3124` aplica a mesma noite via `target.fill(...,special_flags=BLEND_RGBA_MULT)` em vez de Surface RGBA + blit. Isso elimina uma passagem full-frame e o conjunto de até treze véus (cada 450×500×4 bytes). O antigo caminho permanece selecionável por `PIXELRUSH_QA_DIRECT_NIGHT_MULT=0` na inicialização. Ensaios locais sintéticos 24/24 RGB/RGBA idênticos; gate integrado de cenas e CPU está preparado, não executado.
+**Ação de impacto direto sem trocar visual:** `pixelrush_city2_v3124` aplica a mesma noite via `target.fill(...,special_flags=BLEND_RGBA_MULT)` em vez de Surface RGBA + blit. Isso elimina uma passagem full-frame e o conjunto de até treze véus (cada 450×500×4 bytes). O antigo caminho permanece selecionável por `PIXELRUSH_QA_DIRECT_NIGHT_MULT=0` na inicialização. Ensaios locais sintéticos 12/12 RGB/RGBA idênticos; gate integrado de cenas e CPU está preparado, não executado.
 
 **Menos custo Python por tile:** `pixelrush_city2_v3118` agora deixa o SDL recortar o blit de base e cull antes de buscar textura se totalmente invisível. Não mexe no recorte dos sprites. Flag `PIXELRUSH_QA_CITY_NATIVE_CLIP=0` no boot reverte. Ensaios locais sintéticos 56/56 idênticos.
 
