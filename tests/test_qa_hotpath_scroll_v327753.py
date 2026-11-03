@@ -126,7 +126,10 @@ class RenderScroll753(unittest.TestCase):
                                                 'vento',.52,map_kind='image')
                             self.assertEqual(rgba(a),rgba(b),
                                              (flags,variant is near,i,x))
-                self.assertGreater(qa.diagnostico()['cidade_hit'],0)
+                # QA755: texturas reais image usam SDL-RLE e devem seguir
+            # blit original: cache RGBA_MAX preservaria visual mas
+            # alteraria RGB oculto em destino alpha=0.
+            self.assertGreater(qa.diagnostico()['cidade_rle_direto'],0)
                 self.assertGreater(qa.diagnostico()['cidade_sprite_direto'],0)
                 self.assertLessEqual(len(qa._CIDADE.get(scene,{})),2)
                 self.assertEqual(qa.diagnostico()['modo_cidade'],'static')
