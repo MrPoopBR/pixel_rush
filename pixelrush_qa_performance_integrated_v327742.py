@@ -33,6 +33,19 @@ _GC_PAUSES=deque(maxlen=256)
 _FLIP_SAMPLES=deque(maxlen=256)
 
 
+def _ram_budget_mib():
+    """Orcamento agregado adaptativo (sem reduzir a qualidade renderizada)."""
+    try:
+        with open('/proc/meminfo',encoding='ascii') as handle:
+            for line in handle:
+                if line.startswith('MemTotal:'):
+                    total_mib=int(line.split()[1])/1024.
+                    return max(384,min(560,int(total_mib*.25)))
+    except (OSError,ValueError,IndexError):
+        pass
+    return 560
+
+
 def _memory_mib():
     try:
         with open('/proc/self/status',encoding='ascii') as handle:
@@ -151,6 +164,16 @@ def _reclaim_inactive_caches():
             if key[0]!=active:
                 world.props_cache.pop(key,None)
                 count+=1
+        # Caches antigos de tiles/atlas tambem compoem o orcamento global.
+        # A classe LivingWorld os reconstitui via o mesmo arquivo/algoritmo.
+        for atributo in ('cache','fx_cache','normal_cache','material_cache',
+                         'flow_cache','geometry_cache'):
+            cache=getattr(world,atributo,None)
+            if cache:
+                for key in tuple(cache):
+                    if key!=active:
+                        cache.pop(key,None)
+                        count+=1
         for attr in ('_qa_mirror_props','_qa_deform_buffers'):
             cache=getattr(world,attr,None)
             if cache:
@@ -165,6 +188,16 @@ def _reclaim_inactive_caches():
         for key in cold:
             world._city_surfaces.pop(key,None)
             count+=1
+        # O atlas-base de outros biomas fica em _SOURCE global. O atual
+        # permanece residente, outros reaparecem byte-identicos via PNG.
+        try:
+            from pixelrush_world_v3130 import _SOURCE
+            for key in tuple(_SOURCE):
+                if key!=active:
+                    _SOURCE.pop(key,None)
+                    count+=1
+        except (ImportError,AttributeError):
+            pass
         city=getattr(world,'city2',None)
         if city is not None and len(getattr(city,'_scaled',{}))>8:
             while len(city._scaled)>8:
@@ -238,6 +271,7 @@ def instalar():
     global _INSTALLED,_GPU_TRACE
     if _INSTALLED:
         return
+    _LAST_STATUS['cache_budget_mib']=_ram_budget_mib()
     _GPU_TRACE=_AndroidTrace()
     _wrap_world()
     _wrap_trace_camera()
