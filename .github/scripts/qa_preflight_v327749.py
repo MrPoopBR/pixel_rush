@@ -330,7 +330,7 @@ def checar():
         ast.parse(Path(novo).read_text('utf8'),filename=novo)
     # v749: nova integracao no caminho 2.5D realmente usado na Cidade.
     novos={
-        'pixelrush_qa_city_tiles_v327749.py':'8aff8e89f5ee8983870066a827095f259778bc40',
+        'pixelrush_qa_city_tiles_v327749.py':'f2c88e38db43564d5e1b7c3bc7c0afec394cd00d',
         'pixelrush_qa_city_weather_v327749.py':'9f10ce73ad23e1c3bda04bd34e8d175bf4bb62ed',
         'tests/test_qa_cidade_real_v327749.py':'cf8b95402f2a75628bc562e1ad3c3455de3a94cd',
         '.github/scripts/qa_benchmark_cidade_v327749.py':'4e32df602451d2cf6fcb6e46f77f581459930967',
@@ -346,6 +346,7 @@ def checar():
         ast.parse(Path(path).read_text('utf8'),filename=path)
     render=Path('pixelrush_qa_render_v327729.py').read_text('utf8')
     assert 'instalar_city_tiles_qa()' in render
+    assert 'staticmethod(plano)' in Path('pixelrush_qa_city_tiles_v327749.py').read_text('utf8')
     assert 'instalar_city_weather_qa()' in render
     assert 'instalar_gles_bridge_qa()' in render
     assert 'restaurar_tiles()' in render and 'restaurar_clima()' in render
