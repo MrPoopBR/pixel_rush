@@ -376,7 +376,8 @@ class CityPilotScene(PreviousCity):
         # Image/animacoes nunca entram aqui. Metadado tem identidade
         # de fonte para nao reutilizar ao trocar uma Surface.
         solido=None
-        if _QA_UNIFORM_TECH_FILL and not only_sprites:
+        if (_QA_UNIFORM_TECH_FILL and not only_sprites and
+                map_kind in ('geometry','fxmask','normal','material','flow')):
             entry=self._qa_uniform_tech.get((id(variant),map_kind))
             if entry is not None and id(getattr(variant,map_kind))==entry[0]:
                 solido=entry[1]
