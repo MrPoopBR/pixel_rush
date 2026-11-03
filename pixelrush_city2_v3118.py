@@ -251,9 +251,15 @@ class CityPilotScene(PreviousCity):
             if asset is None:continue
             tex=getattr(asset,map_kind)
             width=tex.get_width()
-            # sway de no máximo 2px e y do sprite ancorado no chão.
+            # QA v3.277.42: limite conservador antes de calcular sin/round.
+            # Nenhum sprite que poderia cobrir 1 pixel visivel e descartado.
+            base_x=x+sp.x*SCALE
+            margem=abs(sp.sway*wind)+1.0
+            if base_x-margem>=WIDTH+2 or base_x+width+margem<=-2:
+                continue
+            # A expressao e os arredondamentos originais sao preservados.
             dx=int(round(math.sin(frame*.025+sp.phase)*sp.sway*wind))
-            px=x+sp.x*SCALE+dx
+            px=base_x+dx
             if px>=WIDTH+2 or px+width<=-2:continue
             self._draw_sprite(target,sp.kind,px,sp.y*SCALE,frame,night,climate,map_kind,False)
 
@@ -337,7 +343,12 @@ class CityPilotScene(PreviousCity):
             self._draw_traffic(target,frame,night)
             self._draw_birds(target,frame)
             if night>.12:
-                veil=pygame.Surface((WIDTH,SCENE_H),pygame.SRCALPHA)
+                # QA v3.277.42: mesmo RGBA e blit, sem alocar 900 KiB
+                # a cada quadro de cidade noturna.
+                veil=getattr(self,'_qa_night_veil',None)
+                if veil is None or veil.get_size()!=(WIDTH,SCENE_H):
+                    veil=pygame.Surface((WIDTH,SCENE_H),pygame.SRCALPHA)
+                    self._qa_night_veil=veil
                 veil.fill((18,31,63,int(72*night)))
                 target.blit(veil,(0,0))
         if map_kind=='geometry' and not foreground_only:
