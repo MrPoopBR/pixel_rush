@@ -68,7 +68,8 @@ class _Ponte:
             # A chamada dentro do construtor usa o set_mode nativo, nao o
             # wrapper de entrada, impedindo recursao/segunda janela.
             atual=pygame.display.set_mode
-            original_shader=(present_module.VERT,present_module.FRAG)
+            original_shader=(getattr(present_module,'VERT',None),
+                             getattr(present_module,'FRAG',None))
             pygame.display.set_mode=_ORIGINALS['set_mode']
             try:
                 if exacto:
@@ -86,7 +87,7 @@ class _Ponte:
             _STATUS['shader_pixel_exato_solicitado']=bool(exacto)
             _STATUS['fallback']='nenhum'
             return self.staging
-        except (ImportError,OSError,RuntimeError,ValueError,pygame.error,MemoryError) as exc:
+        except (ImportError,AttributeError,OSError,RuntimeError,ValueError,pygame.error,MemoryError) as exc:
             _STATUS['falhas_gpu']+=1
             _STATUS['fallback']='criacao_'+type(exc).__name__
             self.presenter=None
