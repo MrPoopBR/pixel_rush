@@ -95,7 +95,10 @@ class HotPath751(unittest.TestCase):
                     scene._render_chunk(b,variant,False,x,78+i,.43,'vento',.52,
                                         map_kind='image')
                     self.assertEqual(rgba(a),rgba(b),(flags,i,x))
-            self.assertGreater(incremental.diagnostico()['cidade_hit'],0)
+            # QA755: texturas reais image usam SDL-RLE e devem seguir
+            # blit original: cache RGBA_MAX preservaria visual mas
+            # alteraria RGB oculto em destino alpha=0.
+            self.assertGreater(incremental.diagnostico()['cidade_rle_direto'],0)
         finally:
             incremental.restaurar_para_teste()
             if env is None:os.environ.pop('PIXELRUSH_QA_CITY_INCREMENTAL',None)
