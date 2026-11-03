@@ -244,10 +244,17 @@ class CityPilotScene(PreviousCity):
 
     def _render_chunk(self,target,variant,flip,x,frame,night,climate,phase,map_kind='image',only_sprites=False):
         if not only_sprites:
-            tex=self._scaled_surface(variant,map_kind)
-            # Blit com recorte de viewport: nenhum pix fora da tela e menos RAM.
-            r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
-            if r.w>0:target.blit(tex,(max(0,x),0),r)
+            # QA751: o clipe SDL de um blit comum e pixel-identico ao
+            # recorte manual anterior, sem pygame.Rect + area por tile.
+            # Verifica visibilidade ANTES de consultar/criar textura LRU.
+            # Fallback por PIXELRUSH_QA_CITY_NATIVE_CLIP=0.
+            if os.environ.get('PIXELRUSH_QA_CITY_NATIVE_CLIP','1')=='1':
+                if x<WIDTH and x+SCENE_W>0:
+                    target.blit(self._scaled_surface(variant,map_kind),(x,0))
+            else:
+                tex=self._scaled_surface(variant,map_kind)
+                r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
+                if r.w>0:target.blit(tex,(max(0,x),0),r)
         # QA v3.277.39: vento depende apenas do clima, nao de cada sprite.
         wind=1.5 if climate in ('vento','tempestade','nevasca') else 1.
         for sp in variant.sprites:
