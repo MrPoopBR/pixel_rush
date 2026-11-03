@@ -80,7 +80,7 @@ PINNED={
     'QA_AUDITORIA_QUINTO_QUADRO_v327745.md':'7cb8c580529e7184fc3014782f04512893a87272',
     'pixelrush_qa_biome_preheat_v327746.py':'674f3a487083093cb6fdbddd75a9646fb60a49aa',
     'tests/test_qa_preheat_buffer_v327746.py':'18ca6d3acdea24d5bf89c6dab0d67995af77fc1f',
-    'tests/test_qa_buffer_full_v327746.py':'37382bafcf60cc85dad2fd9961073a196ead049f',
+    'tests/test_qa_buffer_full_v327746.py':'5d99d6d2ac982d713914328308f684fc7c5b5369',
     '.github/scripts/qa_benchmark_preheat_buffer_v327746.py':'db79235dda5d4a4f07bae4bc8a0c7f2887d0d890',
     'QA_TRACKER_32_v327746.md':'3ecd954bc340848c04d29e5abb15e305d23af26c',
     'QA_CHANGELOG_v327746.md':'f76ec55663750a2b5b5814769fc7b68ba9ff3b7e',
@@ -90,9 +90,9 @@ PINNED={
     'tests/test_qa_atlas_io_v327747.py':'83f1df5cb3dad3c8a32b6cb75d61501d9d311b8c',
     'tests/test_qa_backend_gate_v327747.py':'6d9f55292928a9dc32aec88501905312296f872e',
     '.github/scripts/qa_buffer_stage_v327747.py':'c9802f38ca17ac85c2da19be04acb023025587e3',
-    '.github/workflows/qa-offline-v327747.yml':'9ff7f73ff090c437c87316c8575042d4deb4f28e',
-    'QA_TRACKER_32_v327747.md':'5cb7d5329b243eb98918212e3ef948473f6850ae',
-    'QA_CHANGELOG_v327747.md':'619a87119321858b704a13d6851ff620e9b4567c',
+    '.github/workflows/qa-offline-v327747.yml':'df53a059efb7e8f5e365f8f035f85d641c52b2b6',
+    'QA_TRACKER_32_v327747.md':'e4164a1fe57115d9fcc8451632ad863a0e919aab',
+    'QA_CHANGELOG_v327747.md':'a4e930bf67dc243456d3222b96612d2a8c7be296',
 }
 
 

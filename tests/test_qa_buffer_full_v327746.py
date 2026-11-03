@@ -229,6 +229,10 @@ class FundoIntegralQA746(unittest.TestCase):
             self.assertFalse(resposta['alternativa_aprovada'])
             self.assertEqual(resposta['frames_rgba_identicos']+
                              resposta['total_quadros_divergentes'],24)
+            # Sincronizacao de RNG antes de bg.update remove a divergencia
+            # entre dois mundos do ensaio; pixel-exato no subconjunto testado.
+            self.assertEqual(resposta['frames_rgba_identicos'],24)
+            self.assertTrue(resposta['alternativa_pixel_exata_no_ensaio'])
             self.assertEqual(resposta['buffer_alternativo_bytes'],resposta['cache_rgb_bytes'])
 
 if __name__=='__main__':

@@ -17,3 +17,7 @@ Consulte `QA_TRACKER_32_v327747.md`. Critério estrito: **não declarar 32/32 co
 
 ## Integridade
 Nenhuma mudança na frequência 1:5 do cache, sorteio de bioma, física, renderização, câmera real, zoom, partículas, clima, controles, som, menus, pets, saves, assets e shaders. O arquivo principal tem **somente o identificador de versão** modificado; novas rotinas residem em módulos QA separados. GPU experimental off. Main/DEV/produção e AAB intocados. Nenhum novo pacote exigido para Android.
+
+## Resultado pós-execução do CI #41669666439
+- **73 testes pygame-ce, 18 suítes, passaram**; benchmark original e novo report de fases completados. Sob dois mundos independentes, sincronizando RNG **antes** de `bg.update` e dos passes de render, a comparação atingiu **35/35 quadros RGBA idênticos em cidade, neve e deserto**. O diagnóstico `qa-buffer-stage-v327747.json` também reportou zero divergências entre os estágios nesses 105 quadros.
+- A divergência anterior de 20/35 quadros no deserto e 10/35 na neve foi reproduzida sob atualização de mundos sem RNG sincronizado, e desapareceu após corrigir o *harness*. Isso **não** prova que a troca de buffer ganha FPS nem valida o loop completo de jogo; a alternativa permanece OFF até gate completo de gameplay e hardware.
