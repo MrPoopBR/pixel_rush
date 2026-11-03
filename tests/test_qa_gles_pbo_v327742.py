@@ -2,6 +2,7 @@
 """QA 3.277.42: PBO GLES3 ring e comparacao exata do framebuffer Mesa."""
 import ctypes as C
 import importlib.util
+import json
 import os
 import sys
 import unittest
@@ -56,6 +57,14 @@ class TestPBOQA742(unittest.TestCase):
                 self.assertEqual(p._qa_pbo.encoded,3)
                 self.assertFalse(p.diagnostico()['integrado_ao_jogo'])
                 self.assertEqual(p.readbacks,0)
+                result={'schema':'pixelrush.qa.gles_pbo.v327742',
+                        'cenarios_pixel_exatos':len(frames),
+                        'gpu_android_medido':False,
+                        'gpu_em_jogo':False,
+                        'pbo':p._qa_pbo.diagnostico(),
+                        'reupload_de_quadro_idêntico':False}
+                (ROOT/'qa-gles-pbo-v327742.json').write_text(
+                    json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
             finally:
                 p.close()
         finally:
