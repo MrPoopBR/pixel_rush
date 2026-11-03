@@ -63,7 +63,38 @@ def preaquecer_arquivos_fora_do_jogo(estado='CARREGANDO', alvos=ALVOS,
                                          'bytes':tam})
         except (OSError,ValueError):
             resultado['arquivos'].append({'nome':nome,'status':'indisponivel'})
-    resultado['preparado']=any(x['status']=='sha_ok' for x in resultado['arquivos'])
+    # Fechamento #23: incluir no page cache os tiles de acabamento
+    # aprovados e assinados (3 biomas), sem descompactar pickle, carregar
+    # SDL ou adiantar o sorteio do próximo cenário. Mesmo orçamento total.
+    resultado['tiles_prod']=[]
+    if diretorio is None and os.environ.get('PIXELRUSH_QA_TILES_IO_PREWARM','1')=='1':
+        try:
+            from pixelrush_tiles_prod_v32777 import _DIR as tiles_dir, _HASHES as tiles_sha
+            for nome,esperado in tiles_sha.items():
+                caminho=tiles_dir/(nome+'.tiles')
+                try:
+                    tamanho=caminho.stat().st_size
+                    if (tamanho<=0 or tamanho>MAX_ARQUIVO_BYTES or
+                            resultado['bytes_lidos']+tamanho>max_total_bytes):
+                        resultado['tiles_prod'].append(
+                            {'nome':nome,'status':'fora_orcamento'})
+                        continue
+                    sha=hashlib.sha256()
+                    with caminho.open('rb') as stream:
+                        for bloco in iter(lambda:stream.read(BLOCO_BYTES),b''):
+                            sha.update(bloco)
+                    resultado['bytes_lidos']+=tamanho
+                    resultado['tiles_prod'].append(
+                        {'nome':nome,'status':('sha_ok' if sha.hexdigest()==esperado
+                                               else 'sha_invalido'),'bytes':tamanho})
+                except (OSError,ValueError):
+                    resultado['tiles_prod'].append(
+                        {'nome':nome,'status':'indisponivel'})
+        except (ImportError,AttributeError,RuntimeError):
+            resultado['tiles_prod'].append(
+                {'nome':'todos','status':'fallback_sem_tiles_prod'})
+    resultado['preparado']=any(x['status']=='sha_ok' for x in (
+        resultado['arquivos']+resultado['tiles_prod']))
     resultado['motivo']='io_verificado' if resultado['preparado'] else 'nenhum_atlas_verificado'
     return resultado
 
