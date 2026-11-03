@@ -10,6 +10,7 @@ from functools import wraps
 from weakref import WeakSet
 import ctypes
 import gc
+import math
 import os
 import time
 
@@ -104,7 +105,7 @@ def _weather_cached(self,surface):
     elif kind in ('neve','nevasca'):
         storm=kind=='nevasca'
         for i,xseed,yseed in _SEEDS_SNOW[:42 if storm else 26]:
-            x=int((xseed+__import__('math').sin(f*.04+i)*11-f*(2 if storm else .7))%(450+50))-15
+            x=int((xseed+math.sin(f*.04+i)*11-f*(2 if storm else .7))%(450+50))-15
             y=230+int((yseed+f*(1.9 if storm else .75))%(730-230))
             rad=1+int(i%3==0)
             if -rad<=x<450+rad:
@@ -223,7 +224,13 @@ def diagnostico():
         out['swap_cpu_p95_ms']=round(s[round(.95*(len(s)-1))],3)
     out['trace_android_ativo']=bool(_GPU_TRACE is not None and _GPU_TRACE.begin)
     out['android_gpu_real_medido']=False
-    out['nova_camera_ativada']=False
+    try:
+        from pixelrush_qa_camera_native_auto_v327742 import diagnostico as native
+        n=native()
+        out['nova_camera_ativada']=bool(n['selecionado'])
+        out['native_camera']=n
+    except (ImportError,RuntimeError):
+        out['nova_camera_ativada']=False
     return out
 
 
