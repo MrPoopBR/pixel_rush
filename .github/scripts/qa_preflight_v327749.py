@@ -339,8 +339,8 @@ def checar():
         assert gitblob(path)==sha,'modulo QA749 inesperadamente alterado: '+path
         ast.parse(Path(path).read_text('utf8'),filename=path)
     for path,sha in {
-        'pixelrush_qa_gles_bridge_v327749.py':'216e5de5b3f965e2210352d780b8e67415372125',
-        'tests/test_qa_gles_bridge_v327749.py':'37a0e94315e4e041a5b59005d7f4dca692cf5695',
+        'pixelrush_qa_gles_bridge_v327749.py':'d9278a3f54b13e78ac12e1ca8625879f22ca0413',
+        'tests/test_qa_gles_bridge_v327749.py':'6c19ca01e9b6df3fe2a6453aa91394572470b3c3',
     }.items():
         assert gitblob(path)==sha,'bridge QA749 inesperado: '+path
         ast.parse(Path(path).read_text('utf8'),filename=path)
@@ -359,8 +359,12 @@ def checar():
     bridge=Path('pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
     assert "PIXELRUSH_QA_GLES_BRIDGE','0'" in bridge
     assert 'self._reabrir_sdl()' in bridge
-    assert 'self.presenter.draw(self.staging,zoom=0.0' in bridge
+    assert 'self.presenter.draw(self.staging,zoom=self.zoom' in bridge
     assert 'gpu_ativo' in bridge and 'input_sdl_preservado' in bridge
+    assert 'PIXELRUSH_QA_GPU_ZOOM' in bridge
+    assert "_instalar_camera_gpu()" in bridge
+    assert "shader_pixel_exato_solicitado" in bridge
+    assert "'GLES2'" in bridge
     manual=Path('.github/workflows/qa-offline-v327749.yml').read_text('utf8')
     assert 'workflow_dispatch:' in manual and '  push:' not in manual
     assert 'qa/android-full-performance-v3.277.49' in manual
