@@ -1,0 +1,72 @@
+name: PIXEL RUSH QA v3.277.57 — Fechamento 32 offline (MANUAL)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-fechamento-32-v327757-manual
+  cancel-in-progress: false
+
+jobs:
+  fechamento32-offline:
+    name: pygame-ce 2.5.8 • sintaxe • RGBA • GC • menu • atlas
+    if: github.ref_name == 'qa/fechamento-32-v3.277.57'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+      PYTHONPATH: .
+      PIXELRUSH_QA_ANDROID: '0'
+      PIXELRUSH_GPU: 'off'
+      PIXELRUSH_QA_CIDADE_TILE_PLAN: 'auto'
+      PIXELRUSH_QA_MODULAR_BATCH: '1'
+      PIXELRUSH_QA_TECH_SAME_FRAME: '1'
+      PIXELRUSH_QA_TILES_IO_PREWARM: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Instalar bibliotecas para testes Pygame offline
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy pillow
+          python - <<'PY'
+          import pygame
+          assert pygame.version.ver=='2.5.8'
+          print('pygame-ce',pygame.version.ver)
+          PY
+      - name: Preflight de integridade/versão/AST — sem Android
+        shell: bash
+        run: python .github/scripts/qa_preflight_v327757.py
+      - name: Gates de memória, GC, precarga, RNG e multi-instância
+        shell: bash
+        run: python -m unittest tests.test_qa_fechamento32_v327757 -v
+      - name: Gates 2.5D snow/desert RGBA incl. RGB oculto
+        shell: bash
+        run: python -m unittest tests.test_qa_fechamento_modular_v327757 -v
+      - name: Garantir que não houve homologação nem empacotamento
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('qa-preflight-fechamento32-v327757.json').read_text('utf8'))
+          assert d['homologacao_final'] is False
+          assert d['gpu_android_testada'] is False
+          assert d['apk_compilado'] is False
+          assert all(d['sintaxe_ast'].values())
+          assert all(d['pin_sha'].values())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pixelrush-fechamento32-preflight-v327757
+          path: qa-preflight-fechamento32-v327757.json
+          if-no-files-found: ignore
