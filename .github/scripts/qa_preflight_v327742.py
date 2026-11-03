@@ -34,7 +34,7 @@ PINNED={
     'pixelrush_qa_async_export_v327737.py':'882f36abca3c7e7718e85d9184b61968b3dcf87e',
     'pixelrush_qa_alpha_blit_v327731.py':'fefb6f0f32dae61cdc8368ced51da2234646fa89',
     'tests/test_qa_perf_v327738.py':'2db0d240a6237b862848705970d91585a71925ad',
-    'pixelrush_city2_v3118.py':'ee1dab936030fe42a9560c1d7fe83d3aec933ff4',
+    'pixelrush_city2_v3118.py':'8199643d586a7f2fff15f1ab888329820eab225f',
     'tests/test_qa_camera_city_v327739.py':'c7015dd330b1d2ebbb7acef711bafb91384a951b',
     '.github/scripts/qa_benchmark_camera_world_v327739.py':'4389307bfcc94d8911d4598e14f2b26603a101a7',
     'pixelrush_qa_rolling_v327740.py':'19377868517c56227db45c3aab782c3021182780',
@@ -45,16 +45,17 @@ PINNED={
     'tests/test_qa_crop_native_v327741.py':'084ddf5a38b2de0edb7e1f21fe6d4afe269d1df1',
     '.github/scripts/qa_benchmark_neon_gles_v327741.py':'67364bd1b9a69bba36d0ddc83477ecfffb15f518',
     'tests/test_qa_gles_real_v327741.py':'be365c00937c847b8d056b09a6d8fd2d0dc63aae',
-    'pixelrush_qa_performance_integrated_v327742.py':'ef65845778b2d2f01dd488db4314cf6905bfdea4',
+    'pixelrush_qa_performance_integrated_v327742.py':'fd2cdd21f25de67ea6e252e0602ca56bb2619fbc',
     'pixelrush_qa_camera_native_auto_v327742.py':'630f370303d15c93ab58946760ea2580c07a1ec9',
     'pixelrush_qa_scroll_auto_v327742.py':'9e7f369b76275661453d1add253a74ccaa96a561',
     'pixelrush_qa_gles_pbo_v327742.py':'3f724b9504f0693390609bd2da8063482a9cd9f6',
-    'tests/test_qa_20_integrated_v327742.py':'6f774e20ce0f165c84d3e758b6ec944c0343f4a7',
+    'tests/test_qa_20_integrated_v327742.py':'a6f542d87423810ea473538f01e2a8ca864e26f6',
     'tests/test_qa_scroll_auto_v327742.py':'47d7598f07d8857369f11ebabc4edb8f68319f7e',
     'tests/test_qa_gles_pbo_v327742.py':'6b05e9bcda8e7e87a475801f6f07d478492ecb02',
-    '.github/scripts/qa_benchmark_all32_v327742.py':'52afc16803edff0364b10d1b383ea33e733181f0',
+    '.github/scripts/qa_benchmark_all32_v327742.py':'7b1de8e33b3bd1a359f0bffe336f9b6a29107e21',
     'pixelrush_biomes2_v3126.py':'06abc1cff35dc32db15d732f3e2d76888b240787',
     'tests/test_qa_modular_batch_v327742.py':'12999ec4f632bc0d093e87187751f6e036961fff',
+    'tests/test_qa_city_clouds_v327742.py':'4a028b9f28693d7d5d57d4b966a230b52e75de8e',
     'tests/test_qa_full_performance_v327737.py':'87dfb7b52c12a782422cc77d76eb21f97532407e',
 }
 
@@ -134,6 +135,7 @@ def checar():
                    'tests/test_qa_scroll_auto_v327742.py',
                    'qa_benchmark_all32_v327742.py',
                    'tests/test_qa_modular_batch_v327742.py',
+                   'tests/test_qa_city_clouds_v327742.py',
                    'qa_native/libpixelrush_camera_crop_v327741.so',
                    'Compilar biblioteca C/NEON antes do APK'):
         # O ultimo gate verifica a etapa cujo nome explicita o empacotamento.
@@ -166,7 +168,8 @@ def checar():
                  'tests/test_qa_gles_pbo_v327742.py',
                  '.github/scripts/qa_benchmark_all32_v327742.py',
                  'pixelrush_biomes2_v3126.py',
-                 'tests/test_qa_modular_batch_v327742.py'):
+                 'tests/test_qa_modular_batch_v327742.py',
+                 'tests/test_qa_city_clouds_v327742.py'):
         ast.parse(Path(path).read_text('utf8'),filename=path)
     return {
         'resultado':'APROVADO_GATES_ESTATICOS_APENAS',
