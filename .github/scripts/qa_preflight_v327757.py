@@ -80,70 +80,8 @@ def gate():
     assert "sha.hexdigest()==esperado" in atlas
     assert 'VERSAO = "v3.277.57-QA-ANDROID-RC"' in engine
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.57,spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327757,spec)
-    assert (ROOT/'QA_CHANGELOG_v327757.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327757.md').is_file()
-    wf=(ROOT/'.github/workflows/qa-offline-v327757.yml').read_text('utf8')
-    assert 'workflow_dispatch:' in wf and '  push:' not in wf
-    assert 'qa/fechamento-32-v3.277.57' in wf
-    for name in ('test_qa_fechamento32_v327757.py',
-                 'test_qa_fechamento_modular_v327757.py',
-                 'qa_preflight_v327757.py'):
-        assert name in wf
-    for prohibited in ('buildozer -v android','gradle assemble','adb shell'):
-        assert prohibited not in wf.lower()
-    resultados['resultado']='GATES_ESTATICOS_APROVADOS'
-    (ROOT/'qa-preflight-fechamento32-v327757.json').write_text(
-        json.dumps(resultados,indent=2,ensure_ascii=False),encoding='utf8')
-    return resultados
-
-
-if __name__=='__main__':
-    print(json.dumps(gate(),indent=2,ensure_ascii=False))
-,spec)
-    assert re.search(r'(?m)^android\\.numeric_version = 327757$',spec)
-    assert (ROOT/'QA_CHANGELOG_v327757.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327757.md').is_file()
-    wf=(ROOT/'.github/workflows/qa-offline-v327757.yml').read_text('utf8')
-    assert 'workflow_dispatch:' in wf and '  push:' not in wf
-    assert 'qa/fechamento-32-v3.277.57' in wf
-    for name in ('test_qa_fechamento32_v327757.py',
-                 'test_qa_fechamento_modular_v327757.py',
-                 'qa_preflight_v327757.py'):
-        assert name in wf
-    for prohibited in ('buildozer -v android','gradle assemble','adb shell'):
-        assert prohibited not in wf.lower()
-    resultados['resultado']='GATES_ESTATICOS_APROVADOS'
-    (ROOT/'qa-preflight-fechamento32-v327757.json').write_text(
-        json.dumps(resultados,indent=2,ensure_ascii=False),encoding='utf8')
-    return resultados
-
-
-if __name__=='__main__':
-    print(json.dumps(gate(),indent=2,ensure_ascii=False))
-,spec)
-    assert (ROOT/'QA_CHANGELOG_v327757.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327757.md').is_file()
-    wf=(ROOT/'.github/workflows/qa-offline-v327757.yml').read_text('utf8')
-    assert 'workflow_dispatch:' in wf and '  push:' not in wf
-    assert 'qa/fechamento-32-v3.277.57' in wf
-    for name in ('test_qa_fechamento32_v327757.py',
-                 'test_qa_fechamento_modular_v327757.py',
-                 'qa_preflight_v327757.py'):
-        assert name in wf
-    for prohibited in ('buildozer -v android','gradle assemble','adb shell'):
-        assert prohibited not in wf.lower()
-    resultados['resultado']='GATES_ESTATICOS_APROVADOS'
-    (ROOT/'qa-preflight-fechamento32-v327757.json').write_text(
-        json.dumps(resultados,indent=2,ensure_ascii=False),encoding='utf8')
-    return resultados
-
-
-if __name__=='__main__':
-    print(json.dumps(gate(),indent=2,ensure_ascii=False))
-,spec)
-    assert re.search(r'(?m)^android\\.numeric_version = 327757$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.57$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327757$',spec)
     assert (ROOT/'QA_CHANGELOG_v327757.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327757.md').is_file()
     wf=(ROOT/'.github/workflows/qa-offline-v327757.yml').read_text('utf8')
