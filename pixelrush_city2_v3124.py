@@ -1,6 +1,7 @@
 """Cidade v3.124: céu único compartilhado ao fundo, sem duplicação vertical."""
 from pixelrush_city2_v3123 import CityPilotScene as CidadeAnterior
 from pixelrush_city2_v3115 import DEFAULT_NORMAL, NEUTRAL_FLOW
+import pygame
 
 class CityPilotScene(CidadeAnterior):
     def _make_near_variant(self, idx):
@@ -74,7 +75,10 @@ class CityPilotScene(CidadeAnterior):
             # sem o alpha-blend cumulativo que um blit produziria.
             if (self._geometry_view is None or
                     self._geometry_view.get_size()!=target.get_size() or
-                    self._geometry_view.get_bitsize()!=target.get_bitsize()):
+                    self._geometry_view.get_bitsize()!=target.get_bitsize() or
+                    self._geometry_view.get_masks()!=target.get_masks() or
+                    bool(self._geometry_view.get_flags() & pygame.SRCALPHA)!=
+                    bool(target.get_flags() & pygame.SRCALPHA)):
                 self._geometry_view=target.copy()
             else:
                 pygame.transform.scale(target,target.get_size(),self._geometry_view)
