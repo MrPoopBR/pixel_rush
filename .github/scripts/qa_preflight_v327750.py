@@ -379,7 +379,7 @@ def checar():
         assert proibido not in manual.lower()
     # v750: integralmente em caminho QA, nao so classes de laboratorio.
     qa750={
-        'pixelrush_qa_unified_post_v327750.py':'39906180577c48e80c47f5a1cc43f1ea97d91beb',
+        'pixelrush_qa_unified_post_v327750.py':'2a0b6aad2e7738bfed7cf927c212349c749ef5bd',
         'pixelrush_qa_incremental_scene_v327750.py':'9cc629b46d383927138cfe7e3063be821b80e27d',
         'pixelrush_qa_cache_trim_v327748.py':'12578f27ff570059131af249663721a71b50de2a',
         'pixelrush_city2_v3124.py':'61c17db1eee73b95cb70ccfb55dc9ea103b7e9fa',
