@@ -6,6 +6,9 @@ import pygame
 from pixelrush_biomes2_v3127 import ModularBiomeScene as Previous
 from pixelrush_biomes2_v3126 import LW,LH,WIDTH,HEIGHT,SUPPORTED_BIOMES
 MODULAR_BIOMES=('neve','deserto') if os.getenv('PIXELRUSH_DESERTO_2_0')=='1' else ('neve',)
+# QA752: bypass somente de um overlay SRCALPHA inteiramente transparente.
+# Flag fixa no import (fora do quinto quadro); fallback literal preservado.
+_QA_SKIP_INERT_WEATHER=os.environ.get('PIXELRUSH_QA_MODULAR_WEATHER_SKIP','1')=='1'
 # speed, atmospheric mix, ground anchor, decoration ceiling/floor
 DEPTH={'far':(.10,.34,200,(70,227)), 'mid':(.25,.15,204,(80,229)), 'near':(.52,0.,230,(110,231))}
 
@@ -176,16 +179,24 @@ class ModularBiomeScene(Previous):
         low.fill((128,128,255,255) if map_kind=='normal' else (0,0,0,0))
         for layer in DEPTH:self._draw_layer(low,layer,travel,map_kind)
         if map_kind=='image':
-            self._weather.fill((0,0,0,0))
-            if self.biome=='neve' and climate in ('neve','nevasca'):
-                for i in range(18 if self.visual_quality else 6):
-                    x=int((i*47+frame*.5)%LW);y=int((i*31+frame*.55)%LH)
-                    pygame.draw.circle(self._weather,(237,246,255,150),(x,y),1)
-            elif self.biome=='deserto' and climate in ('areia','tempestade_areia'):
-                for i in range(12 if self.visual_quality else 4):
-                    x=int((i*41-frame*1.7)%LW);y=70+int((i*29+frame*.5)%140)
-                    pygame.draw.line(self._weather,(235,186,125,110),(x,y),(x+5,y))
-            low.blit(self._weather,(0,0))
+            # Quando nao ha nenhuma primitiva meteorologica nesse bioma/clima,
+            # _weather seria inteiramente transparente: seu fill + blit
+            # consomem CPU sem mudar nem um byte do low RGBA. No quadro
+            # seguinte COM precipitação, o fill ocorre normalmente, entao
+            # nunca reaproveitamos particulas antigas nem mudamos a cadencia.
+            neve_ativa=self.biome=='neve' and climate in ('neve','nevasca')
+            areia_ativa=self.biome=='deserto' and climate in ('areia','tempestade_areia')
+            if not _QA_SKIP_INERT_WEATHER or neve_ativa or areia_ativa:
+                self._weather.fill((0,0,0,0))
+                if neve_ativa:
+                    for i in range(18 if self.visual_quality else 6):
+                        x=int((i*47+frame*.5)%LW);y=int((i*31+frame*.55)%LH)
+                        pygame.draw.circle(self._weather,(237,246,255,150),(x,y),1)
+                elif areia_ativa:
+                    for i in range(12 if self.visual_quality else 4):
+                        x=int((i*41-frame*1.7)%LW);y=70+int((i*29+frame*.5)%140)
+                        pygame.draw.line(self._weather,(235,186,125,110),(x,y),(x+5,y))
+                low.blit(self._weather,(0,0))
         pygame.transform.scale(low,(WIDTH,HEIGHT),target)
         if map_kind=='geometry':
             # QA750: copia somente na primeira passagem. Nos quadros
