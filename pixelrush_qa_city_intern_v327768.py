@@ -13,7 +13,9 @@ from weakref import WeakValueDictionary
 import pygame
 
 _COMPARTILHADOS=WeakValueDictionary()
-_KINDS=('geometry','normal','material','flow','fxmask')
+# A imagem do chunk tambem e estatica APOS _prebake_static_props.
+# Nunca incluir sprites animados: continuam exclusivos de cada cena.
+_KINDS=('image','geometry','normal','material','flow','fxmask')
 _STATS={'cenas':0,'visitados':0,'reusados':0,'bytes_evitaram':0,
         'sem_paridade':0,'fallbacks':0}
 

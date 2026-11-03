@@ -15,3 +15,8 @@
 - Teste novo `tests/test_qa_pet_preload_v327769.py`: extração AST do `PetStudioPlayer` real, PNG inexistente sem fingir atlas real, comparação bytes RGBA, identidade Surface, política menu e RNG. Submetido à CI da branch; resultado a consultar no Actions.
 - Pré-publicação: **21/32 completas offline; 11/32 parciais; 0 Android homologadas**. Pendente gate #22; #1/#3/#8/#12/#28/#29/#32 ainda precisam prova de GPU/driver no aparelho. Não fabricar resultados.
 - Escopo de mudanças: engine exclusivamente no callback QA e versão, `buildozer.spec` versão, dois arquivos QA novos, preflight/CI offline e documentos. Preservados `main.py`, `main`, DEV, física, HUD, sprites, pets ativos/desativados, saves, assets, câmera, efeitos e workflows APK/AAB. APK/AAB não compilados.
+
+## Complemento na mesma v3.277.69 — atlas base `image`
+
+- A deduplicação weak da Cidade agora inclui `image` **apenas** se o atlas do chunk já foi finalizado no construtor, é 32 bits SRCALPHA sem colorkey e possui formato/bytes identicamente comprovados (hash e comparação completa, inclusive canais RGB com alfa zero). Sprites que balançam continuam renderizados separadamente.
+- Gates estendidos em `tests/test_qa_city_intern_v327768.py` com igualdade de `image` sintético e canal `image` real de duas cidades; RGBA e fallback originais continuam no teste. Ativação reversível com a mesma flag anterior, sem afetar física/saves/arte/DEV/AAB.

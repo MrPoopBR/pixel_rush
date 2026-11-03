@@ -21,8 +21,8 @@ def sintetico(rgb):
         s.fill((rgb[0],rgb[1],rgb[2],0))
         s.set_at((2,3),(255,170,19,137))
         return s
-    v=SimpleNamespace(geometry=tex(),normal=tex(),material=tex(),
-                      flow=tex(),fxmask=tex())
+    v=SimpleNamespace(image=tex(),geometry=tex(),normal=tex(),
+                      material=tex(),flow=tex(),fxmask=tex())
     return SimpleNamespace(layers=[SimpleNamespace(variants=[v])]),v
 
 class InternCity768(unittest.TestCase):
@@ -42,7 +42,7 @@ class InternCity768(unittest.TestCase):
         intern.compartilhar(a)
         intern.compartilhar(b)
         intern.compartilhar(c)
-        for kind in ('geometry','normal','material','flow','fxmask'):
+        for kind in ('image','geometry','normal','material','flow','fxmask'):
             self.assertIs(getattr(va,kind),getattr(vb,kind))
             self.assertIsNot(getattr(va,kind),getattr(vc,kind))
             self.assertEqual(rgba(getattr(va,kind)),rgba(getattr(vb,kind)))
@@ -55,7 +55,7 @@ class InternCity768(unittest.TestCase):
         count=0
         for layer1,layer2 in zip(first.layers,second.layers):
             for v1,v2 in zip(layer1.variants,layer2.variants):
-                for kind in ('geometry','normal','material','flow','fxmask'):
+                for kind in ('image','geometry','normal','material','flow','fxmask'):
                     if getattr(v1,kind) is getattr(v2,kind):
                         count+=1
         self.assertGreater(count,0,'Nenhum atlas imutavel compartilhado')
