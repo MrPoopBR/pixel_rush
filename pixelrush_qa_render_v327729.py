@@ -9,6 +9,7 @@ Compatibilidade testada com SDL dummy pixel a pixel, multiplos canais e cenas.
 """
 import pygame
 import os
+from weakref import ref
 
 # QA752: alias zero-copy apenas quando World possui a Surface destino.
 # OFF ate testes integrais de ambient_occlusion, multiinstancia e GPU.
@@ -53,13 +54,15 @@ def instalar():
         if _QA_TECH_SAME_FRAME and kind in _QA_TECH_KINDS:
             assinatura=(kind,self.biome,self.frame,self.travel,self.night,
                         self.climate,self.phase,bool(self.lightweight),
-                        id(cena),getattr(cena,'visual_quality',None),id(surf))
+                        getattr(cena,'visual_quality',None))
             _QA_TECH_STATS['consultas']+=1
             estados=getattr(self,'_qa_technical_frame_states',None)
-            if estados is not None and estados.get(kind)==assinatura:
+            registro=estados.get(kind) if estados is not None else None
+            if (registro is not None and registro[0]==assinatura and
+                    registro[1]() is cena and registro[2]() is surf):
                 _QA_TECH_STATS['hits']+=1
                 return surf
-            if estados is not None and kind in estados:
+            if registro is not None:
                 _QA_TECH_STATS['invalidados']+=1
         # A instrumentacao interna confirma onde o mundo 2.5D gasta CPU.
         from pixelrush_profiler_v3204 import sub_inicio, sub_fim
@@ -82,7 +85,9 @@ def instalar():
             if estados is None:
                 estados={}
                 self._qa_technical_frame_states=estados
-            estados[kind]=assinatura
+            # Weakrefs impedem manter cenas e buffers de biomas
+            # aposentados vivos por causa do cache QA.
+            estados[kind]=(assinatura,ref(cena),ref(surf))
             _QA_TECH_STATS['renders']+=1
         # QA751: mapa nao-image pode estar em uso pela GPU real neste frame.
         # Guardar apenas biome/frame (nunca Surface extra) para o trim RSS
