@@ -2,7 +2,8 @@
 """QA 3.277.50: scroll incremental de pixels no caminho REAL da Cidade e strips.
 
 A Cena 2.5D desenha cada chunk na ordem base -> sprites; o wrapper conserva
-essa ordem e só reconstrói a base estática de chunks SEM sprites, usando o
+essa ordem ate quando ha sprites dinamicos, delegando ao original apenas
+o passe 'only_sprites'; reconstrói a base estática usando o
 scroll horizontal e a faixa recém-exposta. Camadas com sprites e qualquer
 estado não suportado usam o método real sem alteração.
 
@@ -117,7 +118,7 @@ def instalar():
     def chunk(self,target,variant,flip,x,frame,night,climate,phase,
               map_kind='image',only_sprites=False):
         if (os.environ.get('PIXELRUSH_QA_CITY_INCREMENTAL','0')!='1'
-                or only_sprites or flip or variant.sprites
+                or only_sprites or flip
                 or map_kind!='image' or target.get_size()!=(450,500)):
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
                                        night,climate,phase,map_kind,only_sprites)
@@ -127,9 +128,14 @@ def instalar():
             _STATS['cidade_fallback']+=1
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
                                        night,climate,phase,map_kind,only_sprites)
-        # Mesma posição na pilha que o blit de base original; nenhum sprite
-        # foi rearranjado, filtros de noite e passagens posteriores intactos.
+        # Blit de base na MESMA ordem original; em seguida, delegar ao método
+        # histórico SOMENTE os sprites da variante (only_sprites=True),
+        # preservando seno, vento, bob, alpha e ordem inclusive nas bordas.
         target.blit(buffer,(0,0))
+        if variant.sprites:
+            return _ORIGINAIS['chunk'](
+                self,target,variant,flip,x,frame,night,climate,phase,
+                map_kind,True)
 
     @wraps(_ORIGINAIS['strip'])
     def strip(self,target,fonte):
