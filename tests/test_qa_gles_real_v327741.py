@@ -16,7 +16,15 @@ sys.path.insert(0,str(ROOT))
 import pygame
 import pixelrush_qa_gles_present_v327735 as gl_original
 from pixelrush_qa_gles_exact_v327736 import shaders,gate_integracao
-from tests.test_qa_gles_exact_v327736 import framebuffer_rgba8,original,highp_mantissa
+# Carregar referencia de testes sem depender de 'tests' como pacote instalado.
+import importlib.util
+_ref=importlib.util.spec_from_file_location(
+    'pixelrush_gles_reference',ROOT/'tests'/'test_qa_gles_exact_v327736.py')
+_refmod=importlib.util.module_from_spec(_ref)
+_ref.loader.exec_module(_refmod)
+framebuffer_rgba8=_refmod.framebuffer_rgba8
+original=_refmod.original
+highp_mantissa=_refmod.highp_mantissa
 REPORT=Path('qa-gles-real-scenes-v327741.json')
 
 
