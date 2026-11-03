@@ -10603,6 +10603,10 @@ from pixelrush_cenas_v3213 import CenasMemoraveis
 from pixelrush_preparacao_prod_v32778 import instalar as _instalar_preparacao_2778
 from pixelrush_extras_v3174 import (ReplayCinematografico,
                                     PaisagemSonora, HarmonizadorFrames)
+# QA v3.277.50: contrato unico de camera e apresentacao; nao muda main/DEV.
+from pixelrush_qa_unified_post_v327750 import finalizar_quadro as _qa_finalizar_quadro
+_QA_PIPELINE_750 = (os.environ.get('PIXELRUSH_QA_ANDROID','0') == '1'
+                    and os.environ.get('PIXELRUSH_QA_POST_PIPELINE','1') == '1')
 
 # Reaproveita os quadros das skins sem duplicar renderizadores de personagem.
 _v3173_quadros_skin_originais = _quadros_skin
@@ -15407,38 +15411,50 @@ def main():
                 bg_parallax.peso_noite, bg_parallax.cenario, clima.tipo, vel_jogo,
                 material=gpu_material, flow=gpu_flow, geometry=gpu_geometry,
                 travel=bg_parallax.world.travel)
-        # O enquadramento é pós-processamento visual; o mundo físico fica intacto.
-        if estado == 'JOGANDO' and portal_tipo_ativo is None and not modo_grafico_leve(dados) and not dados.get('acess_reduzir_efeitos', False):
-            _pro_sub_inicio("camera_smoothscale")
-            tela_gamefeel = camera_cinematica.aplicar(
-                tela_gamefeel, jogador, vel_jogo,
-                cenas_epicas.momento(bg_parallax.world.travel), True)
-            _pro_sub_fim()
-        _pro_marcar("apresentacao")
-        if tamanho_final == tela_gamefeel.get_size():
-            superficie_final = tela_gamefeel
+        # QA750: caminho integrado no frame real, com rollback para o bloco
+        # original INTACTO se o operador desativar a flag de QA.
+        if _QA_PIPELINE_750:
+            _qa_usa_camera = (estado == 'JOGANDO' and portal_tipo_ativo is None
+                and not modo_grafico_leve(dados)
+                and not dados.get('acess_reduzir_efeitos', False))
+            _qa_finalizar_quadro(
+                tela_gamefeel, tela, tamanho_final, pos_final, superficies_escala,
+                camera_cinematica, jogador, vel_jogo,
+                cenas_epicas.momento(bg_parallax.world.travel) if _qa_usa_camera else False,
+                _qa_usa_camera, _pro_sub_inicio, _pro_sub_fim, _pro_marcar)
         else:
-            _pro_sub_inicio("apresentacao_escala_final")
-            superficie_final = superficies_escala.get(tamanho_final)
-            if superficie_final is None:
-                try:
-                    superficie_final = pygame.Surface(tamanho_final).convert()
-                except Exception:
-                    superficie_final = pygame.Surface(tamanho_final)
-                superficies_escala[tamanho_final] = superficie_final
-                if len(superficies_escala) > 3:
-                    superficies_escala.popitem(last=False)
+            # O enquadramento é pós-processamento visual; o mundo físico fica intacto.
+            if estado == 'JOGANDO' and portal_tipo_ativo is None and not modo_grafico_leve(dados) and not dados.get('acess_reduzir_efeitos', False):
+                _pro_sub_inicio("camera_smoothscale")
+                tela_gamefeel = camera_cinematica.aplicar(
+                    tela_gamefeel, jogador, vel_jogo,
+                    cenas_epicas.momento(bg_parallax.world.travel), True)
+                _pro_sub_fim()
+            _pro_marcar("apresentacao")
+            if tamanho_final == tela_gamefeel.get_size():
+                superficie_final = tela_gamefeel
             else:
-                superficies_escala.move_to_end(tamanho_final)
-            pygame.transform.scale(tela_gamefeel, tamanho_final, superficie_final)
+                _pro_sub_inicio("apresentacao_escala_final")
+                superficie_final = superficies_escala.get(tamanho_final)
+                if superficie_final is None:
+                    try:
+                        superficie_final = pygame.Surface(tamanho_final).convert()
+                    except Exception:
+                        superficie_final = pygame.Surface(tamanho_final)
+                    superficies_escala[tamanho_final] = superficie_final
+                    if len(superficies_escala) > 3:
+                        superficies_escala.popitem(last=False)
+                else:
+                    superficies_escala.move_to_end(tamanho_final)
+                pygame.transform.scale(tela_gamefeel, tamanho_final, superficie_final)
+                _pro_sub_fim()
+    
+            _pro_sub_inicio("apresentacao_blit_final")
+            tela.blit(superficie_final, pos_final)
             _pro_sub_fim()
-
-        _pro_sub_inicio("apresentacao_blit_final")
-        tela.blit(superficie_final, pos_final)
-        _pro_sub_fim()
-        _pro_sub_inicio("apresentacao_swap")
-        pygame.display.flip()
-        _pro_sub_fim()
+            _pro_sub_inicio("apresentacao_swap")
+            pygame.display.flip()
+            _pro_sub_fim()
         _pro_marcar("limitador_fps")
         if monitor_diag is not None:
             monitor_diag.registrar_quadro(estado, cenario_atual, largura_render, altura_render,
