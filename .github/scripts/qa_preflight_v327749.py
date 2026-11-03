@@ -16,7 +16,7 @@ def gitblob(path):
 
 PINNED={
     'main.py':'620a3cdcad571168b31c2633b28da94c251b8855',
-    'pixelrush_qa_render_v327729.py':'fe4945b2c2abe148a57cdcaf2fc5b280ce713f32',
+    'pixelrush_qa_render_v327729.py':'9bb55661ab594bce24f9a7c2f89d0ecadb35d164',
     'pixelrush_qa_gles_present_v327735.py':'6ebb9bd065f5168bbe18dd43398cc0df1116dba3',
     'pixelrush_qa_gles_exact_v327736.py':'cd8961206cceed86bb392f626c77d68083782739',
     'pixelrush_world_v3130.py':'7ca66b28898cd138538831c5bce1133ea961763f',
@@ -338,21 +338,35 @@ def checar():
     for path,sha in novos.items():
         assert gitblob(path)==sha,'modulo QA749 inesperadamente alterado: '+path
         ast.parse(Path(path).read_text('utf8'),filename=path)
+    for path,sha in {
+        'pixelrush_qa_gles_bridge_v327749.py':'216e5de5b3f965e2210352d780b8e67415372125',
+        'tests/test_qa_gles_bridge_v327749.py':'37a0e94315e4e041a5b59005d7f4dca692cf5695',
+    }.items():
+        assert gitblob(path)==sha,'bridge QA749 inesperado: '+path
+        ast.parse(Path(path).read_text('utf8'),filename=path)
     render=Path('pixelrush_qa_render_v327729.py').read_text('utf8')
     assert 'instalar_city_tiles_qa()' in render
     assert 'instalar_city_weather_qa()' in render
+    assert 'instalar_gles_bridge_qa()' in render
     assert 'restaurar_tiles()' in render and 'restaurar_clima()' in render
+    assert 'restaurar_bridge()' in render
     from pixelrush_city2_v3125 import CityPilotScene
     from pixelrush_citylife_v3123 import CityLifeDirector
     assert hasattr(CityPilotScene,'_layer_tiles')
     assert hasattr(CityLifeDirector,'draw_atmosphere')
     assert "PIXELRUSH_QA_MODULAR_BATCH','1'" in Path(
         'pixelrush_qa_modular_batch_v327744.py').read_text('utf8')
+    bridge=Path('pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
+    assert "PIXELRUSH_QA_GLES_BRIDGE','0'" in bridge
+    assert 'self._reabrir_sdl()' in bridge
+    assert 'self.presenter.draw(self.staging,zoom=0.0' in bridge
+    assert 'gpu_ativo' in bridge and 'input_sdl_preservado' in bridge
     manual=Path('.github/workflows/qa-offline-v327749.yml').read_text('utf8')
     assert 'workflow_dispatch:' in manual and '  push:' not in manual
     assert 'qa/android-full-performance-v3.277.49' in manual
     for filename in ('qa_preflight_v327749.py','test_qa_cidade_real_v327749.py',
-                     'qa_benchmark_cidade_v327749.py'):
+                     'qa_benchmark_cidade_v327749.py',
+                     'test_qa_gles_bridge_v327749.py'):
         assert filename in manual
     for proibido in ('buildozer -v android','gradle assemble','adb shell'):
         assert proibido not in manual.lower()
