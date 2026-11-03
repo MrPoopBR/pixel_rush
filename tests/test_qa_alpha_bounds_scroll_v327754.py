@@ -129,6 +129,10 @@ class CidadeAlphaScroll754(unittest.TestCase):
     def test_scroll_saltos_direto_sem_reconstruir_frame(self):
         from pixelrush_city2_v3125 import CityPilotScene
         import pixelrush_qa_incremental_scene_v327750 as incr
+        import pixelrush_city2_v3118 as original_city
+        # Verificar o algoritmo de scroll SOMENTE com textura sem SDL-RLE.
+        # Atlas reais RLE seguem blit direto, cobertos por gates v755.
+        saved_accel=original_city.acelerar_textura_estatica
         incr.restaurar_para_teste()
         old = CityPilotScene._render_chunk
         old_flags = (incr._QA_SCROLL_INIT_CLEAR, incr._QA_SCROLL_JUMP_DIRECT)
@@ -139,6 +143,7 @@ class CidadeAlphaScroll754(unittest.TestCase):
             try:
                 incr._QA_SCROLL_INIT_CLEAR = True
                 incr._QA_SCROLL_JUMP_DIRECT = True
+                original_city.acelerar_textura_estatica=lambda tex:tex
                 incr.instalar()
                 cena = CityPilotScene()
                 fonte = cena.layers[0].variants[0]
@@ -163,6 +168,7 @@ class CidadeAlphaScroll754(unittest.TestCase):
                 self.assertLessEqual(len(incr._CIDADE.get(cena, {})), 2)
             finally:
                 incr.restaurar_para_teste()
+                original_city.acelerar_textura_estatica=saved_accel
                 (incr._QA_SCROLL_INIT_CLEAR,
                  incr._QA_SCROLL_JUMP_DIRECT) = old_flags
         self.assertIs(CityPilotScene._render_chunk, old)
@@ -170,6 +176,8 @@ class CidadeAlphaScroll754(unittest.TestCase):
     def test_scroll_salto_fallback_antigo_equivalente(self):
         from pixelrush_city2_v3125 import CityPilotScene
         import pixelrush_qa_incremental_scene_v327750 as incr
+        import pixelrush_city2_v3118 as original_city
+        saved_accel=original_city.acelerar_textura_estatica
         incr.restaurar_para_teste()
         old = CityPilotScene._render_chunk
         saved = incr._QA_SCROLL_JUMP_DIRECT
@@ -178,6 +186,7 @@ class CidadeAlphaScroll754(unittest.TestCase):
                 "PIXELRUSH_QA_CITY_SCROLL_SCOPE": "static"}):
             try:
                 incr._QA_SCROLL_JUMP_DIRECT = False
+                original_city.acelerar_textura_estatica=lambda tex:tex
                 incr.instalar()
                 cena = CityPilotScene()
                 variant = cena.layers[1].variants[0]
@@ -193,6 +202,7 @@ class CidadeAlphaScroll754(unittest.TestCase):
                                      ("fallback", i))
             finally:
                 incr.restaurar_para_teste()
+                original_city.acelerar_textura_estatica=saved_accel
                 incr._QA_SCROLL_JUMP_DIRECT = saved
 
 
