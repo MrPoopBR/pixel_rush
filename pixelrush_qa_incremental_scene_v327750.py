@@ -25,6 +25,11 @@ from weakref import WeakKeyDictionary
 # Configuradas no boot QA, sem acessar getenv durante os chunks do 5o frame.
 _QA_SCROLL_INIT_CLEAR=os.environ.get('PIXELRUSH_QA_SCROLL_INIT_CLEAR','1')=='1'
 _QA_SCROLL_JUMP_DIRECT=os.environ.get('PIXELRUSH_QA_SCROLL_JUMP_DIRECT','1')=='1'
+# Quando so uma faixa estreita da textura original aparece, preencher
+# cache + blitar buffer e mais lento que o blit fonte, sem ganho visual.
+# Padrao experimental, scroll geral permanece OFF.
+_QA_SCROLL_MIN_COVER=max(0,min(450,int(
+    os.environ.get('PIXELRUSH_QA_SCROLL_MIN_COVER','192'))))
 
 _INSTALADO=False
 _ORIGINAIS={}
@@ -36,7 +41,9 @@ _STATS={'cidade_hit':0,'cidade_rebuild':0,'cidade_strip_px':0,
         'habilitado_classico':False,'cidade_rejeitado_formato':0,
         'cidade_sem_cobertura':0,'cidade_sprite_direto':0,
         'cidade_cache_descartado':0,'modo_cidade':'off',
-        'cidade_salto_direto':0,'cidade_init_sem_fill':0}
+        'cidade_salto_direto':0,'cidade_init_sem_fill':0,
+        'cidade_blit_cobertura_px':0,'cidade_cobertura_direta':0,
+        'cidade_chunk_sem_base':0}
 
 
 def diagnostico():
@@ -168,11 +175,22 @@ def instalar():
                 or map_kind!='image' or target.get_size()!=(450,500)):
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
                                        night,climate,phase,map_kind,only_sprites)
-        # Culling EXATO para base e sprites estaticos fora da viewport.
-        # Nao tocar em sprites dinamicos que podem ultrapassar o chunk.
-        if not variant.sprites and (x>=450 or x+900<=0):
+        # Base do chunk coberta por [inicio,fim); sprites podem sair
+        # dos seus limites, portanto so o passe base pode ser pulado.
+        inicio=max(0,int(x))
+        fim=min(450,int(x)+900)
+        largura=max(0,fim-inicio)
+        if largura==0:
             _STATS['cidade_sem_cobertura']+=1
+            if variant.sprites:
+                _STATS['cidade_chunk_sem_base']+=1
+                return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
+                                           night,climate,phase,map_kind,True)
             return
+        if largura<_QA_SCROLL_MIN_COVER:
+            _STATS['cidade_cobertura_direta']+=1
+            return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
+                                       night,climate,phase,map_kind,only_sprites)
         if variant.sprites and escopo=='static':
             _STATS['cidade_sprite_direto']+=1
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
@@ -188,10 +206,13 @@ def instalar():
         if buffer is None:
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
                                        night,climate,phase,map_kind,only_sprites)
-        # Blit de base na MESMA ordem original; em seguida, delegar ao método
-        # histórico SOMENTE os sprites da variante (only_sprites=True),
-        # preservando seno, vento, bob, alpha e ordem inclusive nas bordas.
-        target.blit(buffer,(0,0))
+        # QA755: BLIT SOMENTE NA COBERTURA ORIGINAL [inicio,fim)!
+        # SDL pode reescrever RGB oculto de destino alpha0 se a origem
+        # SRCALPHA tem alpha0. Pixels FORA do chunk nao podem ser tocados:
+        # buffer translucido 450x500 inteiro seria regressao RGBA real.
+        # Dentro da area, buffer contem RGB+alpha originais via RGBA_MAX.
+        target.blit(buffer,(inicio,0),(inicio,0,largura,500))
+        _STATS['cidade_blit_cobertura_px']+=largura*500
         if variant.sprites:
             return _ORIGINAIS['chunk'](
                 self,target,variant,flip,x,frame,night,climate,phase,
