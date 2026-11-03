@@ -218,6 +218,18 @@ def _reclaim_inactive_caches():
                 continue
             world._city_surfaces.pop(key,None)
             count+=1
+        # QA762: fallback RSS aplica a mesma politica conservadora de
+        # derivacoes modulares do trim parcelado. Nao liberar fonte/poses,
+        # nem _night_tiles de neve (precomputadas sem refill lazy).
+        from pixelrush_qa_cache_policy_v327758 import modular_cache_fria
+        for biome,cena in tuple(getattr(world,'modular',{}).items()):
+            for nome in ('_maps','_composites','_night_tiles'):
+                if not modular_cache_fria(world,biome,nome):
+                    continue
+                cache=getattr(cena,nome,None)
+                if cache:
+                    count+=len(cache)
+                    cache.clear()
         city=getattr(world,'city2',None)
         # Nao desalocar texturas escaladas da CIDADE atualmente visivel.
         # O LRU original ja e limitado a 14; expulsar 6 texturas a cada 180

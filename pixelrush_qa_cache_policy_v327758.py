@@ -32,3 +32,21 @@ def mapa_tecnico_quente(world, chave, janela_quadros=180):
         return delta < 0 or delta <= janela_quadros
     except (AttributeError, TypeError, ValueError):
         return True
+
+# QA762: caches derivados de cenas 2.5D que podem ser reconstruídos.
+# Neve precompõe TODAS as variantes de _night_tiles no __init__ e consulta
+# por chave direta: JAMAIS esvaziar esse dicionário, mesmo em RSS alto.
+# Deserto gera _night_tiles sob demanda. _maps e _composites são lazy
+# nos dois biomas. Nunca expulsar mapas do bioma ativo deste World.
+_MODULAR_CACHES_COMUNS=frozenset(('_maps','_composites'))
+_MODULAR_DESERTO=frozenset(('_maps','_composites','_night_tiles'))
+
+
+def modular_cache_fria(world, biome, atributo):
+    if biome==getattr(world,'biome',None):
+        return False
+    if biome=='deserto':
+        return atributo in _MODULAR_DESERTO
+    if biome=='neve':
+        return atributo in _MODULAR_CACHES_COMUNS
+    return False

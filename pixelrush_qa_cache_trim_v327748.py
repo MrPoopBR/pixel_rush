@@ -7,7 +7,7 @@ trabalho e distribuido, maximo 12 entradas inspecionadas por apresentacao.
 Nao toca estados/itens de gameplay e nunca remove caches do bioma ativo.
 """
 from weakref import ref
-from pixelrush_qa_cache_policy_v327758 import mapa_tecnico_quente
+from pixelrush_qa_cache_policy_v327758 import mapa_tecnico_quente, modular_cache_fria
 
 class EscalonadorTrimQA:
     def __init__(self, limite_por_passo=12):
@@ -72,6 +72,18 @@ class EscalonadorTrimQA:
             if veils and len(veils)>4:
                 for key in tuple(veils):
                     yield (mundo_ref,'_city_night_veil',key)
+            # QA762: trims inativos dos biomas modulares. Somente entradas
+            # dos dicionarios derivados e lazy; nunca tiles fonte nem
+            # _night_tiles precompiladas da Neve. A cada passo, revalidar
+            # bioma ativo para nao desalocar uma transicao recente.
+            for biome,scene in tuple(getattr(world,'modular',{}).items()):
+                for nome in ('_maps','_composites','_night_tiles'):
+                    if not modular_cache_fria(world,biome,nome):
+                        continue
+                    cache=getattr(scene,nome,None)
+                    if cache:
+                        for key in tuple(cache):
+                            yield (mundo_ref,('_qa_modular',biome,nome),key)
         if self._fonte:
             for key in tuple(self._fonte):
                 yield (None,'_SOURCE',key)
@@ -88,6 +100,16 @@ class EscalonadorTrimQA:
         if world is None:
             return False
         active=world.biome
+        if isinstance(attr,tuple) and len(attr)==3 and attr[0]=='_qa_modular':
+            _,biome,nome=attr
+            if not modular_cache_fria(world,biome,nome):
+                return False
+            cena=getattr(world,'modular',{}).get(biome)
+            cache=getattr(cena,nome,None)
+            if cache is not None and key in cache:
+                cache.pop(key,None)
+                return True
+            return False
         if attr=='_qa_city_incremental_cache':
             if active=='cidade':
                 return False

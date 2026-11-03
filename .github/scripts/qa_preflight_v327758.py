@@ -17,6 +17,7 @@ PROTECTED={
 MODULES=(
     'pixelrush_qa_cache_policy_v327758.py',
     'pixelrush_qa_cache_trim_v327748.py',
+    'tests/test_qa_modular_cold_cache_v327762.py',
     'pixelrush_qa_performance_integrated_v327742.py',
     'pixelrush_qa_gc_cooperativo_v327757.py',
     'pixelrush_qa_precarregamento_visual_v327757.py',
@@ -50,7 +51,7 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.63-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.64-QA-ANDROID-RC"' in engine
     assert "_qa_precarga_visuais.passo(estado)" in engine
     assert "instalar_render_qa()" in (ROOT/'main.py').read_text('utf8')
     perf=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
@@ -60,14 +61,17 @@ def main():
     assert 'mapa_tecnico_quente(world,key)' in perf
     assert 'mapa_tecnico_quente(world,key)' in trimmer
     assert 'janela_quadros=180' in policy
+    assert 'modular_cache_fria' in policy
+    assert (ROOT/'QA_TRACKER_32_v327764.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327764.md').is_file()
     assert "elif _FRAMES>=180 and _FRAMES%180==1:" in gc
     assert "elif _FRAMES>=30 and _FRAMES%30==1:" in gc
     biome=(ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.63$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327763$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.64$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327764$',spec)
     assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
