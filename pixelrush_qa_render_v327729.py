@@ -164,6 +164,10 @@ def instalar():
     # nenhum collect() pode coincidir com o quinto quadro 5:1.
     from pixelrush_qa_gc_cooperativo_v327757 import instalar as instalar_gc_qa
     instalar_gc_qa()
+    # QA761: após World.switch, liberar alias geometry da cena anterior
+    # somente se apontar para buffer que o World acabou de aposentar.
+    from pixelrush_qa_geometry_retire_v327761 import instalar as instalar_geometry_retire_qa
+    instalar_geometry_retire_qa()
     _INSTALADO = True
 
 
@@ -173,6 +177,8 @@ def restaurar_para_teste():
     if _INSTALADO:
         from pixelrush_qa_gc_cooperativo_v327757 import restaurar_para_teste as restaurar_gc_qa
         restaurar_gc_qa()
+        from pixelrush_qa_geometry_retire_v327761 import restaurar_para_teste as restaurar_geometry_retire_qa
+        restaurar_geometry_retire_qa()
         from pixelrush_world_v3130 import LivingWorld
         LivingWorld._city_surface = _ORIGINAL
         from pixelrush_qa_incremental_scene_v327750 import restaurar_para_teste as restaurar_incremental

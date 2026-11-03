@@ -1,4 +1,4 @@
-name: PIXEL RUSH QA 3.277.60 — cache nuvens seguro RGBA offline (sem Android)
+name: PIXEL RUSH QA 3.277.61 — geometry retire e ceu RGBA completo (sem Android)
 
 on:
   push:
@@ -27,6 +27,7 @@ jobs:
       PIXELRUSH_QA_MODULAR_SEEDS: '1'
       PIXELRUSH_QA_CITY_PARTICLE_SEEDS: '1'
       PIXELRUSH_QA_SAFE_CLOUD_CACHE: '1'
+      PIXELRUSH_QA_GEOMETRY_RETIRE: '1'
       PIXELRUSH_GPU: 'off'
       PIXELRUSH_QA_MODULAR_BATCH: '0'
       PIXELRUSH_QA_TECH_SAME_FRAME: '1'
@@ -56,6 +57,10 @@ jobs:
         run: python tests/test_qa_world_real_v327759.py
       - name: Nuvens RGB seguras, RGBA oculto, clima classico e microbenchmark
         run: python tests/test_qa_cloud_weather_v327760.py
+      - name: Liberação segura de geometry ao trocar biomas e weakrefs
+        run: python tests/test_qa_geometry_retire_v327761.py
+      - name: Céu real nos 7 biomas e estados dia/noite RGB e RGBA
+        run: python tests/test_qa_sky_full_v327761.py
       - name: Evidência offline (não é homologação Android)
         if: always()
         uses: actions/upload-artifact@v4

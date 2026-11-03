@@ -160,6 +160,7 @@ class Fechamento32QA(unittest.TestCase):
             'pixelrush_qa_performance_integrated_v327742':('instalar',),
             'pixelrush_qa_atlas_io_v327747':('instalar_no_boot_qa',),
             'pixelrush_qa_gc_cooperativo_v327757':('instalar','restaurar_para_teste'),
+            'pixelrush_qa_geometry_retire_v327761':('instalar','restaurar_para_teste'),
         }
         for name,fns in names.items():
             module=types.ModuleType(name)
