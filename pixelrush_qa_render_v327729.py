@@ -62,6 +62,10 @@ def instalar():
     # o blit direto e 16 comparacoes de pixels sao idênticas.
     from pixelrush_qa_scroll_auto_v327742 import instalar as instalar_scroll_qa
     instalar_scroll_qa()
+    # v3.277.50: scroll incremental pixel-preservado de chunks sem sprites
+    # e strips classicos; opt-in ate gate final RGBA/CPU no aparelho.
+    from pixelrush_qa_incremental_scene_v327750 import instalar as instalar_incremental_qa
+    instalar_incremental_qa()
     # v3.277.44: batching nas classes v3128/v3130 do mundo REAL,
     # desativado por padrao ate prova de ganho Android.
     from pixelrush_qa_modular_batch_v327744 import instalar as instalar_modular_batch_qa
@@ -96,6 +100,10 @@ def restaurar_para_teste():
     if _INSTALADO:
         from pixelrush_world_v3130 import LivingWorld
         LivingWorld._city_surface = _ORIGINAL
+        from pixelrush_qa_incremental_scene_v327750 import restaurar_para_teste as restaurar_incremental
+        restaurar_incremental()
+        from pixelrush_qa_scroll_auto_v327742 import restaurar_para_teste as restaurar_scroll
+        restaurar_scroll()
         from pixelrush_qa_city_tiles_v327749 import restaurar_para_teste as restaurar_tiles
         from pixelrush_qa_city_weather_v327749 import restaurar_para_teste as restaurar_clima
         restaurar_tiles()
