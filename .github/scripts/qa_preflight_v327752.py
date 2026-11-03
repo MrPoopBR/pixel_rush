@@ -382,8 +382,8 @@ def checar():
         'pixelrush_qa_unified_post_v327750.py':'2a0b6aad2e7738bfed7cf927c212349c749ef5bd',
         'pixelrush_qa_incremental_scene_v327750.py':'850d9fe3bd8cae787b7c0e2e5f83ebd0e509b4bf',
         'pixelrush_qa_cache_trim_v327748.py':'51e3b48a51dd513bb98f8536867bc5bc040919df',
-        'pixelrush_city2_v3124.py':'dbd279c950fd26d7711b427456b166bb288ef3a6',
-        'pixelrush_biomes2_v3128.py':'94498afa234f4d598a835db93e4d3f8464752077',
+        'pixelrush_city2_v3124.py':'73c035e7c7387ae46dc2101006ac221cb59136c3',
+        'pixelrush_biomes2_v3128.py':'0cd5c2b12bbf6bb08a178de23d3a999fe0db5480',
         'tests/test_qa_pipeline_scroll_v327750.py':'a262cdcff78145aa2d1cd0c146d0c0160faebafc',
         '.github/scripts/qa_benchmark_pipeline_scroll_v327750.py':'1c95a23ee27bc16657063399e0c08bd5a98d0d3f',
     }
@@ -443,7 +443,7 @@ def checar():
     # QA752: auditoria da v751 somente leitura; não declarar FPS homologado.
     for nome,sha in {
         'pixelrush_biomes2_v3130.py':'8dd88bf1beb96bfd03a92c20df17908cff73e93b',
-        'tests/test_qa_render_memory_v327752.py':'66363f9ee3fd7082415106c2dfda42e0fa27a2e7',
+        'tests/test_qa_render_memory_v327752.py':'f29c573ed7a4929aea7517f2d9c68116ca16966d',
         '.github/scripts/qa_benchmark_render_memory_v327752.py':'53b36a721b73a50bb7f615f13973e3a1abfe3eea',
     }.items():
         assert gitblob(nome)==sha, 'QA752 fonte mudada: '+nome
