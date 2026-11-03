@@ -109,7 +109,14 @@ def instalar_no_boot_qa():
         _ULTIMO={'executado':False,'motivo':'desativado_por_env'}
         return dict(_ULTIMO)
     try:
-        r=preaquecer_arquivos_fora_do_jogo()
+        # A produção já dispara hash+page-cache dos mesmos quatro .atlas
+        # em pixelrush_preparacao_prod_v32778.instalar(). Não executar
+        # a MESMA leitura duplicada no QA antes do menu. Aquecer apenas
+        # tiles PROD adicionais, ainda sem SDL, saves ou sorteio.
+        deduplicar=os.environ.get('PIXELRUSH_QA_ATLAS_IO_DEDUP','1')=='1'
+        r=preaquecer_arquivos_fora_do_jogo(
+            alvos=() if deduplicar else ALVOS)
+        r['atlas_prod_preparados_pelo_carregador_original']=deduplicar
         _ULTIMO={'executado':True,'resultado':r}
     except (OSError,ImportError,RuntimeError,MemoryError) as exc:
         _ULTIMO={'executado':True,'motivo':'fallback_'+type(exc).__name__}
