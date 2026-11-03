@@ -380,7 +380,7 @@ def checar():
     # v750: integralmente em caminho QA, nao so classes de laboratorio.
     qa750={
         'pixelrush_qa_unified_post_v327750.py':'2a0b6aad2e7738bfed7cf927c212349c749ef5bd',
-        'pixelrush_qa_incremental_scene_v327750.py':'9cc629b46d383927138cfe7e3063be821b80e27d',
+        'pixelrush_qa_incremental_scene_v327750.py':'ccb73044d5965ff76178a8a731190dd3e747a3b7',
         'pixelrush_qa_cache_trim_v327748.py':'12578f27ff570059131af249663721a71b50de2a',
         'pixelrush_city2_v3124.py':'61c17db1eee73b95cb70ccfb55dc9ea103b7e9fa',
         'pixelrush_biomes2_v3128.py':'ea810188303b144dacc8b303483dffaa382b8074',
@@ -398,6 +398,7 @@ def checar():
     assert "PIXELRUSH_QA_CITY_INCREMENTAL','0'" in incr
     assert "PIXELRUSH_QA_CLASSIC_INCREMENTAL','0'" in incr
     assert 'BLEND_RGBA_MAX' in incr
+    assert 'if not (habilita_cidade or habilita_classico)' in incr
     trim=Path('pixelrush_qa_cache_trim_v327748.py').read_text('utf8')
     assert '_city_night_veil' in trim
     assert 'pygame.transform.scale(target,target.get_size(),self._geometry_view)' in (
