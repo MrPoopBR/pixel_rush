@@ -47,7 +47,8 @@ class BridgeQA749(unittest.TestCase):
 
     def test_fim_a_fim_mockado_fundo_hud_entrada_fallback(self):
         adapter.restaurar_para_teste()
-        fake_module=types.SimpleNamespace(GLES2DirectPresenterQA=PresenterFake)
+        fake_module=types.SimpleNamespace(GLES2DirectPresenterQA=PresenterFake,
+                                          VERT='VERT',FRAG='FRAG')
         old_flip=pygame.display.flip
         try:
             with patch.dict(os.environ,{
