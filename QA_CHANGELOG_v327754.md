@@ -9,9 +9,9 @@
 ### 1. Culling do conteúdo RGBA estático da Cidade (frentes #2/#7/#10/#16/#24)
 
 Em `pixelrush_city2_v3118.CityPilotScene`, durante a criação da cena, cada textura base SRCALPHA imutável das variantes de camada é classificada uma única vez por canal, incluindo o identificador da Surface na chave. Nenhum cálculo de bounding box ocorre no quinto quadro. A classificação só acontece em imagens sem colorkey e sem alpha global parcial:
-- Alfa zero em toda a imagem: nenhum scale `450x250 -> 900x500`, nenhuma textura escalada no LRU e nenhum blit dessa base. A parte dinâmica de sprites continua desenhada na ordem histórica.
-- Alfa parcial em regiões limitadas: SDL compõe exclusivamente o retângulo que contém os pixels com alfa maior que zero. O retângulo do atlas 450x250 recebe a mesma escala inteira 2x (nearest-neighbor); toda coordenada de desenho e sobreposição mantém a geometria antiga.
-- Texturas não enquadradas nas condições continuam com o blit inteiro de antes. O recorte/clipping SDL e os caminhos técnicos RGB/normal/flow permanecem.
+- **Somente para destino RGB sem alfa por pixel:** fonte com alfa totalmente zero não precisa de scale `450x250 -> 900x500` nem blit. Destino SRCALPHA mantém o método original para preservar inclusive canais RGB invisíveis. Sprites e ordem permanecem.
+- Em destino RGB, SDL pode compor apenas o bbox com alfa maior que zero, calculado uma vez e ampliado 2x (nearest-neighbor). Em destino SRCALPHA, mantém blit completo porque alfa zero do destino permite alterações em RGB oculto mesmo quando alfa da origem é zero.
+- Texturas não enquadradas nas condições — especialmente o compositor SRCALPHA da Cidade — continuam com blit inteiro. Não reivindicar redução desse passe no quinto quadro comum antes de comprovação em destinos que permitem recorte exato.
 
 As flags `PIXELRUSH_QA_CITY_EMPTY_BASE=0`, `PIXELRUSH_QA_CITY_ALPHA_BOUNDS=0` e `PIXELRUSH_QA_CITY_SPRITE_RIGHT_CULL=0` restauram de forma independente o desenho de bases invisíveis, o blit não recortado e o culling original de sprites. Na borda direita, a checagem de posição do sprite é feita antes de buscar sua textura, quando comprovadamente não pode cobrir pixels da viewport; do lado esquerdo continua a verificação baseada na largura real.
 
@@ -31,8 +31,8 @@ Em `pixelrush_city2_v3124.render_scene`, a camada `near` gera uma tupla de tiles
 ## Verificações Pygame-ce 2.5.8 pontuais (sem homologação final)
 
 Executadas como ensaios de primitivas SDL locais, não como teste do jogo inteiro:
-- 72 comparações de blit completo versus `bbox` escalado 2x, em targets RGB e RGBA com diferentes deslocamentos: bytes RGBA idênticos.
-- Blit de atlas com alfa completamente zero não modificou os pixels de destino RGB/RGBA nas amostras.
+- 72 comparações iniciais de bbox 2x em destinos RGB e RGBA com alfa de destino positivo deram bytes idênticos. Uma verificação adicional descobriu divergência em destino SRCALPHA com alfa zero; o código foi corrigido e ganhou bloqueio de crop/skip neste formato.
+- Fonte com alfa zero não modifica destino RGB; porém pode modificar RGB oculto quando destino SRCALPHA também tem alfa zero. A guarda de formato preserva a operação original.
 - Dez novas Surfaces `SRCALPHA` 450x500 com máscaras SDL normais iniciaram transparentes.
 - Buffer RGBA intermediário com cópia `BLEND_RGBA_MAX` e blit final coincidiu com o blit direto nas posições de borda examinadas.
 
@@ -40,7 +40,7 @@ São evidências restritas à equivalência de operações SDL: **não comprovam
 
 ## Gates criados, não executados nesta entrega
 
-- `tests/test_qa_alpha_bounds_scroll_v327754.py`: compara Cidade v3125 real com e sem culling de bases, alpha bounds, sprite culling e tupla near em RGB/RGBA e seis canais; testa saltos do scroll e fallback histórico.
+- `tests/test_qa_alpha_bounds_scroll_v327754.py`: compara Cidade v3125 real com e sem culling de bases, alpha bounds, sprite culling e tupla near em RGB/RGBA e seis canais; inclui teste explícito para RGB oculto do destino com alfa zero, além de saltos e fallback histórico.
 - `.github/scripts/qa_benchmark_alpha_scroll_v327754.py`: 96 quadros de canais reais Cidade + 90 comparações de scroll com saltos; p50/p95/max CPU, RSS e hashes de pixel equivalentes. Sem inferir FPS Android.
 - `.github/scripts/qa_preflight_v327754.py`: versionamento, hashes Git de código protegido, sintaxe, flags de retorno, CI exclusivo/manual e ausência de tarefas de APK/Android.
 - `.github/workflows/qa-offline-v327754.yml`: **somente `workflow_dispatch`**, prepara regressões v748–v753 e nova v754; nenhum gatilho por push e nenhum passo de Gradle, ADB ou Buildozer.
