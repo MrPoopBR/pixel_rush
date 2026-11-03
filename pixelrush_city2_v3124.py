@@ -61,5 +61,13 @@ class CityPilotScene(CidadeAnterior):
         elif map_kind=='fxmask' and near_tiles:
             self.life.draw_windows_lights(target,near_tiles,night,frame,quality,'fxmask')
         if map_kind=='geometry' and not foreground_only:
-            self._geometry_view=target.copy()
+            # QA750: a copy() criava 900 KiB por passe de geometria.
+            # A escala 1:1 grava os canais RGBA crus no buffer existente,
+            # sem o alpha-blend cumulativo que um blit produziria.
+            if (self._geometry_view is None or
+                    self._geometry_view.get_size()!=target.get_size() or
+                    self._geometry_view.get_bitsize()!=target.get_bitsize()):
+                self._geometry_view=target.copy()
+            else:
+                pygame.transform.scale(target,target.get_size(),self._geometry_view)
         self._last_state=(travel,frame,night,climate,phase)
