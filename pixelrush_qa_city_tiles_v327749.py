@@ -26,7 +26,13 @@ def instalar():
     global _INSTALADO,_ORIGINAL
     if _INSTALADO:
         return
-    if os.environ.get('PIXELRUSH_QA_CIDADE_TILE_PLAN','1')!='1':
+    # O plano so e reutilizado quando o jogo solicita varios canais
+    # image/normal/geometry/material para a MESMA posicao. Na corrida SDL
+    # de um unico canal ele aloca tuples e atributos sem obter cache hits.
+    # O modo auto evita esse overhead no quinto quadro sem remover o recurso.
+    modo=os.environ.get('PIXELRUSH_QA_CIDADE_TILE_PLAN','auto')
+    if modo=='0' or (modo=='auto' and
+            os.environ.get('PIXELRUSH_GPU','off').lower() in ('off','0','false','none')):
         return
     from pixelrush_city2_v3125 import CityPilotScene
     _ORIGINAL=CityPilotScene._layer_tiles
@@ -38,6 +44,9 @@ def instalar():
             _STATUS['fallbacks']+=1
             yield from _ORIGINAL(travel,layer)
             return
+        # NUNCA incluir "yield from" no try de calculo: excecao no
+        # consumidor durante o yield poderia ser capturada e provocar
+        # renderizacao duplicada de chunks/sprites (regressao v749).
         try:
             cached=getattr(layer,_CACHE_ATTR,None)
             if (cached is not None and cached[0]==travel and
@@ -45,20 +54,19 @@ def instalar():
                     cached[3] is layer.variants and
                     cached[4] is layer.flips):
                 _STATUS['hits']+=1
-                yield from cached[1]
-                return
-            tiles=tuple(_ORIGINAL(travel,layer))
-            setattr(layer,_CACHE_ATTR,
-                    (travel,tiles,layer.sequence,layer.variants,layer.flips))
-            _LAYER_REFS[id(layer)]=layer
-            _STATUS['misses']+=1
-            _STATUS['max_tiles_retidos']=max(_STATUS['max_tiles_retidos'],len(tiles))
-            yield from tiles
-            return
+                tiles=cached[1]
+            else:
+                tiles=tuple(_ORIGINAL(travel,layer))
+                setattr(layer,_CACHE_ATTR,
+                        (travel,tiles,layer.sequence,layer.variants,layer.flips))
+                _LAYER_REFS[id(layer)]=layer
+                _STATUS['misses']+=1
+                _STATUS['max_tiles_retidos']=max(_STATUS['max_tiles_retidos'],len(tiles))
         except (AttributeError,TypeError,ValueError,MemoryError):
             _STATUS['fallbacks']+=1
             yield from _ORIGINAL(travel,layer)
             return
+        yield from tiles
 
     # Preserva a assinatura estatica da versao real v3118->v3125.
     CityPilotScene._layer_tiles=staticmethod(plano)
