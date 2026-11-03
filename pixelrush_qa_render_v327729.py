@@ -66,6 +66,13 @@ def instalar():
     # desativado por padrao ate prova de ganho Android.
     from pixelrush_qa_modular_batch_v327744 import instalar as instalar_modular_batch_qa
     instalar_modular_batch_qa()
+    # v3.277.49: otimizacoes do compositor/Cidade efetivamente usado.
+    # O plano de tiles e util para multipass image/normal/geometry; a
+    # atmosfera/reflexos atuam no caminho real do render de cidade.
+    from pixelrush_qa_city_tiles_v327749 import instalar as instalar_city_tiles_qa
+    instalar_city_tiles_qa()
+    from pixelrush_qa_city_weather_v327749 import instalar as instalar_city_weather_qa
+    instalar_city_weather_qa()
     # QA v3.277.42: pool meteorologico, limite de cache e Perfetto opcionais;
     # sempre reaproveita o compositor e a camera originais.
     from pixelrush_qa_performance_integrated_v327742 import instalar as instalar_perf_qa
