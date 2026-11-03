@@ -12,6 +12,10 @@ MODULAR_BIOMES=('neve','deserto') if os.getenv('PIXELRUSH_DESERTO_2_0')=='1' els
 _QA_SKIP_INERT_WEATHER=os.environ.get('PIXELRUSH_QA_MODULAR_WEATHER_SKIP','1')=='1'
 # Nivel 0 nao multiplica cor nem altera emissao: e a Surface original.
 _QA_SHARE_DAYLIGHT=os.environ.get('PIXELRUSH_QA_SHARE_DAYLIGHT','1')=='1'
+# Sementes invariantes de clima, sem alterar ordem aritmetica no frame.
+_QA_MODULAR_SEEDS=os.environ.get('PIXELRUSH_QA_MODULAR_SEEDS','1')=='1'
+_SNOW_SEEDS=tuple((i*47,i*31) for i in range(18))
+_SAND_SEEDS=tuple((i*41,i*29) for i in range(12))
 # speed, atmospheric mix, ground anchor, decoration ceiling/floor
 DEPTH={'far':(.10,.34,200,(70,227)), 'mid':(.25,.15,204,(80,229)), 'near':(.52,0.,230,(110,231))}
 
@@ -205,11 +209,13 @@ class ModularBiomeScene(Previous):
             self._qa_weather_overlay_clean=not (neve_ativa or areia_ativa)
             if neve_ativa:
                 for i in range(18 if self.visual_quality else 6):
-                    x=int((i*47+frame*.5)%LW);y=int((i*31+frame*.55)%LH)
+                    sx,sy=(_SNOW_SEEDS[i] if _QA_MODULAR_SEEDS else (i*47,i*31))
+                    x=int((sx+frame*.5)%LW);y=int((sy+frame*.55)%LH)
                     pygame.draw.circle(self._weather,(237,246,255,150),(x,y),1)
             elif areia_ativa:
                 for i in range(12 if self.visual_quality else 4):
-                    x=int((i*41-frame*1.7)%LW);y=70+int((i*29+frame*.5)%140)
+                    sx,sy=(_SAND_SEEDS[i] if _QA_MODULAR_SEEDS else (i*41,i*29))
+                    x=int((sx-frame*1.7)%LW);y=70+int((sy+frame*.5)%140)
                     pygame.draw.line(self._weather,(235,186,125,110),(x,y),(x+5,y))
             low.blit(self._weather,(0,0))
         pygame.transform.scale(low,(WIDTH,HEIGHT),target)

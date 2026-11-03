@@ -12,6 +12,8 @@ from functools import wraps
 _INSTALADO=False
 _ORIGINALS={}
 _STATUS={'atmosfera_quadros':0,'reflexos_quadros':0}
+_QA_CITY_SEEDS=os.environ.get('PIXELRUSH_QA_CITY_PARTICLE_SEEDS','1')=='1'
+_PARTICLE_SEEDS=tuple((i*67.0,i*37.0,i*41.0,(i%3)*.08) for i in range(12))
 
 
 def estatisticas():
@@ -38,10 +40,15 @@ def instalar():
         tw=target.get_width()+20
         deslocamento=travel*.07
         impulso=wind*3
+        if count>len(_PARTICLE_SEEDS):
+            return _ORIGINALS['draw_atmosphere'](
+                self,target,travel,frame,night,climate,quality)
         for i in range(count):
-            p=(frame*(.42+(i%3)*.08)+i*41.0)
-            x=int((i*67.0+p*.42+deslocamento+impulso)%tw)-10
-            y=int(352+((i*37.0-p*.53)%102))
+            sx,sy,sp,sv=(_PARTICLE_SEEDS[i] if _QA_CITY_SEEDS
+                         else (i*67.0,i*37.0,i*41.0,(i%3)*.08))
+            p=(frame*(.42+sv)+sp)
+            x=int((sx+p*.42+deslocamento+impulso)%tw)-10
+            y=int(352+((sy-p*.53)%102))
             if rainy:
                 pygame.draw.line(target,(153,201,227),(x,y),(x-2,y+6),1)
             elif i%4==0:

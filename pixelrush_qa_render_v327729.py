@@ -13,7 +13,7 @@ from weakref import ref
 
 # QA752: alias zero-copy apenas quando World possui a Surface destino.
 # OFF ate testes integrais de ambient_occlusion, multiinstancia e GPU.
-_QA_BORROW_GEOMETRY=os.environ.get('PIXELRUSH_QA_GEOMETRY_BORROW','0')=='1'
+_QA_BORROW_GEOMETRY=os.environ.get('PIXELRUSH_QA_GEOMETRY_BORROW','1')=='1'
 # Fechamento #2/#10: um mesmo canal técnico pode ser solicitado diversas
 # vezes no MESMO frame (GPU/oclusão/reflexos). O cache é por LivingWorld,
 # condicionado ao estado completo, instância, Surface e qualidade. Imagem
@@ -67,7 +67,9 @@ def instalar():
         # A instrumentacao interna confirma onde o mundo 2.5D gasta CPU.
         from pixelrush_profiler_v3204 import sub_inicio, sub_fim
         sub_inicio('mundo_composicao_interna')
-        emprestimo=_QA_BORROW_GEOMETRY and kind=='geometry'
+        emprestimo=(_QA_BORROW_GEOMETRY and kind=='geometry' and
+                    self._city_surfaces.get(chave) is surf and
+                    callable(getattr(cena,'ambient_occlusion',None)))
         if emprestimo:
             # O mesmo mundo mantem a Surface viva em _city_surfaces.
             # Nao emprestar destinos de testes externos ou efemeros.

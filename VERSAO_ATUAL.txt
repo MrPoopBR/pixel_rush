@@ -1,4 +1,4 @@
-Pixel Rush v3.277.58-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
+Pixel Rush v3.277.59-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -55,3 +55,5 @@ Fechamento consolidado QA v3.277.57 na branch qa/fechamento-32-v3.277.57: integr
 QA v3.277.58: fallback e escalonador de RAM compartilham a protecao de mapas 2.5D quentes por mundo/frame, e GC de geracao maior substitui coletas menores no mesmo flip. Testes sinteticos locais pygame-ce 2.5.8 (3/3); Android, GPU, APK e homologacao nao executados. Branch unica qa/fechamento-32-v3.277.57; detalhes QA_CHANGELOG_v327758.md.
 
 QA v3.277.58 - evidência final: GitHub Actions #41714045870 passou 11/11 testes integrados offline, AST/SHA e 180 variacoes de culling Neve/Deserto byte RGBA. #16 concluida em implementacao/teste offline; placar 14/32 offline, 18/32 parciais, zero homologacao Android. Clima preserva RGBA oculto e transicoes. Sem APK/AAB/Android; QA_CHANGELOG_v327758.md e QA_TRACKER_32_v327758.md atualizados.
+
+QA v3.277.59: empréstimo geometry do World 450x500 ativado no QA (sem segunda cópia/surface), sementes de partículas de Neve/Deserto e atmosfera da Cidade pré-computadas com fallback; gates Pygame offline, sem Android/APK/AAB. QA_TRACKER_32_v327759.md e QA_CHANGELOG_v327759.md.
