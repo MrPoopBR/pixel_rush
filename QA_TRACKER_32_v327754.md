@@ -9,21 +9,21 @@
 | # | Melhoria das 32 | Estado | Evidência e ressalva |
 |---:|---|---|---|
 |1|Zoom por GPU|Parcial|v749 integra wrapper de CameraCinematica com geometria de zoom original e shader fixo GLES em janela opt-in; flags OFF, paridade/ganho Android pendentes|
-|2|Compositor 2.5D persistente|Parcial|v754 elimina escalonamento e blit de canais estáticos com alpha zero e limita blits aos bboxes opacos do atlas Cidade 450x250; quinto quadro continua redesenhando animações e camadas visíveis|
+|2|Compositor 2.5D persistente|Parcial|v754 pré-computa bboxes no boot para saídas RGB, mas preserva blit integral em destino SRCALPHA para manter RGB oculto; redesenho do quinto quadro continua, sprites e camadas intactos|
 |3|CPU/GPU híbrido|Parcial|v749 cria ponte real CPU staging Surface -> GLES2 durante display.flip, preservando HUD/input SDL e fallback SDL, totalmente OFF por padrão|
 |4|Unificação zoom/posprocessamento|Parcial|v750 chama pixelrush_qa_unified_post diretamente no loop real após gamefeel/GPU FX e engloba câmera, escala, blit e flip. Implementado no QA por padrão, caminho antigo preservado; ainda não elimina transformações GPU duplas e sem gate RGBA integral|
 |5|Scroll incremental de pixels|Parcial|v754 no wrapper real Cidade abandona reconstrução de buffer 450x500 em saltos de >48 px e faz blit direto do atlas; evita clear inicial de Surface SRCALPHA. Opt-in OFF; paridade integrada/ganho CPU ainda sem aprovação|
 |6|Recorte de transparências|**Concluída (offline)**|wrapper Fase B; culling RGBA testado|
-|7|Evitar grandes alocações|Parcial|v754 reduz crescimento do LRU de texturas escaladas ao não preparar canais estáticos totalmente transparentes da Cidade; scroll evita limpeza e cópia full-frame em saltos. Outras Surfaces ainda alocadas|
+|7|Evitar grandes alocações|Parcial|v754 evita expansão de canais vazios apenas para destinos RGB; em alvo RGBA preserva passagens legadas. Scroll experimental pode evitar fill/cópia full-frame em saltos, sem ativação automática|
 |8|SIMD para smoothscale|Parcial|preflight offline/opt-in, fallback ativo, sem Android|
 |9|Pré-composição de texturas|**Concluída (offline)**|atlas e superfícies estáticas presentes, testes de paridade|
-|10|Remover cópias/passes|Parcial|v754 substitui blit completo da imagem estática por retângulo de conteúdo (bbox alpha) calculado no boot e ignora canais com alpha 0; remove materialização de tuple near em canais sem luzes. Mantém passes animados|
+|10|Remover cópias/passes|Parcial|v754 recorta o atlas estático apenas em destino RGB; mantém blit SRCALPHA integral pelos bytes RGB invisíveis. Remove tuple near desnecessária em mapas sem luzes e evita rebuild de scroll em saltos opt-in|
 |11|Cache de menus|**Concluída (offline)**|fundo e prévias limitados, sem remoção de UI dinâmica|
 |12|Backend por dispositivo|Parcial|gate CPU/GPU v747 tem testes offline de rejeição segura; seleção real permanece SDL CPU|
 |13|Sprites espelhados|**Concluída (offline)**|cache de props integrado|
 |14|Alpha overlays|**Concluída (offline)**|reuso de masks/transições implementado|
 |15|FABRIK/deformação|**Concluída (offline)**|buffers QA integrados e limitados|
-|16|Culling fora da tela|Parcial|v754 descarta sprites à direita antes de consultar a textura e limita blits SRCALPHA da Cidade aos pixels relevantes sem alterar clipping SDL; outros subsistemas ainda com trabalho visível|
+|16|Culling fora da tela|Parcial|v754 antecipa culling de sprites à direita sem consultar textura e pré-computa recortes de atlas para destinos RGB; para destino SRCALPHA preserva toda a área de blit pelos canais RGB ocultos|
 |17|Agrupar blits|**Concluída (offline)**|Fase B/SDF/strips; modular atual opcional OFF, sem afirmar ganho dele|
 |18|Cache céu/clima|Parcial|v752 pula caminho meteorológico vazio nos biomas modulares quando a família de partículas não se aplica ao clima; mantém efeitos ativos e ritmo de animação|
 |19|Vinheta noturna|**Concluída (offline)**|v3192 mantém vinheta de faixas; v751 remove full-surface overlay multiplicativo da Cidade por fill BLEND_RGBA_MULT, com fallback e ensaio sintético RGB/RGBA|
@@ -31,7 +31,7 @@
 |21|Fontes/labels|**Concluída (offline)**|caches limitados com atualização por necessidade|
 |22|Pré-carregamento skins/pets|Parcial|previews e caches existentes, pets não validados integralmente|
 |23|Pré-aquecer biomas|Parcial|atlas PROD e API v746; v747 lê/valida os 4 atlas no bootstrap sem alocação SDL ou antecipar RNG; cena do próximo bioma não é conhecida antes do sorteio|
-|24|Deduplicar Surfaces|Parcial|v754 não escala e não retém no LRU texturas estáticas vazias; scroll usa atlas direto para saltos em vez de reconstruir buffer extra. Deduplicação total e VRAM não comprovadas|
+|24|Deduplicar Surfaces|Parcial|v754 não amplia atlas estático vazio apenas em saídas RGB; destino RGBA mantém alocação necessária. Scroll opt-in evita rebuild de cache ao saltar. Deduplicação geral e VRAM ainda parciais|
 |25|Limites globais de cache|Parcial|v753 integra a eliminação dos caches de scroll da Cidade inativa ao EscalonadorTrimQA em lotes fora do quinto quadro, preservando mundo ativo e multinstância; sem medir RAM Android|
 |26|Pausas GC|Parcial|v754 reduz temporários de planos near técnicos e evita criar texturas escaladas de canais vazios; parâmetros do GC não foram modificados e pausas Android ainda não foram medidas|
 |27|Telemetria assíncrona|**Concluída (offline)**|worker JSON/CSV, snapshot parcelado, flush final preservado|
@@ -163,7 +163,7 @@ Escopo preservado: main, DEV, pets, saves, input, física, HUD, sprites, atlas, 
 
 **A) Blits estáticos da Cidade com transparência pixel-exata (caminho real):**
 - `pixelrush_city2_v3118.py` computa uma única vez durante `CityPilotScene.__init__` o limite de alpha de cada textura SRCALPHA imutável das variantes far/mid/near/fg para `image/geometry/fxmask/normal/material/flow`. Não consulta `surfarray`, não instancia texturas 900x500 para mapas vazios e não consulta alfa por pixel no quinto quadro.
-- Texturas com alpha totalmente zero não chamam `_scaled_surface` nem `target.blit`; sprites e a ordem do desenho continuam na rotina original. Para texturas 450x250 com regiões transparentes, o bbox é escalado por nearest-neighbor `SCALE=2` para fazer **um único blit recortado**, preservando a área e os pixels reais. Não aplica downsample, não remove prédio ou objeto e não muda a aparência. Cor/alpha de texturas com colorkey ou alpha global atípico seguem caminho antigo.
+- **Somente em destino RGB sem alfa por pixel**, texturas com alpha zero não chamam `_scaled_surface` nem `target.blit`; o bbox 450x250 é escalado exatamente 2x para blit recortado. Em Surface SRCALPHA, todos os canais (inclusive RGB oculto com alfa zero) exigem preservar o blit integral histórico, por isso o código recusa o atalho. Isso inclui a Surface normal da Cidade, de modo que **não há ganho de blit pleno comprovado no quadro Android**. Sprites e ordem de desenho permanecem.
 - O descarte antecipado à direita dos sprites usa apenas posição e deslocamento máximo de vento. A borda esquerda usa largura real da mesma textura que antes. Flags para fallback de boot: `PIXELRUSH_QA_CITY_EMPTY_BASE=0`, `PIXELRUSH_QA_CITY_ALPHA_BOUNDS=0`, `PIXELRUSH_QA_CITY_SPRITE_RIGHT_CULL=0`.
 - **#10 / planos técnicos:** `pixelrush_city2_v3124.py` mantém a tupla de tiles near apenas onde `draw_windows_lights` precisa reutilizá-los (`image/fxmask`). Os outros canais usam o iterador original, sem gerar a tupla. `PIXELRUSH_QA_NEAR_PLAN_ON_DEMAND=0` restaura a política anterior.
 
@@ -172,7 +172,7 @@ Escopo preservado: main, DEV, pets, saves, input, física, HUD, sprites, atlas, 
 - Quando a posição de uma variante muda mais de 48 pixels desde a última chamada, agora invalida seu buffer e chama o blit original diretamente, ao invés de limpar+reconstruir+blitar 450x500. Em frames seguintes de deslocamento suave, reconstrução incremental de faixa funciona como antes. Flags `PIXELRUSH_QA_SCROLL_INIT_CLEAR=0` e `PIXELRUSH_QA_SCROLL_JUMP_DIRECT=0` permitem reproduzir o método v753. O cache de dois buffers/mundo e a expiração RSS fora do 5º quadro permanecem.
 - Não ativar `PIXELRUSH_QA_CITY_INCREMENTAL=1` automaticamente. Um scroll full-window + blit extra ainda pode perder para um blit direto na corrida. Gates com pixels e p95 do caminho real preparados, não executados.
 
-**Ensaios pontuais de operações SDL:** Em pygame-ce 2.5.8, 72 comparações RGB/RGBA de retângulos de conteúdo após scale 2x preservaram bytes RGBA; surfaces totalmente transparentes preservaram o destino RGB/RGBA; 10 buffers SRCALPHA novos começaram transparentes; uma amostra da composição de scroll base e buffer foi idêntica em posições de recorte. São verificações sintéticas, **NÃO** teste completo da Cidade, nem FPS Android.
+**Ensaios pontuais e regressão detectada:** Em pygame-ce 2.5.8, 72 comparações de recorte em alvos RGB e RGBA **com alfa positivo** preservaram bytes RGBA; 10 buffers SRCALPHA novos começaram transparentes. Nova checagem de destino com alfa zero comprovou que blit de source alfa zero pode alterar RGB invisível, então a v754 **foi corrigida para impedir crop/skip em todo destino SRCALPHA**. Teste bloqueante para esse canto preparado. Sem execução da suíte integrada, sem FPS Android.
 
 **Gates novos preparados:** `tests/test_qa_alpha_bounds_scroll_v327754.py` (4 testes reais, seis canais, RGB/RGBA, variantes e posições, plano near e saltos); `.github/scripts/qa_benchmark_alpha_scroll_v327754.py` (CPU p50/p95 e RSS em 96 quadros City + 90 saltos); `.github/scripts/qa_preflight_v327754.py` (integridade, versões e flags); `.github/workflows/qa-offline-v327754.yml` (gatilho manual apenas, sem Android). Não foram executados como homologação final.
 
