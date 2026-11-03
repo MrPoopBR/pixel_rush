@@ -1,0 +1,53 @@
+name: PIXEL RUSH QA 3.277.58 — gates offline integrados (sem Android)
+
+on:
+  push:
+    branches:
+      - qa/fechamento-32-v3.277.57
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327758-offline
+  cancel-in-progress: true
+
+jobs:
+  qa-v758-offline:
+    if: github.ref_name == 'qa/fechamento-32-v3.277.57'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+      PYTHONPATH: .
+      PIXELRUSH_QA_ANDROID: '0'
+      PIXELRUSH_GPU: 'off'
+      PIXELRUSH_QA_MODULAR_BATCH: '0'
+      PIXELRUSH_QA_TECH_SAME_FRAME: '1'
+      PIXELRUSH_QA_TILES_IO_PREWARM: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Instalar dependências de testes SDL dummy (sem SDK Android)
+        run: python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy pillow
+      - name: Versão, AST, SHA preservados e integração QA
+        run: python .github/scripts/qa_preflight_v327758.py
+      - name: Cache multi-instância, RAM e GC
+        run: python tests/test_qa_cache_gc_v327758.py
+      - name: Compositor multipass, skins, RNG, SHA, 181 flips
+        run: python tests/test_qa_fechamento32_v327757.py
+      - name: Neve e Deserto reais RGBA, RGB oculto, culling
+        run: python tests/test_qa_fechamento_modular_v327757.py
+      - name: Evidência offline (não é homologação Android)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327758-preflight-offline
+          path: qa-preflight-v327758.json
+          if-no-files-found: ignore
