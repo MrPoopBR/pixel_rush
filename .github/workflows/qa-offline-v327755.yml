@@ -350,6 +350,9 @@ jobs:
           d=json.loads(Path('qa-benchmark-srcalpha-scroll-v327755.json').read_text('utf8'))
           assert d['srcalpha_normal_flow']['frames_rgba_identicos']==96
           assert d['scroll_srcalpha_rgb_oculto']['frames_rgba_identicos']==124
+          assert d['scroll_rle_fallback']['frames_rgba_identicos']==124
+          assert d['scroll_rle_fallback']['diagnostico']['cidade_rle_direto']>0
+          assert d['scroll_srcalpha_rgb_oculto']['diagnostico']['cidade_hit']>0
           assert d['homologacao_final'] is False
           assert d['apk_compilado'] is False and d['aab_compilado'] is False
           assert d['teste_android_real'] is False
