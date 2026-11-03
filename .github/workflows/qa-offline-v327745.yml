@@ -1,0 +1,165 @@
+name: PIXEL RUSH QA v3.277.45 - REGRESSAO OFFLINE SEM APK
+
+on:
+  push:
+    branches:
+      - qa/android-full-performance-v3.277.45
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-offline-v327745
+  cancel-in-progress: true
+
+jobs:
+  pygame-offline:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/android-full-performance-v3.277.45'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+      PYTHONPATH: .
+      PIXELRUSH_QA_NATIVE_AUTO: '0'
+      PIXELRUSH_QA_SCROLL_AUTO: '0'
+      PIXELRUSH_QA_CAMERA_AUTOTUNE: '0'
+      PIXELRUSH_QA_CLOUD_CACHE: '0'
+      PIXELRUSH_QA_MODULAR_BATCH: '0'
+    steps:
+      - name: Checkout isolado QA; sem Android/ADB
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python 3.13 pygame-ce para regressao offline
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Dependencias SDL dummy sem dispositivo
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python - <<'PY'
+          import pygame
+          assert pygame.version.ver=='2.5.8'
+          pygame.init()
+          pygame.display.set_mode((450,800))
+          print('Pygame OK:',pygame.version.ver,pygame.display.get_driver())
+          pygame.quit()
+          PY
+
+      - name: Preflight de versao e invariantes sem builds
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/qa_preflight_v327745.py
+          python -m compileall -q pixelrush_qa_camera_native_auto_v327742.py pixelrush_qa_camera_v327733.py pixelrush_qa_scroll_auto_v327742.py pixelrush_qa_performance_integrated_v327742.py pixelrush_city2_v3118.py pixelrush_qa_android_v327728.py pixelrush_qa_async_export_v327737.py pixelrush_qa_snapshot_v327743.py tests/test_qa_safe_performance_v327743.py tests/test_qa_frame_completo_v327743.py .github/scripts/qa_benchmark_frame_completo_v327743.py pixelrush_qa_audit_offline_v327744.py pixelrush_qa_modular_batch_v327744.py tests/test_qa_render_real_v327744.py .github/scripts/qa_benchmark_world_real_v327744.py tests/test_qa_fifth_memory_v327745.py .github/scripts/qa_benchmark_fifth_memory_v327745.py
+
+      - name: Fixture C nativa Linux (nao ARM nem APK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pixelrush-qa-native
+          cc -std=c11 -O3 -fPIC -Wall -Wextra -shared qa_native/camera_crop_native_v327741.c -o /tmp/pixelrush-qa-native/libpixelrush_camera_crop_v327741.so
+
+      - name: Regressao de pygame e funcionalidade legada
+        shell: bash
+        env:
+          PIXELRUSH_QA_NATIVE_CAMERA_LIB: /tmp/pixelrush-qa-native/libpixelrush_camera_crop_v327741.so
+        run: |
+          set -euo pipefail
+          python .github/scripts/test_qa_android_v327728.py
+          python tests/test_qa_camera_scene_v327733.py
+          python tests/test_qa_performance_full_v327732.py
+          python tests/test_qa_full_performance_v327737.py
+          python tests/test_qa_perf_v327738.py
+          python tests/test_qa_camera_city_v327739.py
+          python tests/test_qa_20_integrated_v327742.py
+          python tests/test_qa_scroll_auto_v327742.py
+          python tests/test_qa_modular_batch_v327742.py
+          python tests/test_qa_city_clouds_v327742.py
+          python tests/test_qa_safe_performance_v327743.py
+          python tests/test_qa_frame_completo_v327743.py
+          python tests/test_qa_render_real_v327744.py
+          python tests/test_qa_fifth_memory_v327745.py
+
+      - name: Benchmark de quadros completos CPU SDL, sem Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/qa_benchmark_frame_completo_v327743.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('qa-benchmark-frame-completo-v327743.json').read_text('utf8'))
+          assert d['android_hardware_testado'] is False
+          assert d['gpu_ativa'] is False
+          assert all(x['pixels_exatos_em_12_frames'] for x in d['biomas'].values())
+          assert set(d['biomas']) == {'cidade','neve'}
+          for v in d['biomas'].values():
+              assert all(m['quadro']['n']>=10 for m in (v['original'],v['qa_seguro']))
+          PY
+
+      - name: Benchmark real de 1200 quadros por bioma (offline)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/qa_benchmark_world_real_v327744.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('qa-benchmark-world-real-v327744.json').read_text('utf8'))
+          assert r['apk_compilado'] is False and r['fps_android_comprovado'] is False
+          assert r['cache_fundo_mantido_5_quadros'] is True
+          assert r['tipo'].startswith('SUBPIPELINE_REAL_WORLD_DRAW')
+          for biome,frames in [('cidade',1200),('neve',1200),('deserto',240)]:
+              b=r['biomas'][biome]
+              assert b['frames_totais']==frames
+              assert b['desenhos_de_fundo']==(frames+4)//5
+              assert b['reusos_de_fundo']==frames-(frames+4)//5
+              assert b['fases']['total']['n']==frames-20
+              assert b['recursos_unicos']['surfaces_unicas']>0
+              assert not b['recursos_unicos']['limite_excedido']
+          PY
+
+      - name: Benchmark de quinto quadro e RSS sintetico, sem Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/qa_benchmark_fifth_memory_v327745.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('qa-benchmark-quinto-memoria-v327745.json').read_text('utf8'))
+          assert x['schema'].endswith('.v327745')
+          assert x['apk_compilado'] is False and x['android_testado'] is False
+          assert x['full_game_loop_testado'] is False
+          assert x['cache_period_frames']==5
+          assert x['frames_medidos']==3300
+          assert x['memory_pressure_real'] is False
+          for biome,frames in [('cidade',1200),('neve',1200),('deserto',360),('cidade_rss_forcado',540)]:
+              z=x['results'][biome]
+              assert z['frames']==frames
+              assert z['draws']==(frames+4)//5
+              assert z['hits']==frames-z['draws']
+              assert z['phase_stats']['total_redraw']['n']>0
+              assert z['phase_stats']['total_hit']['n']>0
+          assert len(x['results']['cidade_rss_forcado']['cleanup_180_events'])>=2
+          PY
+
+      - name: Relatorios offline QA sem pacote Android
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327745-fifth-memory-offline
+          path: |
+            preflight-qa-v327745.json
+            qa-benchmark-frame-completo-v327743.json
+            qa-benchmark-world-real-v327744.json
+            qa-benchmark-quinto-memoria-v327745.json
+          if-no-files-found: warn
+          retention-days: 14

@@ -300,7 +300,7 @@ class QATelemetria:
             if gravador._pendente is not None and not gravador._pendente.done():
                 return False
             relatorio = self.relatorio(resumir=False, snapshot=grupos)
-            gravador.enviar(self.pasta, 'pixelrush_qa_v327744',
+            gravador.enviar(self.pasta, 'pixelrush_qa_v327745',
                             relatorio, linhas, esperar=False,
                             preparar_relatorio=_preparar_exportacao_qa,
                             linhas_prontas=True)
@@ -338,7 +338,7 @@ class QATelemetria:
             relatorio = self.relatorio(resumir=False)
             linhas = tuple(dict(x) for x in self.ultimos)
             aceito = gravador.enviar(
-                self.pasta, 'pixelrush_qa_v327744', relatorio, linhas,
+                self.pasta, 'pixelrush_qa_v327745', relatorio, linhas,
                 esperar=esperar, preparar_relatorio=_preparar_exportacao_qa)
             self.gravacoes = gravador.concluidas
             self.erros_escrita = gravador.falhas
