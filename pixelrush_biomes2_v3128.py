@@ -215,6 +215,7 @@ class ModularBiomeScene(Previous):
                 # QA750: copia somente na primeira passagem. Nos quadros
                 # seguintes faz escrita exata 1:1 sem alpha-blend anterior.
                 if (self._geometry_view is None or
+                        self._geometry_view is target or
                         self._geometry_view.get_size()!=target.get_size() or
                         self._geometry_view.get_bitsize()!=target.get_bitsize() or
                         self._geometry_view.get_masks()!=target.get_masks() or
