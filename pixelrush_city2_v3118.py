@@ -22,9 +22,14 @@ _QA_CULL_SPRITES_EARLY=os.environ.get('PIXELRUSH_QA_CITY_SPRITE_RIGHT_CULL','1')
 # limitar o blit a seu bbox e preservar os bytes RGB exatamente.
 # Em alvo SRCALPHA e mantido o blit integral por paridade de RGB oculto.
 _QA_ALPHA_BOUNDS=os.environ.get('PIXELRUSH_QA_CITY_ALPHA_BOUNDS','1')=='1'
+# QA755: deduplicar tiles estaticos de mapas técnicos so quando TODOS
+# os bytes SDL, formato, alpha e cor-chave forem identicos.
+# Hash BLAKE2b apenas agrupa candidatos; igualdade crua obrigatoria.
+_QA_DEDUP_TECH_SCALED=os.environ.get('PIXELRUSH_QA_CITY_DEDUP_TECH_SCALED','1')=='1'
 
 import math
 import random
+import hashlib
 import pygame
 from pixelrush_rle_prod_v327727 import acelerar_textura_estatica
 from pixelrush_city2_v3117 import CityPilotScene as PreviousCity, SpriteLibrary, SpriteInstance, ChunkVariant
@@ -59,13 +64,54 @@ class CityPilotScene(PreviousCity):
         # se a referencia de textura for trocada no futuro.
         self._qa_empty_base_maps=set()
         self._qa_alpha_bounds={}
-        if _QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS:
+        self._qa_scaled_alias={}
+        self._qa_scaled_alias_hits=0
+        # O dicionario temporario não fica retido depois do bootstrap;
+        # só guarda referencias a pixels JA existentes enquanto compara.
+        iguais={}
+        if _QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS or _QA_DEDUP_TECH_SCALED:
             for layer in self.layers:
                 for variant in layer.variants:
                     for kind in ('image','geometry','fxmask',
                                  'normal','material','flow'):
                         tex=getattr(variant,kind,None)
-                        if (tex is None or
+                        if tex is None:
+                            continue
+                        if (_QA_DEDUP_TECH_SCALED and
+                                kind in ('geometry','fxmask','normal',
+                                         'material','flow') and
+                                tex.get_bitsize()==32):
+                            try:
+                                formato=(kind,tex.get_size(),tex.get_flags(),
+                                         tex.get_masks(),tex.get_alpha(),
+                                         tex.get_colorkey())
+                                raw=memoryview(tex.get_view('0'))
+                                try:
+                                    digest=hashlib.blake2b(raw,digest_size=16).digest()
+                                    chave_digest=(formato,digest)
+                                    achou=False
+                                    for original_variant,original_tex in iguais.get(
+                                            chave_digest,()):
+                                        outro=memoryview(original_tex.get_view('0'))
+                                        try:
+                                            mesmo=raw==outro
+                                        finally:
+                                            outro.release()
+                                        if mesmo:
+                                            self._qa_scaled_alias[(id(variant),kind)]=(
+                                                id(tex),(id(original_variant),kind))
+                                            achou=True
+                                            break
+                                    if not achou:
+                                        iguais.setdefault(chave_digest,[]).append(
+                                            (variant,tex))
+                                finally:
+                                    raw.release()
+                            except (pygame.error,BufferError,ValueError,
+                                    MemoryError):
+                                # Sem dedup validada, escalar textura original.
+                                pass
+                        if (not (_QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS) or
                                 not tex.get_flags() & pygame.SRCALPHA or
                                 tex.get_colorkey() is not None or
                                 tex.get_alpha() not in (None,255)):
@@ -78,8 +124,6 @@ class CityPilotScene(PreviousCity):
                         elif (_QA_ALPHA_BOUNDS and
                               tex.get_size()==(LOW_W,LOW_H) and
                               bbox.size!=(LOW_W,LOW_H)):
-                            # SCALE=2 nearest-neighbor: borda RGBA
-                            # transp. baixa escala exatamente a 900x500.
                             self._qa_alpha_bounds[chave]=(
                                 bbox.x*SCALE,bbox.y*SCALE,
                                 bbox.w*SCALE,bbox.h*SCALE)
@@ -261,6 +305,14 @@ class CityPilotScene(PreviousCity):
 
     def _scaled_surface(self,variant,kind):
         key=(id(variant),kind)
+        # QA755: texturas tecnicas com bytes 100% identicos dividem
+        # uma unica Surface escalada 900x500, inclusive RGB oculto.
+        # Se a origem for trocada apos o init, voltar à chave individual.
+        if _QA_DEDUP_TECH_SCALED:
+            alias=self._qa_scaled_alias.get(key)
+            if alias is not None and id(getattr(variant,kind))==alias[0]:
+                key=alias[1]
+                self._qa_scaled_alias_hits+=1
         cached=self._scaled.get(key)
         if cached is not None:
             self._scaled.move_to_end(key)
