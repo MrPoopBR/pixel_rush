@@ -79,6 +79,11 @@ def instalar():
     # C/NEON usa a camera original ate provar igualdade e ganho no frame real.
     from pixelrush_qa_camera_native_auto_v327742 import instalar as instalar_camera_native_qa
     instalar_camera_native_qa()
+    # QA753: skips pixel-inertes FG da Cidade (validacao por instancia) e
+    # lista temporaria de blits quando faixa SDL exige so uma copia.
+    # Instalar ANTES do scroll opt-in para preservar ordem de wrappers.
+    from pixelrush_qa_hotpath_v327753 import instalar as instalar_hotpath_qa
+    instalar_hotpath_qa()
     # Scroll incremental 2.5D so liga quando o frame COMPLETO vence
     # o blit direto e 16 comparacoes de pixels sao idênticas.
     from pixelrush_qa_scroll_auto_v327742 import instalar as instalar_scroll_qa
@@ -123,6 +128,8 @@ def restaurar_para_teste():
         LivingWorld._city_surface = _ORIGINAL
         from pixelrush_qa_incremental_scene_v327750 import restaurar_para_teste as restaurar_incremental
         restaurar_incremental()
+        from pixelrush_qa_hotpath_v327753 import restaurar_para_teste as restaurar_hotpath
+        restaurar_hotpath()
         from pixelrush_qa_scroll_auto_v327742 import restaurar_para_teste as restaurar_scroll
         restaurar_scroll()
         from pixelrush_qa_city_tiles_v327749 import restaurar_para_teste as restaurar_tiles
