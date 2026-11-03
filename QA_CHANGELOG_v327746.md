@@ -12,7 +12,9 @@
 ## B. Buffer do 5º quadro — fundo REAL
 - Novo `tests/test_qa_buffer_full_v327746.py` e `.github/scripts/qa_benchmark_preheat_buffer_v327746.py`: usa `ParallaxBackground` da cópia QA de produção, `profundidade_cinematografica`, `desenhar_profundidade_bioma` Fase B, `SistemaClima._desenhar_nuvens_clima`, `CenasMemoraveis`, chão e HUD sintético mutável.
 - Compara **byte-a-byte RGBA**, 35 quadros por cidade/neve/deserto com noite/clima/scroll. Controle: render direto na tela + `CacheFundoUltraQA.guardar`; alternativa: composição em buffer offscreen e **um blit no display**. Ambas mantêm o mesmo frame do fundo e intervalo de 5.
-- **Alternativa OFF por padrão**; NÃO altera a política de cinco quadros. O custo de transferência pode apenas mudar de direção; só habilitar após evidência de ganho e validação de frame real Android.
+- **Regressao detectada, alternativa ingênua reprovada:** com mundos independentes, a scratch que nao copiava o framebuffer anterior divergiu em `deserto`/noite=0.95/frame=15 no pixel (444,340). O renderizador de fundo nao garante repintura opaca em todos os pixels quando existem camadas transparentes.
+- **Alternativa segura em teste:** antes de compor num buffer offscreen, copia `alt` (framebuffer do quadro anterior) para a scratch, preservando o underlay de todas as camadas. Isso adiciona uma transferencia completa alem da apresentacao; por isso nao declarar ganho de FPS sem medicao justa. O benchmark compara objetos de cena separados iniciados com RNG identico.
+- **Alternativa OFF por padrão**; NÃO altera a política de cinco quadros. Só habilitar após evidência de ganho e validação de frame real Android.
 
 ## C. Tracker das 32 frentes
 Arquivo `QA_TRACKER_32_v327746.md` com critério conservador: 12 concluídas na integração offline, 15 parciais e 5 pendentes, sem confundir implementação com homologação de FPS Android.

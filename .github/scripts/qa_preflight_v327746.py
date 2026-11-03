@@ -80,10 +80,10 @@ PINNED={
     'QA_AUDITORIA_QUINTO_QUADRO_v327745.md':'7cb8c580529e7184fc3014782f04512893a87272',
     'pixelrush_qa_biome_preheat_v327746.py':'674f3a487083093cb6fdbddd75a9646fb60a49aa',
     'tests/test_qa_preheat_buffer_v327746.py':'18ca6d3acdea24d5bf89c6dab0d67995af77fc1f',
-    'tests/test_qa_buffer_full_v327746.py':'c4e64f74290ee0deddf040c99b1fd0042cfa387e',
+    'tests/test_qa_buffer_full_v327746.py':'fd93cf3bd094d0400a7ebb2dde57adccf2c19608',
     '.github/scripts/qa_benchmark_preheat_buffer_v327746.py':'3e1489655fc466b70e50bfd5198ca7e9a0878845',
     'QA_TRACKER_32_v327746.md':'3ecd954bc340848c04d29e5abb15e305d23af26c',
-    'QA_CHANGELOG_v327746.md':'c62348df2face7f63613f5e1aec74e40107e1595',
+    'QA_CHANGELOG_v327746.md':'0772fcd9c65d20238ec6a423b3ec50491a3688a2',
     '.github/workflows/qa-offline-v327746.yml':'52445925713d9e6831229677e4e7e625195a96c8',
 }
 

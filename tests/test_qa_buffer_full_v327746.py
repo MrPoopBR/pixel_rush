@@ -122,6 +122,11 @@ def comparar_bioma(game,bioma,frames=24,cronometrar=False):
         # Mesmo novo desenho, mesmo estado; a superficie offscreen nunca
         # recebe o HUD, evitando contaminacao dos frames reutilizados.
         if not hit:
+            # O render real preserva pixels anteriores em partes transparentes.
+            # Sem copiar a tela anterior para a scratch, a alternativa NAO
+            # preserva RGBA (comprovado no deserto, noite=.95, frame 15).
+            # A copia extra e medida, NAO e uma otimizacao ativada.
+            scratch.blit(alt,(0,0))
             random.setstate(rng_antes_render)
             try:
                 desenhar_fundo_integral(game,scratch,bg_alt,clima_alt,cenas_alt,frame,cor,night)
@@ -161,6 +166,22 @@ class FundoIntegralQA746(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         pygame.quit()
+
+    def test_blit_offscreen_sem_preservar_underlay_difere(self):
+        # Prova deterministica do risco: o render parcial pode deixar pixels
+        # do frame anterior, portanto scratch limpa nao substitui a tela.
+        prev=pygame.Surface((450,800)).convert()
+        prev.fill((72,89,126))
+        pygame.draw.rect(prev,(230,195,142),(430,320,20,60))
+        original=prev.copy()
+        scratch=pygame.Surface((450,800)).convert()
+        scratch.fill((72,89,126))
+        pygame.draw.rect(original,(25,33,44),(0,230,430,500))
+        pygame.draw.rect(scratch,(25,33,44),(0,230,430,500))
+        self.assertNotEqual(rgba(original),rgba(scratch))
+        safe=prev.copy()
+        pygame.draw.rect(safe,(25,33,44),(0,230,430,500))
+        self.assertEqual(rgba(original),rgba(safe))
 
     def test_integral_prod_cidade_neve_deserto_24_quadros(self):
         game=game_module()
