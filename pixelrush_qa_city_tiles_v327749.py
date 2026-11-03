@@ -45,7 +45,7 @@ def instalar():
     def plano(self,travel,layer):
         _STATUS['chamadas']+=1
         # Nao interferir nos casos nao convencionais (ex. plano sintetico).
-        if not isinstance(travel,(int,float)) or layer not in self.layers:
+        if not isinstance(travel,(int,float)) or not any(layer is obj for obj in self.layers):
             _STATUS['fallbacks']+=1
             return _ORIGINAL(travel,layer)
         try:
