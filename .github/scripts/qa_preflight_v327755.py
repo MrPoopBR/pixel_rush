@@ -1,0 +1,606 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""QA v3.277.47: gate de integridade, visual, fisica e build debug isolado."""
+import ast
+import configparser
+import hashlib
+import json
+from pathlib import Path
+from android_debug_audit import EXPECTED_BLOBS, EXPECTED_CONFIG, ANDROID_VISUAL_ASSETS, REQUIRED_EXTENSIONS
+
+
+def gitblob(path):
+    data=Path(path).read_bytes()
+    return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+
+
+PINNED={
+    'main.py':'620a3cdcad571168b31c2633b28da94c251b8855',
+    'pixelrush_qa_render_v327729.py':'64a70a7e80471eb1c1bfc0577983ce097eab193d',
+    'pixelrush_qa_gles_present_v327735.py':'6ebb9bd065f5168bbe18dd43398cc0df1116dba3',
+    'pixelrush_qa_gles_exact_v327736.py':'cd8961206cceed86bb392f626c77d68083782739',
+    'pixelrush_world_v3130.py':'7ca66b28898cd138538831c5bce1133ea961763f',
+    'pixelrush_cenarios_v398.py':'2d9b9f22fd88d2f370ae9216ee3ebeb28a07098e',
+    'pixelrush_profissional_v3108.py':'a4a93636d279ef7076d96d5f8fd441e4702642f3',
+    'pixelrush_fase_b_visuais_v3272.py':'1d8af98523a683aba9d35e0fa736a74e6345ad92',
+    'pixelrush_fase_b_visuais_v3274.py':'99f786af7eacd863f6910d98c4ac81bbb99db1ee',
+    'pixelrush_qa_android_v327728.py':'fa69158dff39a452c3fded8b0676d88dd6d21aad',
+    'pixelrush_qa_ultraleve_v327730.py':'1ab13d44739023b50a602aee815151e9003ec7ab',
+    'pixelrush_qa_scene_v327733.py':'493a8b967ff235141c4f492eae5d8486617286e2',
+    'pixelrush_qa_camera_v327733.py':'6186a1cef5fe79f0d9e954c6d1cd6a5478588c5b',
+    'pixelrush_qa_gles_gate_v327734.py':'462b3e8163cb4495fa8d20131b400f8f7a3fce1e',
+    'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py':'66658449ea31ce66385c2df99a33e299c264616e',
+    'buildozer.spec':'a87e73975c30a9ddc61d19747cbab250b2d98c3f',
+    'pixelrush_qa_async_export_v327737.py':'0995f9f16b8298ea90418eab048d093f082d3985',
+    'pixelrush_qa_alpha_blit_v327731.py':'fefb6f0f32dae61cdc8368ced51da2234646fa89',
+    'tests/test_qa_perf_v327738.py':'2ba50cb13af7021d2af102c1865297cd278e8489',
+    'pixelrush_city2_v3118.py':'70d910cf68a018db26b04b30417ee648acc2da66',
+    'tests/test_qa_camera_city_v327739.py':'c7015dd330b1d2ebbb7acef711bafb91384a951b',
+    '.github/scripts/qa_benchmark_camera_world_v327739.py':'4389307bfcc94d8911d4598e14f2b26603a101a7',
+    'pixelrush_qa_rolling_v327740.py':'19377868517c56227db45c3aab782c3021182780',
+    'tests/test_qa_rolling_camera_v327740.py':'d5ccef48ae3c9107457e49f39c8c5cf283fc4f43',
+    '.github/scripts/qa_benchmark_persistent_camera_v327740.py':'0b175e561e3d927684b5b15c9c7e83f9f5cf6eb2',
+    'qa_native/camera_crop_native_v327741.c':'a2c277a9db74c1f03324e86c00429b6d597ae61d',
+    'pixelrush_qa_crop_native_v327741.py':'653335fbfeacfa9c684b67c0abe8a37ca7bace6a',
+    'tests/test_qa_crop_native_v327741.py':'084ddf5a38b2de0edb7e1f21fe6d4afe269d1df1',
+    '.github/scripts/qa_benchmark_neon_gles_v327741.py':'67364bd1b9a69bba36d0ddc83477ecfffb15f518',
+    'tests/test_qa_gles_real_v327741.py':'be365c00937c847b8d056b09a6d8fd2d0dc63aae',
+    'pixelrush_qa_performance_integrated_v327742.py':'de01779caccd81a7faddd9222a004023cf1cddff',
+    'pixelrush_qa_camera_native_auto_v327742.py':'211f3b313c9a39c0e961a169de9b97c8a2c519b1',
+    'pixelrush_qa_scroll_auto_v327742.py':'1446889db9e6cbc4c85ce9ea4de86fb345d89319',
+    'pixelrush_qa_gles_pbo_v327742.py':'3f724b9504f0693390609bd2da8063482a9cd9f6',
+    'tests/test_qa_20_integrated_v327742.py':'1f330871d857b20e236d99b7dad832772880324d',
+    'tests/test_qa_scroll_auto_v327742.py':'47d7598f07d8857369f11ebabc4edb8f68319f7e',
+    'tests/test_qa_gles_pbo_v327742.py':'6b05e9bcda8e7e87a475801f6f07d478492ecb02',
+    '.github/scripts/qa_benchmark_all32_v327742.py':'7b1de8e33b3bd1a359f0bffe336f9b6a29107e21',
+    'pixelrush_biomes2_v3126.py':'06abc1cff35dc32db15d732f3e2d76888b240787',
+    'tests/test_qa_modular_batch_v327742.py':'12999ec4f632bc0d093e87187751f6e036961fff',
+    'tests/test_qa_city_clouds_v327742.py':'4a028b9f28693d7d5d57d4b966a230b52e75de8e',
+    'tests/test_qa_full_performance_v327737.py':'716033c6571f0e0c585dd1e4f9c1beaa05f117c9',
+    'pixelrush_qa_snapshot_v327743.py':'611355ac5bee960c45a930815f5afedf98e8226f',
+    'tests/test_qa_safe_performance_v327743.py':'817e20570739a724cc4e5281bf212e59dc89f2f9',
+    'tests/test_qa_frame_completo_v327743.py':'76f701766360e36b924a2e009b60ba10d4c0fe0b',
+    '.github/scripts/qa_benchmark_frame_completo_v327743.py':'78a8cd5e10ed89959b55d93f026e243b7f175a10',
+    'tests/test_qa_camera_scene_v327733.py':'f90d5a4ea2d726201374432dba47f11bdba0b806',
+    'tests/test_qa_performance_full_v327732.py':'a3a1860e60f05efb3c7a8281cda2c6566053abb6',
+    '.github/scripts/test_qa_android_v327728.py':'810f3bd2e4a7604400b3e127ab1d92e2d239145c',
+    '.github/workflows/qa-offline-v327743.yml':'9086836d15c5ccc266c0003d672575a5169ecc38',
+    'QA_CHANGELOG_v327743.md':'a12e5aa320082cb292ee89ee36d28a29440f42e8',
+    'pixelrush_qa_modular_batch_v327744.py':'a9195b3be4a0a33948fb9d020547a23175722c7e',
+    'pixelrush_qa_audit_offline_v327744.py':'d26dad42cc360b6815eeab0d5ecfe304ab00f86f',
+    'tests/test_qa_render_real_v327744.py':'67a1ba71b529b97da97de5af76025590ce89f6a3',
+    '.github/scripts/qa_benchmark_world_real_v327744.py':'61b4389e3a535d8f1ecc24b0a01a5beecaa0b567',
+    '.github/workflows/qa-offline-v327744.yml':'8da46eb2d9d887305477ea1a595a6713bc9a45f3',
+    'QA_CHANGELOG_v327744.md':'c3b375b9e365a05ce755867460fee301f98babab',
+    'QA_AUDITORIA_MEMORIA_RENDER_v327744.md':'6d89a644b75c8f7dac6093c7e78dd686991d3acb',
+    'tests/test_qa_fifth_memory_v327745.py':'fe82551a87b8319e7eb17cf81ca6c624d06b1c76',
+    '.github/scripts/qa_benchmark_fifth_memory_v327745.py':'49d154f61d1d4c86c7aa333dec8aab88306277b3',
+    '.github/workflows/qa-offline-v327745.yml':'916ba68ebd6100852d8fde75831da79a11c0ba22',
+    'QA_CHANGELOG_v327745.md':'4a7d05a1daa7500b38d400f9d2dfc154511ebdea',
+    'QA_AUDITORIA_QUINTO_QUADRO_v327745.md':'7cb8c580529e7184fc3014782f04512893a87272',
+    'pixelrush_qa_biome_preheat_v327746.py':'674f3a487083093cb6fdbddd75a9646fb60a49aa',
+    'tests/test_qa_preheat_buffer_v327746.py':'18ca6d3acdea24d5bf89c6dab0d67995af77fc1f',
+    'tests/test_qa_buffer_full_v327746.py':'5d99d6d2ac982d713914328308f684fc7c5b5369',
+    '.github/scripts/qa_benchmark_preheat_buffer_v327746.py':'db79235dda5d4a4f07bae4bc8a0c7f2887d0d890',
+    'QA_TRACKER_32_v327746.md':'3ecd954bc340848c04d29e5abb15e305d23af26c',
+    'QA_CHANGELOG_v327746.md':'f76ec55663750a2b5b5814769fc7b68ba9ff3b7e',
+    '.github/workflows/qa-offline-v327746.yml':'9202e64e5fbba9d21a5479a42aed42f76071f391',
+    'pixelrush_qa_atlas_io_v327747.py':'a53f27ac7620a9b134d59c36ee3148e80bfc8717',
+    'pixelrush_qa_backend_gate_v327747.py':'d8b04d2c3359bbb2c7ef2af02bf665802c50ccc2',
+    'tests/test_qa_atlas_io_v327747.py':'83f1df5cb3dad3c8a32b6cb75d61501d9d311b8c',
+    'tests/test_qa_backend_gate_v327747.py':'6d9f55292928a9dc32aec88501905312296f872e',
+    '.github/scripts/qa_buffer_stage_v327747.py':'c9802f38ca17ac85c2da19be04acb023025587e3',
+    '.github/workflows/qa-offline-v327747.yml':'df53a059efb7e8f5e365f8f035f85d641c52b2b6',
+    'QA_TRACKER_32_v327747.md':'e4164a1fe57115d9fcc8451632ad863a0e919aab',
+    'QA_CHANGELOG_v327747.md':'a4e930bf67dc243456d3222b96612d2a8c7be296',
+}
+
+
+def checar():
+    conf=configparser.ConfigParser(interpolation=None)
+    assert conf.read('buildozer.spec'), 'buildozer.spec ausente'
+    spec=conf['app']
+    exp=dict(EXPECTED_CONFIG)
+    exp.update({'version':'3.277.55','android.numeric_version':'327755'})
+    for key,original in exp.items():
+        assert spec.get(key,'').strip()==original, 'config mudada: '+key
+    assert set(REQUIRED_EXTENSIONS)<=set(x.strip() for x in spec['source.include_exts'].split(','))
+    assert {'python3==3.12.12','hostpython3==3.12.12','numpy','pygame-ce'}<=set(
+        x.strip() for x in spec['requirements'].split(','))
+    protegidos=0
+    for path,sha in EXPECTED_BLOBS.items():
+        if path in ('main.py','VERSAO_ATUAL.txt','PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'):
+            continue
+        assert gitblob(path)==sha,'fonte/asset alterado: '+path
+        protegidos+=1
+    for path,sha in ANDROID_VISUAL_ASSETS.items():
+        assert hashlib.sha256(Path(path).read_bytes()).hexdigest()==sha,'PNG alterado: '+path
+    for path,sha in PINNED.items():
+        assert gitblob(path)==sha,'mudanca inesperada: '+path
+    jogo=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
+    assert 'VERSAO = "v3.277.55-QA-ANDROID-RC"' in jogo
+    for marker in ('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',
+                   'FPS_RENDER = 30 if E_ANDROID else 60',
+                   'PIXELRUSH_DEV_BUILD = False',
+                   'CacheFundoUltraQA(periodo=5)',
+                   'FundoMenusUltraQA(periodo=5)'):
+        assert marker in jogo,'invariante sem evidencia: '+marker
+    for path in ('main.py','PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py',
+                 'pixelrush_qa_render_v327729.py'):
+        assert 'pixelrush_qa_gles_exact_v327736' not in Path(path).read_text('utf8'), 'GPU experimental ativada indevidamente'
+    for entrada in ('main.py','pixelrush_qa_render_v327729.py',
+                    'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'):
+        assert 'pixelrush_qa_rolling_v327740' not in Path(entrada).read_text('utf8'), (
+            'compositor experimental conectado indevidamente: '+entrada)
+    for entrada in ('main.py','pixelrush_qa_render_v327729.py',
+                    'pixelrush_qa_camera_v327733.py',
+                    'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'):
+        assert 'pixelrush_qa_crop_native_v327741' not in Path(entrada).read_text('utf8'), (
+            'native C fora de prototipo ativado no jogo: '+entrada)
+    assert 'qa_native/camera_crop_native_v327741.c' in PINNED
+    assert 'tests/test_qa_crop_native_v327741.py' in PINNED
+    assert 'tests/test_qa_gles_real_v327741.py' in PINNED
+    jogo_qa=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
+    assert 'pixelrush_qa_gles_pbo_v327742' not in jogo_qa
+    assert 'pixelrush_qa_gles_present_v327735' not in jogo_qa
+    assert 'pixelrush_qa_camera_native_auto_v327742' not in jogo_qa
+    assert 'pixelrush_qa_camera_native_auto_v327742' in Path('pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert 'pixelrush_qa_scroll_auto_v327742' in Path('pixelrush_qa_render_v327729.py').read_text('utf8')
+    io=Path('pixelrush_qa_android_v327728.py').read_text('utf8')
+    assert 'pixelrush_qa_v327747' in io
+    assert 'apresentacao_swap' in io
+    assert 'salvar(esperar=False)' in io
+    assert 'v3.277.55-QA-ANDROID-RC' in Path('VERSAO_ATUAL.txt').read_text('utf8')
+    workflow=Path('.github/workflows/qa-apk-debug-v327742.yml').read_text('utf8')
+    for check in ('refs/heads/qa/android-full-performance-v3.277.42',
+                  'tests/test_qa_full_performance_v327737.py',
+                  'qa_preflight_v327742.py','tests/test_qa_perf_v327738.py',
+                  'tests/test_qa_camera_city_v327739.py',
+                  'qa_benchmark_camera_world_v327739.py',
+                  'tests/test_qa_rolling_camera_v327740.py',
+                  'qa_benchmark_persistent_camera_v327740.py',
+                  'tests/test_qa_crop_native_v327741.py',
+                  'qa_benchmark_neon_gles_v327741.py',
+                  'buildozer -v android debug',
+                  'buildozer -v android debug',
+                  'android_debug_audit.py apk'):
+        assert check in workflow,'workflow incompleto: '+check
+    assert 'android.add_libs_arm64_v8a' in spec, 'lib ARM64 nao incluida no Buildozer'
+    assert 'qa_native/libpixelrush_camera_crop_v327741.so' in spec['android.add_libs_arm64_v8a']
+    for marker in ('tests/test_qa_20_integrated_v327742.py',
+                   'tests/test_qa_scroll_auto_v327742.py',
+                   'qa_benchmark_all32_v327742.py',
+                   'tests/test_qa_modular_batch_v327742.py',
+                   'tests/test_qa_city_clouds_v327742.py',
+                   'qa_native/libpixelrush_camera_crop_v327741.so',
+                   'Compilar biblioteca C/NEON antes do APK'):
+        # O ultimo gate verifica a etapa cujo nome explicita o empacotamento.
+        if marker=='Compilar biblioteca C/NEON antes do APK':
+            assert 'Preparar NDK r28c e compilar biblioteca C/NEON antes do APK' in workflow
+        else:
+            assert marker in workflow,'gate 32 ausente: '+marker
+    assert 'buildozer -v android release' not in workflow
+    offline47=Path('.github/workflows/qa-offline-v327747.yml').read_text('utf8')
+    assert 'qa/android-full-performance-v3.277.47' in offline47
+    for gate in ('qa_preflight_v327747.py','test_qa_atlas_io_v327747.py',
+                 'test_qa_backend_gate_v327747.py','qa_buffer_stage_v327747.py'):
+        assert gate in offline47
+    for banned in ('buildozer -v android','gradle assemble','adb shell'):
+        assert banned not in offline47.lower()
+    assert "preaquecer_arquivos_fora_do_jogo" in Path(
+        'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
+    assert 'instalar_no_boot_qa' in Path(
+        'pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert 'fps_comprovadamente_melhor' in Path(
+        'pixelrush_qa_backend_gate_v327747.py').read_text('utf8')
+    assert 'CacheFundoUltraQA(periodo=5)' in jogo
+    offline46=Path('.github/workflows/qa-offline-v327746.yml').read_text('utf8')
+    assert 'qa/android-full-performance-v3.277.46' in offline46
+    for marker46 in ('qa_preflight_v327746.py',
+                     'test_qa_preheat_buffer_v327746.py',
+                     'test_qa_buffer_full_v327746.py',
+                     'qa_benchmark_preheat_buffer_v327746.py'):
+        assert marker46 in offline46
+    for forbidden in ('buildozer -v android','gradle assemble','adb shell'):
+        assert forbidden not in offline46.lower()
+    from pixelrush_qa_biome_preheat_v327746 import diagnostico
+    assert diagnostico()['preparacao_automatica_na_corrida'] is False
+    assert 'world_prod_v32777' in Path(
+        'pixelrush_qa_biome_preheat_v327746.py').read_text('utf8')
+    assert 'CacheFundoUltraQA(periodo=5)' in jogo
+    offline45=Path('.github/workflows/qa-offline-v327745.yml').read_text('utf8')
+    assert 'qa/android-full-performance-v3.277.45' in offline45
+    for marker45 in ('qa_preflight_v327745.py', 'tests/test_qa_fifth_memory_v327745.py',
+                     'qa_benchmark_fifth_memory_v327745.py',
+                     'qa-benchmark-quinto-memoria-v327745.json'):
+        assert marker45 in offline45
+    for forbidden45 in ('buildozer -v android','gradle assemble','adb shell'):
+        assert forbidden45 not in offline45.lower()
+    assert "CacheFundoUltraQA(periodo=5)" in jogo
+    assert "self._idade >= self.periodo - 1" in Path(
+        'pixelrush_qa_ultraleve_v327730.py').read_text('utf8')
+    assert "_LAST_STATUS['frames']%180==0" in Path(
+        'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
+    assert "world.biome!='cidade'" in Path(
+        'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
+    offline44=Path('.github/workflows/qa-offline-v327744.yml').read_text('utf8')
+    assert 'qa/android-full-performance-v3.277.44' in offline44
+    assert "PIXELRUSH_QA_MODULAR_BATCH: '0'" in offline44
+    for marker44 in ('qa_preflight_v327744.py',
+                     'tests/test_qa_render_real_v327744.py',
+                     'qa_benchmark_world_real_v327744.py',
+                     'qa-benchmark-world-real-v327744.json'):
+        assert marker44 in offline44, 'novo CI offline incompleto: '+marker44
+    for forbidden44 in ('buildozer -v android', 'gradle assemble', 'adb shell'):
+        assert forbidden44 not in offline44.lower(), 'tentativa Android: '+forbidden44
+    assert "PIXELRUSH_QA_MODULAR_BATCH','1'" in Path(
+        'pixelrush_qa_modular_batch_v327744.py').read_text('utf8')
+    assert "world.biome!='cidade'" in Path(
+        'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
+    assert 'cache_cleanup_p95_ms' in Path(
+        'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
+    assert 'pixelrush_qa_modular_batch_v327744' in Path(
+        'pixelrush_qa_render_v327729.py').read_text('utf8')
+    offline=Path('.github/workflows/qa-offline-v327743.yml').read_text('utf8')
+    assert 'qa/android-full-performance-v3.277.43' in offline
+    assert 'buildozer -v android' not in offline
+    assert 'gradle ' not in offline.lower()
+    assert 'adb ' not in offline.lower()
+    for esperado in ('qa_preflight_v327743.py',
+                     'tests/test_qa_safe_performance_v327743.py',
+                     'tests/test_qa_frame_completo_v327743.py',
+                     'qa_benchmark_frame_completo_v327743.py'):
+        assert esperado in offline
+    assert "os.environ.get('PIXELRUSH_QA_SCROLL_AUTO','0')" in Path(
+        'pixelrush_qa_scroll_auto_v327742.py').read_text('utf8')
+    assert 'if key not in ativos' in Path(
+        'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
+    assert "PIXELRUSH_QA_CLOUD_CACHE','0'" in Path(
+        'pixelrush_city2_v3118.py').read_text('utf8')
+    assert 'CapturaParceladaQA' in io
+    for path in ('pixelrush_world_v3130.py','pixelrush_cenarios_v398.py',
+                 'pixelrush_qa_async_export_v327737.py',
+                 'tests/test_qa_full_performance_v327737.py',
+                 'tests/test_qa_perf_v327738.py',
+                 'pixelrush_qa_alpha_blit_v327731.py',
+                 'pixelrush_city2_v3118.py',
+                 'tests/test_qa_camera_city_v327739.py',
+                 '.github/scripts/qa_benchmark_camera_world_v327739.py',
+                 'pixelrush_qa_rolling_v327740.py',
+                 'tests/test_qa_rolling_camera_v327740.py',
+                 '.github/scripts/qa_benchmark_persistent_camera_v327740.py',
+                 'pixelrush_qa_crop_native_v327741.py',
+                 'tests/test_qa_crop_native_v327741.py',
+                 'tests/test_qa_gles_real_v327741.py',
+                 '.github/scripts/qa_benchmark_neon_gles_v327741.py',
+                 'pixelrush_qa_performance_integrated_v327742.py',
+                 'pixelrush_qa_camera_native_auto_v327742.py',
+                 'pixelrush_qa_scroll_auto_v327742.py',
+                 'pixelrush_qa_gles_pbo_v327742.py',
+                 'tests/test_qa_20_integrated_v327742.py',
+                 'tests/test_qa_scroll_auto_v327742.py',
+                 'tests/test_qa_gles_pbo_v327742.py',
+                 '.github/scripts/qa_benchmark_all32_v327742.py',
+                 'pixelrush_biomes2_v3126.py',
+                 'tests/test_qa_modular_batch_v327742.py',
+                 'tests/test_qa_city_clouds_v327742.py',
+                 'pixelrush_qa_snapshot_v327743.py',
+                 'tests/test_qa_safe_performance_v327743.py',
+                 'tests/test_qa_frame_completo_v327743.py',
+                 '.github/scripts/qa_benchmark_frame_completo_v327743.py',
+                 'tests/test_qa_camera_scene_v327733.py',
+                 'tests/test_qa_performance_full_v327732.py',
+                 '.github/scripts/test_qa_android_v327728.py',
+                 'pixelrush_qa_modular_batch_v327744.py',
+                 'pixelrush_qa_audit_offline_v327744.py',
+                 'tests/test_qa_render_real_v327744.py',
+                 '.github/scripts/qa_benchmark_world_real_v327744.py',
+                 'tests/test_qa_fifth_memory_v327745.py',
+                 '.github/scripts/qa_benchmark_fifth_memory_v327745.py',
+                 'pixelrush_qa_biome_preheat_v327746.py',
+                 'tests/test_qa_preheat_buffer_v327746.py',
+                 'tests/test_qa_buffer_full_v327746.py',
+                 '.github/scripts/qa_benchmark_preheat_buffer_v327746.py',
+                 'pixelrush_qa_atlas_io_v327747.py',
+                 'pixelrush_qa_backend_gate_v327747.py',
+                 'tests/test_qa_atlas_io_v327747.py',
+                 'tests/test_qa_backend_gate_v327747.py',
+                 '.github/scripts/qa_buffer_stage_v327747.py'):
+        ast.parse(Path(path).read_text('utf8'),filename=path)
+    # v748: caminho de codigo de verdade, nao apenas uma interface QA.
+    source=Path('pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
+    assert 'EscalonadorTrimQA(limite_por_passo=12)' in source
+    assert '_TRIMMER.passo()' in source
+    assert "PIXELRUSH_QA_STAGGER_TRIM','1'" in source
+    assert '_SEEDS_RAIN_NORMAL' in source and '_SEEDS_SNOW_NORMAL' in source
+    assert "self._pendencias=self._gerar_pendencias()" in Path(
+        'pixelrush_qa_cache_trim_v327748.py').read_text('utf8')
+    assert 'v3.277.55-QA-ANDROID-RC' in jogo_qa
+    offline48=Path('.github/workflows/qa-offline-v327748.yml').read_text('utf8')
+    assert 'qa/android-full-performance-v3.277.48' in offline48
+    for gate in ('qa_preflight_v327748.py','test_qa_stagger_trim_v327748.py',
+                 'qa_benchmark_performance_v327748.py',
+                 'qa-benchmark-performance-v327748.json'):
+        assert gate in offline48
+    for proibido in ('buildozer -v android','gradle assemble','adb shell'):
+        assert proibido not in offline48.lower()
+    for novo in ('pixelrush_qa_cache_trim_v327748.py',
+                 'tests/test_qa_stagger_trim_v327748.py',
+                 '.github/scripts/qa_benchmark_performance_v327748.py'):
+        ast.parse(Path(novo).read_text('utf8'),filename=novo)
+    # v749: nova integracao no caminho 2.5D realmente usado na Cidade.
+    novos={
+        'pixelrush_qa_city_tiles_v327749.py':'e2662974e9e9efc0ba09371b3b1fad3759ac1222',
+        'pixelrush_qa_city_weather_v327749.py':'9f10ce73ad23e1c3bda04bd34e8d175bf4bb62ed',
+        'tests/test_qa_cidade_real_v327749.py':'089c530dac106f45997b621f61d27198e28b4177',
+        '.github/scripts/qa_benchmark_cidade_v327749.py':'4e32df602451d2cf6fcb6e46f77f581459930967',
+    }
+    for path,sha in novos.items():
+        assert gitblob(path)==sha,'modulo QA749 inesperadamente alterado: '+path
+        ast.parse(Path(path).read_text('utf8'),filename=path)
+    for path,sha in {
+        'pixelrush_qa_gles_bridge_v327749.py':'8304b52070896d749579c7041728c65dd4c599b3',
+        'tests/test_qa_gles_bridge_v327749.py':'6c19ca01e9b6df3fe2a6453aa91394572470b3c3',
+    }.items():
+        assert gitblob(path)==sha,'bridge QA749 inesperado: '+path
+        ast.parse(Path(path).read_text('utf8'),filename=path)
+    render=Path('pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert 'instalar_city_tiles_qa()' in render
+    assert 'staticmethod(plano)' in Path('pixelrush_qa_city_tiles_v327749.py').read_text('utf8')
+    assert 'instalar_city_weather_qa()' in render
+    assert 'instalar_gles_bridge_qa()' in render
+    assert 'restaurar_tiles()' in render and 'restaurar_clima()' in render
+    assert 'restaurar_bridge()' in render
+    from pixelrush_city2_v3125 import CityPilotScene
+    from pixelrush_citylife_v3123 import CityLifeDirector
+    assert hasattr(CityPilotScene,'_layer_tiles')
+    assert hasattr(CityLifeDirector,'draw_atmosphere')
+    assert "PIXELRUSH_QA_MODULAR_BATCH','1'" in Path(
+        'pixelrush_qa_modular_batch_v327744.py').read_text('utf8')
+    bridge=Path('pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
+    assert "PIXELRUSH_QA_GLES_BRIDGE','0'" in bridge
+    assert 'self._reabrir_sdl()' in bridge
+    assert 'self.presenter.draw(self.staging,zoom=self.zoom' in bridge
+    assert 'gpu_ativo' in bridge and 'input_sdl_preservado' in bridge
+    assert 'PIXELRUSH_QA_GPU_ZOOM' in bridge
+    assert 'PIXELRUSH_QA_GLES3_CONTEXT' in bridge
+    assert 'pedir_es3' in bridge
+    assert "_instalar_camera_gpu()" in bridge
+    assert "shader_pixel_exato_solicitado" in bridge
+    assert "'GLES2'" in bridge
+    manual=Path('.github/workflows/qa-offline-v327749.yml').read_text('utf8')
+    assert 'workflow_dispatch:' in manual and '  push:' not in manual
+    assert 'qa/android-full-performance-v3.277.49' in manual
+    for filename in ('qa_preflight_v327749.py','test_qa_cidade_real_v327749.py',
+                     'qa_benchmark_cidade_v327749.py',
+                     'test_qa_gles_bridge_v327749.py'):
+        assert filename in manual
+    for proibido in ('buildozer -v android','gradle assemble','adb shell'):
+        assert proibido not in manual.lower()
+    # v750: integralmente em caminho QA, nao so classes de laboratorio.
+    qa750={
+        'pixelrush_qa_unified_post_v327750.py':'2a0b6aad2e7738bfed7cf927c212349c749ef5bd',
+        'pixelrush_qa_incremental_scene_v327750.py':'5e72d85cbe6f95ed90765053567a79ebf028d369',
+        'pixelrush_qa_cache_trim_v327748.py':'60c0894f53b7e475d2551a9e6f2c710c3f472e11',
+        'pixelrush_city2_v3124.py':'312cd332b478aa3dc4ea187faf14e00b769d4486',
+        'pixelrush_biomes2_v3128.py':'0cd5c2b12bbf6bb08a178de23d3a999fe0db5480',
+        'tests/test_qa_pipeline_scroll_v327750.py':'a262cdcff78145aa2d1cd0c146d0c0160faebafc',
+        '.github/scripts/qa_benchmark_pipeline_scroll_v327750.py':'1c95a23ee27bc16657063399e0c08bd5a98d0d3f',
+    }
+    for path,sha in qa750.items():
+        assert gitblob(path)==sha, 'v750 alteracao nao homologada: '+path
+        ast.parse(Path(path).read_text('utf8'),filename=path)
+    assert "_QA_PIPELINE_750" in jogo_qa
+    assert "pixelrush_qa_unified_post_v327750" in jogo_qa
+    assert "finalizar_quadro(" in Path('pixelrush_qa_unified_post_v327750.py').read_text('utf8')
+    assert "instalar_incremental_qa()" in render
+    incr=Path('pixelrush_qa_incremental_scene_v327750.py').read_text('utf8')
+    assert "PIXELRUSH_QA_CITY_INCREMENTAL','0'" in incr
+    assert "PIXELRUSH_QA_CLASSIC_INCREMENTAL','0'" in incr
+    assert 'BLEND_RGBA_MAX' in incr
+    assert 'if not (habilita_cidade or habilita_classico)' in incr
+    trim=Path('pixelrush_qa_cache_trim_v327748.py').read_text('utf8')
+    assert '_city_night_veil' in trim
+    assert 'pygame.transform.scale(target,target.get_size(),self._geometry_view)' in (
+        Path('pixelrush_city2_v3124.py').read_text('utf8'))
+    offline750=Path('.github/workflows/qa-offline-v327750.yml').read_text('utf8')
+    assert 'workflow_dispatch:' in offline750 and '  push:' not in offline750
+    assert 'qa/android-full-performance-v3.277.50' in offline750
+    for teste in ('qa_preflight_v327750.py','test_qa_pipeline_scroll_v327750.py',
+                  'qa_benchmark_pipeline_scroll_v327750.py'):
+        assert teste in offline750
+    for proibido in ('buildozer -v android','gradle assemble','adb shell'):
+        assert proibido not in offline750.lower()
+    # QA v751 — avancos reais sem homologacao Android.
+    novos751={
+        'tests/test_qa_hotpath_v327751.py':'1475ba4b8d5cc7c05bafce70c0b7330205ad48d6',
+        '.github/scripts/qa_benchmark_hotpath_v327751.py':'8cae6de9d3865f72244563fb9b1abe216b472adc',
+    }
+    for nome,sha in novos751.items():
+        assert gitblob(nome)==sha,'QA751 SHA divergente: '+nome
+        ast.parse(Path(nome).read_text('utf8'),filename=nome)
+    cidade3118=Path('pixelrush_city2_v3118.py').read_text('utf8')
+    cidade3124=Path('pixelrush_city2_v3124.py').read_text('utf8')
+    inc=Path('pixelrush_qa_incremental_scene_v327750.py').read_text('utf8')
+    render751=Path('pixelrush_qa_render_v327729.py').read_text('utf8')
+    trim751=Path('pixelrush_qa_cache_trim_v327748.py').read_text('utf8')
+    assert '_QA_NATIVE_CLIP' in cidade3118
+    assert 'target.blit(self._scaled_surface(variant,map_kind),(x,0))' in cidade3118
+    assert '_QA_DIRECT_NIGHT_MULT' in cidade3124
+    assert 'target.fill(cor,special_flags=pygame.BLEND_RGBA_MULT)' in cidade3124
+    assert "return _ORIGINAIS['chunk'](" in inc and "map_kind,True)" in inc
+    assert "_qa_surface_last_used" in render751
+    assert "_qa_surface_last_used" in trim751
+    assert 'get_masks()' in Path('pixelrush_biomes2_v3128.py').read_text('utf8')
+    manual751=Path('.github/workflows/qa-offline-v327751.yml').read_text('utf8')
+    assert 'workflow_dispatch:' in manual751 and '  push:' not in manual751
+    assert 'qa/android-full-performance-v3.277.51' in manual751
+    for nome in ('qa_preflight_v327751.py','test_qa_hotpath_v327751.py',
+                 'qa_benchmark_hotpath_v327751.py'):
+        assert nome in manual751
+    for perigoso in ('buildozer -v android','gradle assemble','adb shell'):
+        assert perigoso not in manual751.lower()
+    # QA752: auditoria da v751 somente leitura; não declarar FPS homologado.
+    for nome,sha in {
+        'pixelrush_biomes2_v3130.py':'8dd88bf1beb96bfd03a92c20df17908cff73e93b',
+        'tests/test_qa_render_memory_v327752.py':'f29c573ed7a4929aea7517f2d9c68116ca16966d',
+        '.github/scripts/qa_benchmark_render_memory_v327752.py':'53b36a721b73a50bb7f615f13973e3a1abfe3eea',
+    }.items():
+        assert gitblob(nome)==sha, 'QA752 fonte mudada: '+nome
+        ast.parse(Path(nome).read_text('utf8'),filename=nome)
+    cityplan=Path('pixelrush_qa_city_tiles_v327749.py').read_text('utf8')
+    modular=Path('pixelrush_biomes2_v3128.py').read_text('utf8')
+    desert=Path('pixelrush_biomes2_v3130.py').read_text('utf8')
+    renderer=Path('pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert "PIXELRUSH_QA_CIDADE_TILE_PLAN','auto'" in cityplan
+    assert 'yield from tiles' in cityplan
+    assert "PIXELRUSH_QA_MODULAR_WEATHER_SKIP','1'" in modular
+    assert "PIXELRUSH_QA_SHARE_DAYLIGHT','1'" in modular
+    assert 'if level==0 and _QA_SHARE_DAYLIGHT:' in modular
+    assert 'if self._night_level==0 and _QA_SHARE_DAYLIGHT:' in desert
+    assert "PIXELRUSH_QA_GEOMETRY_BORROW','0'" in renderer
+    assert '_qa_geometry_borrow_target=surf' in renderer
+    assert "getattr(self,'_qa_geometry_borrow_target',None) is target" in (
+        Path('pixelrush_city2_v3124.py').read_text('utf8'))
+    assert "getattr(self,'_qa_geometry_borrow_target',None) is target" in modular
+    assert Path('QA_AUDITORIA_20_BASE_v327751.md').is_file()
+    workflow=Path('.github/workflows/qa-offline-v327752.yml').read_text('utf8')
+    assert 'workflow_dispatch:' in workflow and '  push:' not in workflow
+    assert 'qa/android-full-performance-v3.277.52' in workflow
+    for name in ('qa_preflight_v327752.py','test_qa_render_memory_v327752.py',
+                 'qa_benchmark_render_memory_v327752.py'):
+        assert name in workflow
+    for prohibited in ('buildozer -v android','gradle assemble','adb shell'):
+        assert prohibited not in workflow.lower()
+    # QA753 — integracao real CPU e scroll condicionado a bytes RGBA.
+    novos753={
+        'pixelrush_qa_hotpath_v327753.py':'314e64b9dcaaf2480b7dc79cddf611e181d506d8',
+        'tests/test_qa_hotpath_scroll_v327753.py':'9e5fad4198edf6d1dccf9f46b899a67568270650',
+        '.github/scripts/qa_benchmark_hotpath_scroll_v327753.py':'239705aa8369ea2f10deb19cddfbd8655846ee2b',
+    }
+    for nome,sha in novos753.items():
+        assert gitblob(nome)==sha, 'QA753 alteracao nao auditada: '+nome
+        ast.parse(Path(nome).read_text('utf8'),filename=nome)
+    hot=Path('pixelrush_qa_hotpath_v327753.py').read_text('utf8')
+    inc753=Path('pixelrush_qa_incremental_scene_v327750.py').read_text('utf8')
+    trim753=Path('pixelrush_qa_cache_trim_v327748.py').read_text('utf8')
+    perf753=Path('pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
+    render753=Path('pixelrush_qa_render_v327729.py').read_text('utf8')
+    assert 'CityPilotScene.__init__=init' in hot
+    assert 'variant.image.get_bounding_rect(min_alpha=1)' in hot
+    assert 'width-off>=WIDTH' in hot
+    assert "PIXELRUSH_QA_CITY_EMPTY_FG','1'" in hot
+    assert "PIXELRUSH_QA_STRIP_ONE_BLIT','1'" in hot
+    assert 'instalar_hotpath_qa()' in render753
+    assert 'restaurar_hotpath()' in render753
+    assert 'habilita_cidade' in inc753
+    assert "PIXELRUSH_QA_CITY_SCROLL_SCOPE','static'" in inc753
+    assert "if variant.sprites and escopo=='static'" in inc753
+    assert 'masks=fonte.get_masks()' in inc753
+    assert 'BLEND_RGBA_MAX' in inc753
+    assert '_qa_city_incremental_cache' in trim753
+    assert "PIXELRUSH_QA_TRIM_PROBE_PHASE','1'" in perf753
+    assert "_LAST_STATUS['frames']%180==_TRIM_PROBE_PHASE" in perf753
+    assert "_LAST_STATUS['frames']%180==0" in perf753
+    assert '180' in perf753 and '181' in perf753
+    workflow753=Path('.github/workflows/qa-offline-v327753.yml').read_text('utf8')
+    assert 'workflow_dispatch:' in workflow753 and '  push:' not in workflow753
+    assert 'qa/android-full-performance-v3.277.53' in workflow753
+    for marker in ('qa_preflight_v327753.py','test_qa_hotpath_scroll_v327753.py',
+                   'qa_benchmark_hotpath_scroll_v327753.py'):
+        assert marker in workflow753
+    for proibido in ('buildozer -v android','gradle assemble','adb shell'):
+        assert proibido not in workflow753.lower()
+    # QA754: melhorias no render real, sem novo backend/sem homologar FPS.
+    novos754 = {
+        'tests/test_qa_alpha_bounds_scroll_v327754.py':'e5b0336a5870cc44274bf6fb67cddfcfc914dd4e',
+        '.github/scripts/qa_benchmark_alpha_scroll_v327754.py':'c73f5c562f9c472ca7ad7da00d9704e47ef42b2b',
+    }
+    for nome,sha in novos754.items():
+        assert gitblob(nome)==sha, 'QA754 arquivo divergente: '+nome
+        ast.parse(Path(nome).read_text('utf8'),filename=nome)
+    cidade754=Path('pixelrush_city2_v3118.py').read_text('utf8')
+    pipeline754=Path('pixelrush_city2_v3124.py').read_text('utf8')
+    scroll754=Path('pixelrush_qa_incremental_scene_v327750.py').read_text('utf8')
+    assert "PIXELRUSH_QA_CITY_EMPTY_BASE','1'" in cidade754
+    assert "PIXELRUSH_QA_CITY_ALPHA_BOUNDS','1'" in cidade754
+    assert "PIXELRUSH_QA_CITY_SPRITE_RIGHT_CULL','1'" in cidade754
+    assert 'get_bounding_rect(min_alpha=1)' in cidade754
+    assert 'self._qa_empty_base_maps' in cidade754
+    assert 'self._qa_alpha_bounds' in cidade754
+    assert 'pode_recortar=(not (target.get_flags() & pygame.SRCALPHA)' in cidade754
+    assert '_QA_SKIP_EMPTY_BASE and pode_recortar' in cidade754
+    assert '_QA_ALPHA_BOUNDS and pode_recortar' in cidade754
+    assert 'bbox.x*SCALE,bbox.y*SCALE' in cidade754
+    assert '(x+area[0],area[1]),area' in cidade754
+    assert "PIXELRUSH_QA_NEAR_PLAN_ON_DEMAND','1'" in pipeline754
+    assert "map_kind in ('image','fxmask')" in pipeline754
+    assert "PIXELRUSH_QA_SCROLL_JUMP_DIRECT','1'" in scroll754
+    assert "PIXELRUSH_QA_SCROLL_INIT_CLEAR','1'" in scroll754
+    assert 'cidade_salto_direto' in scroll754
+    assert 'cache.pop(chave,None)' in scroll754
+    workflow754=Path('.github/workflows/qa-offline-v327754.yml').read_text('utf8')
+    assert 'workflow_dispatch:' in workflow754 and '  push:' not in workflow754
+    assert 'qa/android-full-performance-v3.277.54' in workflow754
+    for marker in ('qa_preflight_v327754.py',
+                   'test_qa_alpha_bounds_scroll_v327754.py',
+                   'qa_benchmark_alpha_scroll_v327754.py'):
+        assert marker in workflow754
+    for proibido in ('buildozer -v android','gradle assemble','adb shell'):
+        assert proibido not in workflow754.lower()
+    # QA755: auditabilidade do SRCALPHA real e fallback SDL-RLE.
+    novos755={
+        'tests/test_qa_srcalpha_scroll_v327755.py':'d5624dccc6ede612711b90454d5050d48d5ed115',
+        '.github/scripts/qa_benchmark_srcalpha_scroll_v327755.py':'d0b9f42d0615a76ddcdda822922c389996e59f61',
+    }
+    for nome,sha in novos755.items():
+        assert gitblob(nome)==sha, 'QA755 arquivo divergente: '+nome
+        ast.parse(Path(nome).read_text('utf8'),filename=nome)
+    render755=Path('pixelrush_city2_v3124.py').read_text('utf8')
+    core755=Path('pixelrush_city2_v3118.py').read_text('utf8')
+    inc755=Path('pixelrush_qa_incremental_scene_v327750.py').read_text('utf8')
+    for name in ('pixelrush_city2_v3124.py',
+                 'pixelrush_city2_v3118.py',
+                 'pixelrush_qa_incremental_scene_v327750.py'):
+        ast.parse(Path(name).read_text('utf8'),filename=name)
+    assert "PIXELRUSH_QA_TECH_OPAQUE_BOUNDS','1'" in render755
+    assert "map_kind in ('normal','flow')" in render755
+    assert 'finally:' in render755 and 'self._qa_opaque_safe_target=anterior_opaque' in render755
+    assert 'getattr(self,\'_qa_opaque_safe_target\',None) is target' in core755
+    assert 'metadata=(id(variant),map_kind' in core755
+    assert "PIXELRUSH_QA_CITY_DEDUP_TECH_SCALED','1'" in core755
+    assert 'hashlib.blake2b(raw,digest_size=16)' in core755
+    assert 'mesmo=raw==outro' in core755
+    assert "fonte.get_flags() & rle_mask" in inc755
+    assert "getattr(pygame,'RLEACCELOK',0)" in inc755
+    assert "cidade_rle_direto" in inc755
+    assert 'target.blit(buffer,(inicio,0),(inicio,0,largura,500))' in inc755
+    assert "PIXELRUSH_QA_SCROLL_MIN_COVER','192'" in inc755
+    assert "largura<_QA_SCROLL_MIN_COVER" in inc755
+    assert 'cache=_CIDADE.get(scene)' in inc755
+    assert Path('QA_TRACKER_32_v327755.md').is_file()
+    assert Path('QA_CHANGELOG_v327755.md').is_file()
+    manual755=Path('.github/workflows/qa-offline-v327755.yml').read_text('utf8')
+    assert 'workflow_dispatch:' in manual755 and '  push:' not in manual755
+    assert 'qa/android-full-performance-v3.277.55' in manual755
+    for item in ('qa_preflight_v327755.py',
+                 'test_qa_srcalpha_scroll_v327755.py',
+                 'qa_benchmark_srcalpha_scroll_v327755.py'):
+        assert item in manual755
+    for forbidden in ('buildozer -v android','gradle assemble','adb shell'):
+        assert forbidden not in manual755.lower()
+    return {
+        'resultado':'APROVADO_GATES_ESTATICOS_APENAS',
+        'versao':'v3.277.55-QA','modo':'QA_OFFLINE_PYGAME_SEM_APK',
+        'pinned_sha':len(PINNED),'arquivos_protegidos':protegidos,
+        'assets_android_visual':len(ANDROID_VISUAL_ASSETS),
+        'gpu_experimental_ativada':False,'fps_android_homologado':False,
+        'apk_compilado':False,'aab_compilado':False,
+    }
+
+
+if __name__=='__main__':
+    resultado=checar()
+    Path('preflight-qa-v327755.json').write_text(
+        json.dumps(resultado,indent=2,ensure_ascii=False),encoding='utf8')
+    print(json.dumps(resultado,indent=2,ensure_ascii=False))
