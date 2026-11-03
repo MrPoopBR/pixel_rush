@@ -83,3 +83,5 @@ QA v3.277.67: RAM SDF buffer 450x500 libera se nao ha dano ativo em trim/fallbac
 QA v3.277.68: atlas técnicos imutáveis da Cidade compartilhados entre várias instâncias mediante hash+byte RGBA completo, tabela weak e rollback. Limite agregado de cache integrado com 44/44 gates v767 aprovados. Sem APK/AAB/Android. QA_TRACKER_32_v327768.md.
 
 QA v3.277.69: precarga real da compatibilidade transparente dos pets (52x46 para corrida e 210x170 para popup), SOMENTE menu QA, sem habilitar atlas/animacoes de pets COMING SOON, sem alterar saves ou RNG. CI inclui gate do PetStudioPlayer real e de menu. Fechamento offline de #24 baseado em CI v768 com 48/48 testes, sem declarar GPU/Android homologado. QA_TRACKER_32_v327769.md e QA_CHANGELOG_v327769.md. Sem APK/AAB/Android; restante preservado.
+
+QA v3.277.69 evidência final: CI #41730115687 passou 51/51 testes com atlas image+5 canais Cidade (RGBA oculto intacto) e preguiça removida de Surfaces transparentes de pet COMING SOON. 22/32 frentes encerradas no escopo de produção atual e gate offline; 10 parciais; zero Android homologadas. Somente documentação QA atualizada após confirmação.

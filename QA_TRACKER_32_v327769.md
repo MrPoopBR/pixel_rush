@@ -7,10 +7,10 @@
 ## Resultados discriminados
 
 - **32 de 32 frentes auditadas no código**, incluindo os módulos QA, integração no `main.py` e engine Android.
-- **21 de 32 concluídas em nível de implementação/testes offline direcionados** (12 anteriores + #26 GC cooperativo + #16 culling modular validado no código real); esta categoria **não significa homologação Android**. O gate de #26 passou em teste local sintético de 901 flips pygame-ce, não em corrida Android.
-- **11 de 32 possuem integração ou componentes, mas ainda não cumprem TODOS os critérios de conclusão.** Avanços reais nesta operação nas #2, #7, #10, #16, #22, #23, #24, #25 e #26. Algumas ficam parciais por escopo dos algoritmos, outras exigem hardware.
+- **22 de 32 concluídas em nível de implementação/testes offline direcionados** (12 anteriores + #26 GC cooperativo + #16 culling modular validado no código real); esta categoria **não significa homologação Android**. O gate de #26 passou em teste local sintético de 901 flips pygame-ce, não em corrida Android.
+- **10 de 32 possuem integração ou componentes, mas ainda não cumprem TODOS os critérios de conclusão.** Avanços reais nesta operação nas #2, #7, #10, #16, #22, #23, #24, #25 e #26. Algumas ficam parciais por escopo dos algoritmos, outras exigem hardware.
 - **0 de 32 homologadas como pacote Android completo** nesta tarefa, porque não foi solicitado nem executado APK, Android, Perfetto ou teste final do aparelho.
-- **Não converter as 12 frentes parciais em concluídas artificialmente**: GPU/GLES/PBO/NEON/driver precisam do gate no hardware, e scroll incremental não comprovou desempenho superior para atlas SDL-RLE usados no caminho real.
+- **Não converter as 10 frentes parciais em concluídas artificialmente**: GPU/GLES/PBO/NEON/driver precisam do gate no hardware, e scroll incremental não comprovou desempenho superior para atlas SDL-RLE usados no caminho real.
 
 | # | Melhoria | Estado de implementação | Evidência / pendência |
 |---:|---|---|---|
@@ -35,7 +35,7 @@
 |19|Vinheta noturna|Concluída offline anteriormente|BLEND_RGBA_MULT por fill sem superfície adicional.|
 |20|Pool de partículas|**Concluída no código e gate offline v766 para partículas ativas do gameplay**|PoolManager original de explosões preservado e limitado só quando inativo; partículas ambientais reutilizadas com RNG/pixels idênticos nos 8 biomas; climas usam sementes; 41/41 testes CI #41726342467. Efeitos de menu menores permanecem procedurais.|
 |21|Fontes e labels|Concluída offline anteriormente|Textos e fontes sob cache com limite.|
-|22|Pré-carregar skins/pets|Integrada, gate v769 pendente|Skins reais preparadas por cache existente; pet equipado passa a antecipar apenas os dois tamanhos de frames transparentes de compatibilidade 52x46/210x170 no menu. Pets/atlas reais permanecem COMING SOON; sem reativação.|
+|22|Pré-carregar skins/pets|**Concluída offline para a produção atual v769**|As 3 skins ativas usam os caches de atlas reais. Para os pets desativados COMING SOON, pré-carrega exclusivamente as Surfaces transparentes 52x46 e 210x170 já usadas pelo próprio Studio; 3 testes da classe real e menu/RNG aprovados no CI #41730115687. NÃO existe atlas de pet jogável para carregar.|
 |23|Pré-aquecimento biomas|**Concluída em implementação e gate offline v763**|Atlas SHA seguem na thread PROD original; tiles oficiais Neve/Deserto/Cidade Futurista SHA 3/3 em 13 passos de menu e 720381 bytes, até 64 KiB/frame, sem RNG/SDL. CI #41721393824; Android pendente.|
 |24|Deduplicação Surfaces|**Concluída no código e gate offline v768**|Atlas estáticos da Cidade (5 canais técnicos e image quando elegível) compartilhados entre mundos só com formato/digest/bytes idênticos; tabela WeakValueDictionary, cenas independentes e rollback aprovados no CI #41727956431 (48/48). Android pendente.|
 |25|Limite global de cache|**Concluída em mecanismo de código e gates offline v767**|Orçamento de cache SDL agregado por identidade, pressão acima do teto aciona trim escalonado mesmo sem RSS alto; SDF frio, atlas e caches inativos; hot protegido. Não é teto absoluto de RAM Android.|
@@ -189,3 +189,11 @@ Nova implementação #24: `pixelrush_qa_city_intern_v327768.py` mantém tabela W
 ### Reforço de deduplicação na mesma versão v3.277.69
 
 O preload final de Cidade v3122 pré-compõe as props imóveis no atlas `image` antes de qualquer uso; a auditoria de `_render_chunk` e `render_scene` encontrou apenas leituras da origem após o construtor. O intern por BLAKE2b + igualdade RAW completa passa a aceitar também esse `image` estático quando seus bits/flags/máscaras/alpha são compatíveis, sem compartilhar sprites móveis nem o estado de cena. Novos testes incluem o RGB oculto do canal `image`, duas cenas reais e igualdade RGBA na renderização; resultado sujeito ao mesmo workflow offline. Flag `PIXELRUSH_QA_CITY_GLOBAL_INTERN=0` conserva rollback.
+
+## Evidência integrada final da mesma v3.277.69 (CI real)
+
+- Execução GitHub Actions [#41730115687](https://github.com/MrPoopBR/pixel_rush/actions/runs/41730115687), commit `e1f0154af749e3e383c74745af6e81e018684f3e`: **sucesso 51/51 testes offline pygame-ce 2.5.8** e preflight AST/versões/SHA protegidos.
+- Testes específicos de `image` + cinco atlas técnicos imutáveis da Cidade entre instâncias, equivalência dos 6 canais byte RGBA e RGB oculto, weakrefs e fallback: **3/3** aprovados. #24 concluída no critério offline.
+- Testes da classe `PetStudioPlayer` real (extraída do AST da engine), pré-carga de skins/pet no menu, RNG e ordem, bytes de frames transparentes 52x46 e 210x170: **3/3** aprovados. #22 concluída **para os recursos realmente disponíveis na produção atual**; pets reais continuam deliberadamente desativados/COMING SOON, portanto não se alega pré-carga de animações/atlas inexistentes.
+- **Placar consolidado da implementação atual:** **22/32 concluídas offline, 10/32 parciais/integradas, 0/32 homologadas Android**. Dependências de dispositivo não se confundem com ausência de código. Sete frentes GPU/native/driver ainda só têm componentes ou laboratório; #5 scroll tem fallback pixel-exato, mas não benefício comprovado no SDL-RLE, e #7/#10 ainda demandam cobertura de todo caminho.
+- Não executar APK, Android, AAB nem pedir testes do usuário neste avanço. `main.py`, produção estável, DEV, física, visual, HUD, saves, pets bloqueados, tutorial, assets e workflows APK/AAB não mudaram nesta versão.

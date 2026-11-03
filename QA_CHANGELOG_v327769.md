@@ -20,3 +20,7 @@
 
 - A deduplicação weak da Cidade agora inclui `image` **apenas** se o atlas do chunk já foi finalizado no construtor, é 32 bits SRCALPHA sem colorkey e possui formato/bytes identicamente comprovados (hash e comparação completa, inclusive canais RGB com alfa zero). Sprites que balançam continuam renderizados separadamente.
 - Gates estendidos em `tests/test_qa_city_intern_v327768.py` com igualdade de `image` sintético e canal `image` real de duas cidades; RGBA e fallback originais continuam no teste. Ativação reversível com a mesma flag anterior, sem afetar física/saves/arte/DEV/AAB.
+
+## CI final de v3.277.69
+
+GitHub Actions #41730115687 **success**, commit e1f0154af749e3e383c74745af6e81e018684f3e, **51/51** casos pygame-ce offline + preflight. O 6º atlas estático `image` da Cidade entrou no interning global com bytes completos e rollback. O prewarm de superfícies transparentes de compatibilidade dos pets (não atlas de pet real) foi provado na classe real e menu; para o escopo atual da produção, fecha #22 offline. Final: **22/32 offline, 10/32 parciais, 0/32 Android homologadas**. Nenhum teste manual, APK/AAB ou Android.
