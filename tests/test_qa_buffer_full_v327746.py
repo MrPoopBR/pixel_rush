@@ -106,7 +106,12 @@ def comparar_bioma(game,bioma,frames=24,cronometrar=False):
         t0=perf_counter_ns()
         hit=cache.reusar(ref,chave,True)
         if not hit:
+            # O renderizador real pode consultar o RNG global. Isolar o
+            # estado entre as DUAS cenas do benchmark evita que o primeiro
+            # desenho altere a sequencia pseudoaleatoria da segunda.
+            rng_antes_render=random.getstate()
             desenhar_fundo_integral(game,ref,bg,clima,cenas,frame,cor,night)
+            rng_apos_render=random.getstate()
             t1=perf_counter_ns()
             cache.guardar(ref,chave,True)
             t2=perf_counter_ns()
@@ -117,15 +122,25 @@ def comparar_bioma(game,bioma,frames=24,cronometrar=False):
         # Mesmo novo desenho, mesmo estado; a superficie offscreen nunca
         # recebe o HUD, evitando contaminacao dos frames reutilizados.
         if not hit:
-            desenhar_fundo_integral(game,scratch,bg_alt,clima_alt,cenas_alt,frame,cor,night)
+            random.setstate(rng_antes_render)
+            try:
+                desenhar_fundo_integral(game,scratch,bg_alt,clima_alt,cenas_alt,frame,cor,night)
+            finally:
+                random.setstate(rng_apos_render)
         t4=perf_counter_ns()
         alt.blit(scratch,(0,0))
         t5=perf_counter_ns()
         overlay_por_quadro(game,alt,bg_alt,frame)
         t6=perf_counter_ns()
-        if rgba(ref)!=rgba(alt):
-            raise AssertionError('divergencia do fundo integral %s frame %d (clima=%s noite=%s)'%
-                                 (bioma,i,clima.tipo,night))
+        b_ref=rgba(ref)
+        b_alt=rgba(alt)
+        if b_ref!=b_alt:
+            pos=next(k for k in range(0,len(b_ref),4)
+                     if b_ref[k:k+4]!=b_alt[k:k+4])
+            raise AssertionError(
+                'divergencia fundo integral %s frame=%d clima=%s noite=%s pixel=(%d,%d) ref=%s alt=%s'%
+                (bioma,i,clima.tipo,night,(pos//4)%450,(pos//4)//450,
+                 tuple(b_ref[pos:pos+4]),tuple(b_alt[pos:pos+4])))
         equivalentes+=1
         if cronometrar and i>=5:
             tempos['original'].append((t3-t0)/1e6)
