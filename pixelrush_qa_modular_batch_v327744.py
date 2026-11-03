@@ -12,6 +12,10 @@ from functools import wraps
 
 _INSTALLED=False
 _ORIGINALS={}
+_STATS={'tile_invisivel_culado':0,'blits_lote':0}
+
+def diagnostico():
+    return dict(_STATS,instalado=_INSTALLED)
 
 
 def instalar():
@@ -32,9 +36,16 @@ def instalar():
             return _ORIGINALS['snow'](self,dst,layer,travel,kind)
         offset=max(0.,travel)*DEPTH[layer][0]*.5
         first=int(offset//LW);shift=int(offset%LW)
+        if shift==0 and dst.get_width()==LW:
+            # O segundo tile inicia exatamente fora da area alvo.
+            # Evitar lookup, construcao e blit sem alterar nenhum byte.
+            dst.blit(self._tile_map(layer,first%4,kind),(0,0))
+            _STATS['tile_invisivel_culado']+=1
+            return
         tiles=[(self._tile_map(layer,(first+j)%4,kind),(j*LW-shift,0))
                for j in range(2)]
         dst.blits(tiles,doreturn=False)
+        _STATS['blits_lote']+=1
 
     @wraps(_ORIGINALS['current'])
     def _current_batch(self,dst,layer,travel,kind):
@@ -43,9 +54,14 @@ def instalar():
         offset=max(0.,travel)*DEPTH[layer][0]*.5
         first=int(offset//LW);shift=int(offset%LW)
         count=COUNTS[layer];stride={'far':5,'mid':7,'near':9}[layer]
+        if shift==0 and dst.get_width()==LW:
+            dst.blit(self._tile_map(layer,(first*stride)%count,kind),(0,0))
+            _STATS['tile_invisivel_culado']+=1
+            return
         tiles=[(self._tile_map(layer,((first+j)*stride)%count,kind),
                 (j*LW-shift,0)) for j in range(2)]
         dst.blits(tiles,doreturn=False)
+        _STATS['blits_lote']+=1
 
     SnowScene._draw_layer=_snow_batch
     CurrentScene._draw_layer=_current_batch
