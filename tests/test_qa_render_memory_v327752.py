@@ -103,12 +103,16 @@ class Integracao752(unittest.TestCase):
             finally:
                 scene._qa_geometry_borrow_target=None
             self.assertIs(scene._geometry_view,destino)
+            esperado_mundo=rgba(destino)
             proximo=pygame.Surface((450,500),pygame.SRCALPHA)
             proximo.fill((31,22,77,123))
             scene.render_scene(proximo,45.2,20,.28,'limpo',.55,
                                map_kind='geometry')
             self.assertIsNot(scene._geometry_view,proximo)
+            self.assertIsNot(scene._geometry_view,destino)
             self.assertEqual(rgba(scene._geometry_view),rgba(proximo))
+            self.assertEqual(rgba(destino),esperado_mundo,
+                             'snapshot externo nao pode mutar buffer World-owned')
 
     def test_plano_tiles_modo_auto_sdl_nao_instala_e_flag_forcada_funciona(self):
         from pixelrush_city2_v3125 import CityPilotScene
