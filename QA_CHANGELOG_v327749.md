@@ -12,7 +12,7 @@ Nenhum APK/AAB/ADB/Android.
 2. `pixelrush_qa_city_weather_v327749.py`: reduz recálculos invariantes dentro de `CityLifeDirector.draw_atmosphere` e `draw_wet_reflections` na Cidade **real**. Mantém a ordem de todos os draw calls e as condições de clima/noite/qualidade; opt-out `PIXELRUSH_QA_CITY_WEATHER_FAST=0`.
 3. `pixelrush_qa_modular_batch_v327744.py`: batching de tiles de Neve e Deserto já coberto por testes RGBA históricos fica habilitado por padrão apenas nesta branch QA. Mantém `PIXELRUSH_QA_MODULAR_BATCH=0` para fallback imediato. Ainda precisa ser medido se é mais rápido.
 4. `pixelrush_qa_gles_bridge_v327749.py`: integração experimental (não mais só janela de laboratório) do compositor CPU do jogo com presenter GLES2: intercepta set_mode, devolve uma Surface CPU para a lógica existente, mantém o caminho de input/HUD e apresenta via GLES no flip. Erro de shader, GL ou upload reabre SDL e blita a staging CPU. Somente se `PIXELRUSH_QA_GLES_BRIDGE=1` e QA Android for explícito; desligado por padrão.
-5. No mesmo módulo, `PIXELRUSH_QA_GPU_ZOOM=1` também habilita o wrapper de `CameraCinematica.aplicar`, com suavização original de zoom/foco, e envia os parâmetros ao shader fixo do protótipo em vez do smoothscale CPU. Em caso de falha, pode reconstituir o enquadramento via smoothscale no fallback. Não passou pelo gate de paridade Android, permanece OFF. PBO GLES3 requer contexto real compatível (o presenter atual abre GLES2), continua não homologado.
+5. No mesmo módulo, `PIXELRUSH_QA_GPU_ZOOM=1` também habilita o wrapper de `CameraCinematica.aplicar`, com suavização original de zoom/foco, e envia os parâmetros ao shader fixo do protótipo em vez do smoothscale CPU. Em caso de falha, pode reconstituir o enquadramento via smoothscale no fallback. Não passou pelo gate de paridade Android, permanece OFF. PBO GLES3 possui caminho experimental opt-in com solicitação explícita de contexto `PIXELRUSH_QA_GLES3_CONTEXT=1` e flag `PIXELRUSH_QA_GLES_PBO=1`; sem homologação real Android.
 6. Herdado da v748: `pixelrush_qa_cache_trim_v327748.py` distribui limpeza de caches sob RSS alto fora do quinto quadro, com segurança multi-instância e fallback para o método antigo. `pixelrush_qa_performance_integrated_v327742.py` mantém os cálculos do clima clássico otimizados.
 
 ## Gates preparados para serem executados posteriormente
@@ -28,8 +28,8 @@ Nenhum APK/AAB/ADB/Android.
 ## Placar estrito do tracker
 
 - 12/32 anteriormente concluídas em código/QA offline.
-- 17/32 parciais (agora inclui o zoom GPU e o híbrido CPU/GPU integrados em opt-in, mas sem homologação).
-- 3/32 pendentes de integração integral (#4, #5 e #29); não declarar 32/32 implementadas.
+- 18/32 parciais (agora inclui o zoom GPU e o híbrido CPU/GPU integrados em opt-in, mas sem homologação).
+- 2/32 pendentes de integração integral (#4, #5 e #29); não declarar 32/32 implementadas.
 - Sem homologação Android nesta versão.
 
 ## Integridade
