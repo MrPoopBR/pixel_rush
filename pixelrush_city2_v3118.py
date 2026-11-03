@@ -12,6 +12,12 @@ from collections import OrderedDict
 import os
 # A flag e lida apenas no import, antes da corrida: zero getenv por tile.
 _QA_NATIVE_CLIP=os.environ.get('PIXELRUSH_QA_CITY_NATIVE_CLIP','1')=='1'
+# QA754: materiais/FX estaticos com alpha=0 em toda a textura nao precisam
+# ser escalados para 900x500 nem fazer um blit (inclusive quinto quadro).
+# Analise uma vez no init da cena; rollback antes do import.
+_QA_SKIP_EMPTY_BASE=os.environ.get('PIXELRUSH_QA_CITY_EMPTY_BASE','1')=='1'
+_QA_CULL_SPRITES_EARLY=os.environ.get('PIXELRUSH_QA_CITY_SPRITE_RIGHT_CULL','1')=='1'
+
 import math
 import random
 import pygame
@@ -41,6 +47,25 @@ class CityPilotScene(PreviousCity):
         self._geometry_view = None
         self._last_state = (0.0, 0, 0.0, 'limpo', 0.5)
         self._build_glows()
+        # Atlas estatico por variante: cada textura SRCALPHA 450x250
+        # totalmente vazia pode ser descartada de TODOS os redraws
+        # sem criar uma versao escalada ou ler seus pixels no frame5.
+        # O id da Surface integra a chave, evitando falsos positivos
+        # se a referencia de textura for trocada no futuro.
+        self._qa_empty_base_maps=set()
+        if _QA_SKIP_EMPTY_BASE:
+            for layer in self.layers:
+                for variant in layer.variants:
+                    for kind in ('image','geometry','fxmask',
+                                 'normal','material','flow'):
+                        tex=getattr(variant,kind,None)
+                        if (tex is not None and
+                                tex.get_flags() & pygame.SRCALPHA and
+                                tex.get_colorkey() is None and
+                                tex.get_alpha() in (None,255) and
+                                tex.get_bounding_rect(min_alpha=1).width==0):
+                            self._qa_empty_base_maps.add(
+                                (id(variant),kind,id(tex)))
 
     @staticmethod
     def _blank_maps():
@@ -245,7 +270,10 @@ class CityPilotScene(PreviousCity):
                                     climate, map_kind, flip)
 
     def _render_chunk(self,target,variant,flip,x,frame,night,climate,phase,map_kind='image',only_sprites=False):
-        if not only_sprites:
+        if not only_sprites and not (
+                _QA_SKIP_EMPTY_BASE and
+                (id(variant),map_kind,id(getattr(variant,map_kind)))
+                in self._qa_empty_base_maps):
             # QA751: o clipe SDL de um blit comum e pixel-identico ao
             # recorte manual anterior, sem pygame.Rect + area por tile.
             # Verifica visibilidade ANTES de consultar/criar textura LRU.
@@ -260,14 +288,18 @@ class CityPilotScene(PreviousCity):
         # QA v3.277.39: vento depende apenas do clima, nao de cada sprite.
         wind=1.5 if climate in ('vento','tempestade','nevasca') else 1.
         for sp in variant.sprites:
+            # QA754: culling do lado DIREITO independe do tamanho da arte.
+            # Poupa getattr/lookup de textura e possivel conversao/cache
+            # de props cujo centro nunca alcança a viewport.
+            # Para esquerda, mantem a largura real e rotina historica.
+            base_x=x+sp.x*SCALE
+            margem=abs(sp.sway*wind)+1.0
+            if _QA_CULL_SPRITES_EARLY and base_x-margem>=WIDTH+2:
+                continue
             asset=self.lib.assets.get(sp.kind)
             if asset is None:continue
             tex=getattr(asset,map_kind)
             width=tex.get_width()
-            # QA v3.277.42: limite conservador antes de calcular sin/round.
-            # Nenhum sprite que poderia cobrir 1 pixel visivel e descartado.
-            base_x=x+sp.x*SCALE
-            margem=abs(sp.sway*wind)+1.0
             if base_x-margem>=WIDTH+2 or base_x+width+margem<=-2:
                 continue
             # A expressao e os arredondamentos originais sao preservados.
