@@ -17,6 +17,9 @@ _QA_NATIVE_CLIP=os.environ.get('PIXELRUSH_QA_CITY_NATIVE_CLIP','1')=='1'
 # Analise uma vez no init da cena; rollback antes do import.
 _QA_SKIP_EMPTY_BASE=os.environ.get('PIXELRUSH_QA_CITY_EMPTY_BASE','1')=='1'
 _QA_CULL_SPRITES_EARLY=os.environ.get('PIXELRUSH_QA_CITY_SPRITE_RIGHT_CULL','1')=='1'
+# Quando um atlas 450x250 tem alfa apenas em subfaixas, o SDL nao precisa
+# processar os pixels transparentes do topo da textura escalada 900x500.
+_QA_ALPHA_BOUNDS=os.environ.get('PIXELRUSH_QA_CITY_ALPHA_BOUNDS','1')=='1'
 
 import math
 import random
@@ -53,19 +56,31 @@ class CityPilotScene(PreviousCity):
         # O id da Surface integra a chave, evitando falsos positivos
         # se a referencia de textura for trocada no futuro.
         self._qa_empty_base_maps=set()
-        if _QA_SKIP_EMPTY_BASE:
+        self._qa_alpha_bounds={}
+        if _QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS:
             for layer in self.layers:
                 for variant in layer.variants:
                     for kind in ('image','geometry','fxmask',
                                  'normal','material','flow'):
                         tex=getattr(variant,kind,None)
-                        if (tex is not None and
-                                tex.get_flags() & pygame.SRCALPHA and
-                                tex.get_colorkey() is None and
-                                tex.get_alpha() in (None,255) and
-                                tex.get_bounding_rect(min_alpha=1).width==0):
-                            self._qa_empty_base_maps.add(
-                                (id(variant),kind,id(tex)))
+                        if (tex is None or
+                                not tex.get_flags() & pygame.SRCALPHA or
+                                tex.get_colorkey() is not None or
+                                tex.get_alpha() not in (None,255)):
+                            continue
+                        bbox=tex.get_bounding_rect(min_alpha=1)
+                        chave=(id(variant),kind,id(tex))
+                        if bbox.width==0 or bbox.height==0:
+                            if _QA_SKIP_EMPTY_BASE:
+                                self._qa_empty_base_maps.add(chave)
+                        elif (_QA_ALPHA_BOUNDS and
+                              tex.get_size()==(LOW_W,LOW_H) and
+                              bbox.size!=(LOW_W,LOW_H)):
+                            # SCALE=2 nearest-neighbor: borda RGBA
+                            # transp. baixa escala exatamente a 900x500.
+                            self._qa_alpha_bounds[chave]=(
+                                bbox.x*SCALE,bbox.y*SCALE,
+                                bbox.w*SCALE,bbox.h*SCALE)
 
     @staticmethod
     def _blank_maps():
@@ -270,21 +285,27 @@ class CityPilotScene(PreviousCity):
                                     climate, map_kind, flip)
 
     def _render_chunk(self,target,variant,flip,x,frame,night,climate,phase,map_kind='image',only_sprites=False):
-        if not only_sprites and not (
-                _QA_SKIP_EMPTY_BASE and
-                (id(variant),map_kind,id(getattr(variant,map_kind)))
-                in self._qa_empty_base_maps):
-            # QA751: o clipe SDL de um blit comum e pixel-identico ao
-            # recorte manual anterior, sem pygame.Rect + area por tile.
-            # Verifica visibilidade ANTES de consultar/criar textura LRU.
-            # Fallback por PIXELRUSH_QA_CITY_NATIVE_CLIP=0.
-            if _QA_NATIVE_CLIP:
-                if x<WIDTH and x+SCENE_W>0:
+        if not only_sprites:
+            metadata=None
+            if _QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS:
+                metadata=(id(variant),map_kind,id(getattr(variant,map_kind)))
+            if _QA_SKIP_EMPTY_BASE and metadata in self._qa_empty_base_maps:
+                pass  # SRCALPHA=0 em TODOS os pixels; preservar sprites abaixo
+            elif x<WIDTH and x+SCENE_W>0:
+                area=(self._qa_alpha_bounds.get(metadata)
+                      if _QA_ALPHA_BOUNDS else None)
+                if area is not None:
+                    # QA754: nao processar pixels transparentes fora do bbox.
+                    # A area e calculada no boot e escalada exatamente 2x.
+                    target.blit(self._scaled_surface(variant,map_kind),
+                                (x+area[0],area[1]),area)
+                elif _QA_NATIVE_CLIP:
                     target.blit(self._scaled_surface(variant,map_kind),(x,0))
-            else:
-                tex=self._scaled_surface(variant,map_kind)
-                r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
-                if r.w>0:target.blit(tex,(max(0,x),0),r)
+                else:
+                    # QA751 fallback manual; SDL clips preservados.
+                    tex=self._scaled_surface(variant,map_kind)
+                    r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
+                    if r.w>0:target.blit(tex,(max(0,x),0),r)
         # QA v3.277.39: vento depende apenas do clima, nao de cada sprite.
         wind=1.5 if climate in ('vento','tempestade','nevasca') else 1.
         for sp in variant.sprites:
