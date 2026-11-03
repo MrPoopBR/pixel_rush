@@ -30,7 +30,10 @@ _SEEDS_WIND=tuple((i*51,i*18%260) for i in range(16))
 _GPU_TRACE=None
 _LAST_STATUS={'frames':0,'renderer':None,'cpu_backend':None,'gc_pause_p95_ms':None,
               'gc_events':0,'peak_rss_mib':None,'cache_trim_events':0,
-              'cache_budget_mib':560,'gpu_accelerated':False}
+              'cache_budget_mib':560,'gpu_accelerated':False,
+              'cache_surface_mib':None,'cache_surface_count':0,
+              'cache_surface_budget_mib':None,'cache_surface_truncated':False,
+              'cache_budget_pressure_events':0}
 _GC_START={}
 _GC_PAUSES=deque(maxlen=256)
 _FLIP_SAMPLES=deque(maxlen=256)
@@ -315,9 +318,28 @@ def _wrap_flip():
                     _reclaim_inactive_caches()
                 else:
                     from pixelrush_world_v3130 import _SOURCE
+                    rss=_memory_mib()
+                    # Inventario de entradas SDL apenas nos quadros de
+                    # sondagem fora do quinto redraw. Nao conta alias duas
+                    # vezes nem aloca Surface ou altera estado de arte.
+                    pressionado=False
+                    if os.environ.get('PIXELRUSH_QA_SURFACE_BUDGET','1')=='1':
+                        from pixelrush_qa_memory_budget_v327765 import (
+                            inventariar,cache_em_pressao)
+                        limite=max(48,min(192,
+                            int(_LAST_STATUS['cache_budget_mib']*.35)))
+                        inventario=inventariar(_WORLDS,_SOURCE)
+                        _LAST_STATUS['cache_surface_mib']=inventario['mib']
+                        _LAST_STATUS['cache_surface_count']=inventario['surfaces_unicas']
+                        _LAST_STATUS['cache_surface_budget_mib']=limite
+                        _LAST_STATUS['cache_surface_truncated']=inventario['truncado']
+                        pressionado=cache_em_pressao(inventario,limite)
+                        if pressionado:
+                            _LAST_STATUS['cache_budget_pressure_events']+=1
                     _TRIMMER.iniciar(
-                        _WORLDS,_SOURCE,_memory_mib(),
-                        _LAST_STATUS['cache_budget_mib'])
+                        _WORLDS,_SOURCE,rss,
+                        _LAST_STATUS['cache_budget_mib'],
+                        pressao_cache=pressionado)
                     _LAST_STATUS['cache_trim_incremental_agendado']=_TRIMMER.ativo
             except Exception:
                 _ativar_fallback_trim()

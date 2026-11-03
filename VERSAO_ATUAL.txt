@@ -1,4 +1,4 @@
-Pixel Rush v3.277.64-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
+Pixel Rush v3.277.65-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -73,3 +73,5 @@ QA v3.277.63 fechada no CI GitHub #41721393824: 29/29 testes offline aprovados; 
 QA v3.277.64: trims modulares inativos com política única RSS, preserva pré-geração da Neve e cenas ativas; novo gate RGBA Deserto, sem Android, APK, AAB ou homologação final. QA_TRACKER_32_v327764.md e QA_CHANGELOG_v327764.md.
 
 QA v3.277.64 — evidência final: GitHub Actions #41721816822 passou 33/33 testes pygame-ce offline e preflight AST/SHA, incluindo Deserto RGBA pós-evicção e proteção Neve. Placar 17/32 concluídas offline, 15/32 parciais, 0/32 Android homologadas. Sem APK/AAB/Android.
+
+QA v3.277.65: inventario agregado de Surfaces SDL sem dupla contagem, pressao de cache independente de RSS, trim fora do 5º quadro e gate byte RGBA do finalizador camera/escala. Sem APK/AAB/Android. QA_TRACKER_32_v327765.md.

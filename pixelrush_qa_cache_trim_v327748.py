@@ -27,9 +27,9 @@ class EscalonadorTrimQA:
     def cancelar(self):
         self._pendencias=self._fonte=self._mundos=None
 
-    def iniciar(self, mundos, fonte, rss, teto):
+    def iniciar(self, mundos, fonte, rss, teto, pressao_cache=False):
         """Nao agenda uma segunda varredura ate finalizar a atual."""
-        if self.ativo or rss is None or rss<=teto:
+        if self.ativo or (not pressao_cache and (rss is None or rss<=teto)):
             return False
         self._mundos=tuple(ref(w) for w in tuple(mundos))
         self._fonte=fonte
