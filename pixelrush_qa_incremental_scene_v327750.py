@@ -43,7 +43,7 @@ _STATS={'cidade_hit':0,'cidade_rebuild':0,'cidade_strip_px':0,
         'cidade_cache_descartado':0,'modo_cidade':'off',
         'cidade_salto_direto':0,'cidade_init_sem_fill':0,
         'cidade_blit_cobertura_px':0,'cidade_cobertura_direta':0,
-        'cidade_chunk_sem_base':0}
+        'cidade_chunk_sem_base':0,'cidade_rle_direto':0}
 
 
 def diagnostico():
@@ -78,12 +78,16 @@ def _copiar_pixel_exato(buffer,fonte,x,dest_rect):
 
 def _atualizar_persistente(scene,variant,kind,x):
     from pixelrush_city2_v3115 import WIDTH, SCENE_W, SCENE_H
-    cache=_CIDADE.get(scene)
-    if cache is None:
-        cache=OrderedDict()
-        _CIDADE[scene]=cache
-    chave=(id(variant),kind)
     fonte=scene._scaled_surface(variant,kind)
+    # QA755: SDL-RLE faz skip de alpha0 no blit original e pode manter
+    # RGB oculto do target; RGBA_MAX -> buffer -> blit altera tais bytes.
+    # RLEACCELOK aparece ja em set_alpha(...RLEACCEL), mesmo ANTES
+    # do primeiro blit (quando RLEACCEL ainda nao aparece).
+    # Para preservar bytes exatos, RLE deve ir DIRETO a _render_chunk.
+    rle_mask=pygame.RLEACCEL | getattr(pygame,'RLEACCELOK',0)
+    if fonte.get_flags() & rle_mask:
+        _STATS['cidade_rle_direto']+=1
+        raise ValueError('fonte SDL-RLE requer blit direto para RGB oculto')
     if (fonte.get_colorkey() is not None or
             fonte.get_alpha() not in (None,255) or
             fonte.get_size()!=(SCENE_W,SCENE_H) or
@@ -91,6 +95,13 @@ def _atualizar_persistente(scene,variant,kind,x):
             fonte.get_bitsize()!=32):
         _STATS['cidade_rejeitado_formato']+=1
         raise ValueError('scroll exige RGBA 32bits, origem 900x500 sem colorkey')
+    # Nao guardar sequer um OrderedDict para a cena quando a fonte RLE
+    # nao passa no gate. No quarto/quinto quadro isso economiza churn.
+    cache=_CIDADE.get(scene)
+    if cache is None:
+        cache=OrderedDict()
+        _CIDADE[scene]=cache
+    chave=(id(variant),kind)
     assinatura=(id(fonte),fonte.get_size(),fonte.get_flags(),
                 fonte.get_alpha())
     entry=cache.get(chave)
