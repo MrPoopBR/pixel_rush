@@ -6,6 +6,12 @@ A conversao de 16 primitivas por nuvem em um blit e validada por regressao
 RGB/RGBA antes da homologacao. Nunca altera cenas ou gameplay de producao.
 """
 from functools import lru_cache, wraps
+import os
+import pygame
+# QA760: SDL SRCALPHA exige RGB oculto preservado. Na rota RGB opaca
+# o blit da nuvem precomposta e equivalente aos 16 pygame.draw.rect.
+_QA_SAFE_CLOUD_CACHE=os.environ.get('PIXELRUSH_QA_SAFE_CLOUD_CACHE','1')=='1'
+_CLOUD_STATS={'blits_rgb':0,'fallback_rgba':0,'fallback_alpha':0,'fallback_escala':0}
 
 _INSTALADO = False
 _ORIGINAIS = {}
@@ -26,12 +32,27 @@ def _nuvem_qa(superficie, x, y, escala, cor, sombra, luz):
     s = max(1, int(escala))
     # A cena real usa escala 1. Impede que variantes ampliadas,
     # nao usadas no panorama, consumam megabytes no cache mobile.
-    if s != 1:
+    if s!=1 or not _QA_SAFE_CLOUD_CACHE:
+        _CLOUD_STATS['fallback_escala']+=1
+        return _ORIGINAIS['nuvem_pixel'](
+            superficie, x, y, escala, cor, sombra, luz)
+    # Em destino SRCALPHA, o blit de pixels (0,0,0,0) pode zerar os
+    # canais RGB ocultos que pygame.draw.rect jamais alteraria.
+    # Preservar o contrato byte RGBA original, sem mascaras extras.
+    if superficie.get_flags() & pygame.SRCALPHA:
+        _CLOUD_STATS['fallback_rgba']+=1
+        return _ORIGINAIS['nuvem_pixel'](
+            superficie, x, y, escala, cor, sombra, luz)
+    # Em alvo RGB, cores com alpha<255 seriam aplicadas como blend
+    # pelo blit, enquanto pygame.draw.rect escreve a cor diretamente.
+    if any(len(c)>3 and c[3]!=255 for c in (cor,sombra,luz)):
+        _CLOUD_STATS['fallback_alpha']+=1
         return _ORIGINAIS['nuvem_pixel'](
             superficie, x, y, escala, cor, sombra, luz)
     # Os retangulos originais quantizam x e y com int(), nao round().
     textura = _textura_nuvem(s, tuple(cor), tuple(sombra), tuple(luz))
     superficie.blit(textura, (int(x), int(y)))
+    _CLOUD_STATS['blits_rgb']+=1
 
 
 # Medir apenas as chamadas reais do caminho visual ativo, sem instrumentar
@@ -78,6 +99,10 @@ def instalar():
     _INSTALADO = True
 
 
+def diagnostico_nuvens():
+    return dict(_CLOUD_STATS,cache=_textura_nuvem.cache_info()._asdict())
+
+
 def restaurar_para_teste():
     global _INSTALADO
     if not _INSTALADO:
@@ -87,4 +112,6 @@ def restaurar_para_teste():
         setattr(visual, metodo, original)
     _ORIGINAIS.clear()
     _textura_nuvem.cache_clear()
+    for chave in _CLOUD_STATS:
+        _CLOUD_STATS[chave]=0
     _INSTALADO = False

@@ -26,6 +26,8 @@ MODULES=(
     'pixelrush_qa_city_bootstrap_v327759.py',
     'tests/test_qa_geometry_weather_v327759.py',
     'tests/test_qa_world_real_v327759.py',
+    'pixelrush_qa_scene_v327733.py',
+    'tests/test_qa_cloud_weather_v327760.py',
     'tests/test_qa_cache_gc_v327758.py',
     'tests/test_qa_fechamento32_v327757.py',
     'tests/test_qa_fechamento_modular_v327757.py',
@@ -42,7 +44,7 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.59-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.60-QA-ANDROID-RC"' in engine
     assert "_qa_precarga_visuais.passo(estado)" in engine
     assert "instalar_render_qa()" in (ROOT/'main.py').read_text('utf8')
     perf=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
@@ -58,12 +60,15 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.59$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327759$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.60$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327760$',spec)
     assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327760.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327760.md').is_file()
+    assert '_QA_SAFE_CLOUD_CACHE' in (ROOT/'pixelrush_qa_scene_v327733.py').read_text('utf8')
     assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
     assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
     assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')

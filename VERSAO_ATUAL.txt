@@ -1,4 +1,4 @@
-Pixel Rush v3.277.59-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
+Pixel Rush v3.277.60-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -59,3 +59,5 @@ QA v3.277.58 - evidência final: GitHub Actions #41714045870 passou 11/11 testes
 QA v3.277.59: empréstimo geometry do World 450x500 ativado no QA (sem segunda cópia/surface), sementes de partículas de Neve/Deserto e atmosfera da Cidade pré-computadas com fallback; gates Pygame offline, sem Android/APK/AAB. QA_TRACKER_32_v327759.md e QA_CHANGELOG_v327759.md.
 
 QA v3.277.59 evidência offline final: CI #41717619668 passou 18/18 testes integrados e preflight; dois LivingWorld reais e troca Cidade/Neve mantiveram cache/oclusão/bytes. #2 concluída somente em implementação+QA offline; placar 15/32, 17 parciais, zero Android. Benchmark Linux geometry: snapshot 0.577948ms, borrow 0.613193ms (sem alegar aumento FPS). Nenhum APK/AAB/Android.
+
+QA v3.277.60: cache de nuvens desenha por blit somente em alvo RGB com cores opacas, preservando desenho SDL original em SRCALPHA/alpha parcial para corrigir RGB oculto. Acrescentado teste climatologico original vs cache e microbenchmark SDL offline. Sem APK/Android/AAB. QA_TRACKER_32_v327760.md e QA_CHANGELOG_v327760.md.
