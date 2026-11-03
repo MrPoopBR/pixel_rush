@@ -18,3 +18,8 @@
 ## Placar da operação
 
 **13 de 32 concluídas no critério offline e 19 ainda parciais**, nenhuma homologação Android. A #25 foi reforçada, mas continua parcial até comprovação agregada; #26 já era concluída offline. Consultar `QA_TRACKER_32_v327758.md`.
+
+## Correção de regressão RGBA identificada antes do fechamento
+
+- **#18/#20 — Neve e Deserto:** teste SDL dummy demonstrou que blit transparente com alpha zero pode alterar RGB oculto. Por isso o skip integral do segundo blit meteorológico (v757) foi revertido no método real: o blit original é sempre preservado, enquanto o `fill` redundante pode ser eliminado com marcador de limpeza por instância. Transições neve/areia → seco forçam o fill normalmente. Fallback `PIXELRUSH_QA_MODULAR_WEATHER_SKIP=0` mantém fill incondicional. Sem mudar frames, clima, coordenadas, partículas nem pixels intencionais.
+- Acrescentada prova RGBA do método render_scene real em Neve/Deserto na suíte offline, sem executar Android ou compilação.

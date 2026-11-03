@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 PROTECTED={
     'main.py':'620a3cdcad571168b31c2633b28da94c251b8855',
-    'pixelrush_biomes2_v3128.py':'b1fd021a7f1a9d98da564ab6d53c343af4827df2',
+    'pixelrush_biomes2_v3128.py':'f3c63c3f496f5aed81a63df194cfdf71d004e4c3',
     'pixelrush_biomes2_v3130.py':'01a711dc82c563c401a25218c508de6d0784032f',
     'pixelrush_qa_render_v327729.py':'01e736770c8b4a3cfc3e475bc443b5975768bc9e',
     'pixelrush_qa_gles_bridge_v327749.py':'8304b52070896d749579c7041728c65dd4c599b3',
@@ -50,6 +50,9 @@ def main():
     assert 'janela_quadros=180' in policy
     assert "elif _FRAMES>=180 and _FRAMES%180==1:" in gc
     assert "elif _FRAMES>=30 and _FRAMES%30==1:" in gc
+    biome=(ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
+    assert "low.blit(self._weather,(0,0))" in biome
+    assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
     assert re.search(r'(?m)^version = 3\.277\.58$',spec)
     assert re.search(r'(?m)^android\.numeric_version = 327758$',spec)
