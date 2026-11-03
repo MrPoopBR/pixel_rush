@@ -148,6 +148,10 @@ def instalar():
     # o periodo original 5:1. Fallback em qualquer falha de leitura.
     from pixelrush_qa_atlas_io_v327747 import instalar_no_boot_qa
     instalar_no_boot_qa()
+    # GC cooperativo instalado DEPOIS dos wrappers de flip de telemetria;
+    # nenhum collect() pode coincidir com o quinto quadro 5:1.
+    from pixelrush_qa_gc_cooperativo_v327757 import instalar as instalar_gc_qa
+    instalar_gc_qa()
     _INSTALADO = True
 
 
@@ -155,6 +159,8 @@ def restaurar_para_teste():
     """Somente em regressao offline, nunca executado no APK."""
     global _INSTALADO
     if _INSTALADO:
+        from pixelrush_qa_gc_cooperativo_v327757 import restaurar_para_teste as restaurar_gc_qa
+        restaurar_gc_qa()
         from pixelrush_world_v3130 import LivingWorld
         LivingWorld._city_surface = _ORIGINAL
         from pixelrush_qa_incremental_scene_v327750 import restaurar_para_teste as restaurar_incremental
