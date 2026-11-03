@@ -3,7 +3,7 @@
 **Fonte inicial:** `QA_AUDITORIA_32_v327738.md`; reavaliação com código até v3.277.49 e evidências anteriores da v3.277.47.  
 **Critério:** *concluída no código/QA offline* significa técnica presente e com testes focados; **não implica FPS Android comprovado nem todas as 32 homologadas**. *Parcial* significa atuação limitada a alguns cenários, flag OFF, falta de teste integral ou pré-carregamento não integrado; *pendente* significa proposta ainda não integrada ao render real.
 
-**Resultado de implementação (não homologação): 12/32 anteriormente concluídas offline (37,5%); 17/32 parciais (53,125%); 3/32 pendentes (9,375%). Total 32/32.**
+**Resultado de implementação (não homologação): 12/32 anteriormente concluídas offline (37,5%); 18/32 parciais (56,25%); 2/32 pendentes (6,25%). Total 32/32.**
 **Homologação de ganhos em aparelho Android para esta versão: 0/32 novos gates Android comprovados na v3.277.49.**
 
 | # | Melhoria das 32 | Estado | Evidência e ressalva |
@@ -36,7 +36,7 @@
 |26|Pausas GC|Parcial|sonda existe; v748 retira apenas a VARREDURA de caches do quinto quadro, não altera política nem remove pausas reais do GC|
 |27|Telemetria assíncrona|**Concluída (offline)**|worker JSON/CSV, snapshot parcelado, flush final preservado|
 |28|Native/Cython seletivo|Parcial|câmera C/NEON experimental disponível, OFF até prova Android; sem Cython geral|
-|29|Evitar uploads GPU|Pendente|PBO GLES3 implementado em laboratório, mas não há janela GPU compatível no jogo, upload real ainda não integrado|
+|29|Evitar uploads GPU|Parcial|v749 conecta PBO GLES3 ao presenter de janela real via flags opt-in GLES_BRIDGE+GLES3_CONTEXT+GLES_PBO; fallback para upload direto; não há benchmark Android|
 |30|Apresentação final/SDL|**Concluída (offline)**|swap/cópias instrumentados; não comprova taxa de atualização Android|
 |31|Atlas pré-aquecido|**Concluída (offline)**|atlas PROD SHA-256 verificados v32776 + tiles PROD v32777|
 |32|VSync/driver/Perfetto|Parcial|sondas instrumentadas, Perfetto Android não coletado|
@@ -78,12 +78,12 @@ Nas 15 parciais, houve avanço: o boot QA pode aquecer o **page cache de arquivo
 
 **O que realmente impede 32/32 hoje:** integração segura do presenter GLES na janela SDL existente (#1/#3/#4/#29), paridade e tempo comprovados da rolagem incremental no caminho de Cidade real (#5), testes integrais não realizados de clouds/pets/GC/RSS e clock de driver Android (#12/#22/#25/#26/#28/#32). Implementar APIs laboratoriais não autoriza marcá-las como concluídas.
 
-**Placar conservador de código: 12 concluídas offline, 17 parciais, 3 pendentes**. A nova branch melhora código real de diversas parciais, mas não conclui as 32 nem declara ganho de FPS antes de medir.
+**Placar conservador de código: 12 concluídas offline, 18 parciais, 2 pendentes**. A nova branch melhora código real de diversas parciais, mas não conclui as 32 nem declara ganho de FPS antes de medir.
 
 ### v749 — ponte GPU experimental integrada ao caminho real (SEM homologação)
 
 A ponte `pixelrush_qa_gles_bridge_v327749.py` passa a ser instalada pela entrada de render QA, **mas não age por padrão**. Com ativação experimental explícita `PIXELRUSH_QA_GLES_BRIDGE=1` e, para zoom, `PIXELRUSH_QA_GPU_ZOOM=1`, retorna uma Surface CPU de staging ao jogo, cria presenter GLES, preserva entrada SDL, UI/HUD já composto e apresenta no `pygame.display.flip`. Para zoom, atualiza apenas os mesmos valores originais de `CameraCinematica` e tenta o shader fixo do laboratório GLES (sem mexer em física). Erro de driver ou upload recria uma janela SDL e conserva a Surface de CPU.
 
-Esses fluxos **não possuem aprovação Android**, podem ser mais lentos por upload RGBA por quadro e não são usados na execução normal. O driver GLES2 pode não oferecer PBO GLES3, portanto #29 não foi elevado para parcial/concluído. #4 (unificação de todos passes) e #5 (scroll incremental seguro em todas as cenas) permanecem pendentes.
+Esses fluxos **não possuem aprovação Android**, podem ser mais lentos por upload RGBA por quadro e não são usados na execução normal. Por padrão, GLES2 não oferece PBO GLES3; o opt-in `PIXELRUSH_QA_GLES3_CONTEXT=1` solicita um contexto ES3 real. Em conjunto com `PIXELRUSH_QA_GLES_PBO=1`, o presenter passa a poder usar a rotina PBO já existente. A conexão de runtime avança #29 para PARCIAL, sem aprovação de uploads/ganho no Android. #4 (unificação de todos passes) e #5 (scroll incremental seguro em todas as cenas) permanecem pendentes.
 
-Status #1 e #3 alterados de PENDENTE para PARCIAL pela presença de uma integração de runtime desligada por segurança; nenhuma nova frente declarada **concluída**. Não realizar testes na plataforma Android nem APK até a solicitação de homologação final.
+Status #1, #3 e #29 alterados de PENDENTE para PARCIAL pela presença de uma integração de runtime desligada por segurança; nenhuma nova frente declarada **concluída**. Não realizar testes na plataforma Android nem APK até a solicitação de homologação final.
