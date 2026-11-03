@@ -90,6 +90,39 @@ class CidadeAlphaScroll754(unittest.TestCase):
         finally:
             city._QA_NEAR_TUPLE_ON_DEMAND = saved
 
+    def test_destino_rgba_alpha_zero_rgb_oculto_requer_blit_inteiro(self):
+        # SDL2 com source alpha=0 modifica RGB oculto quando dest alpha=0.
+        # Um crop baseado apenas no bbox de alpha mudaria esses bytes.
+        src=pygame.Surface((2, 2), pygame.SRCALPHA, 32)
+        src.fill((91, 63, 20, 0))
+        dest=pygame.Surface((2, 2), pygame.SRCALPHA, 32)
+        dest.fill((18, 37, 71, 0))
+        original=dest.copy()
+        original.blit(src, (0,0))
+        self.assertNotEqual(raw_rgba(original),raw_rgba(dest))
+        from pixelrush_city2_v3125 import CityPilotScene
+        import pixelrush_city2_v3118 as base
+        scene=CityPilotScene()
+        variant=scene.layers[0].variants[0]
+        flags=(base._QA_ALPHA_BOUNDS,base._QA_SKIP_EMPTY_BASE)
+        try:
+            for initial_alpha in (0,1,17,147,255):
+                a=pygame.Surface((450,500),pygame.SRCALPHA,32)
+                a.fill((18,37,71,initial_alpha))
+                b=a.copy()
+                base._QA_ALPHA_BOUNDS=False
+                base._QA_SKIP_EMPTY_BASE=False
+                scene._render_chunk(a,variant,False,-465,42,.4,
+                                    'limpo',.55,'image')
+                base._QA_ALPHA_BOUNDS=True
+                base._QA_SKIP_EMPTY_BASE=True
+                scene._render_chunk(b,variant,False,-465,42,.4,
+                                    'limpo',.55,'image')
+                self.assertEqual(raw_rgba(a),raw_rgba(b),
+                                 ("hidden_rgba",initial_alpha))
+        finally:
+            base._QA_ALPHA_BOUNDS,base._QA_SKIP_EMPTY_BASE=flags
+
     def test_scroll_saltos_direto_sem_reconstruir_frame(self):
         from pixelrush_city2_v3125 import CityPilotScene
         import pixelrush_qa_incremental_scene_v327750 as incr
