@@ -3,14 +3,14 @@
 **Fonte inicial:** `QA_AUDITORIA_32_v327738.md`; reavaliação com código até v3.277.49 e evidências anteriores da v3.277.47.  
 **Critério:** *concluída no código/QA offline* significa técnica presente e com testes focados; **não implica FPS Android comprovado nem todas as 32 homologadas**. *Parcial* significa atuação limitada a alguns cenários, flag OFF, falta de teste integral ou pré-carregamento não integrado; *pendente* significa proposta ainda não integrada ao render real.
 
-**Resultado: 12/32 concluídas em código/QA offline (37,5%); 15/32 parciais (46,875%); 5/32 pendentes (15,625%). Total 32/32.**
+**Resultado de implementação (não homologação): 12/32 anteriormente concluídas offline (37,5%); 17/32 parciais (53,125%); 3/32 pendentes (9,375%). Total 32/32.**
 **Homologação de ganhos em aparelho Android para esta versão: 0/32 novos gates Android comprovados na v3.277.49.**
 
 | # | Melhoria das 32 | Estado | Evidência e ressalva |
 |---:|---|---|---|
-|1|Zoom por GPU|Pendente|GLES shader/presenter experimental existe; gate v747 exige janela, input, HUD, RGBA e Android reais, OFF|
+|1|Zoom por GPU|Parcial|v749 integra wrapper de CameraCinematica com geometria de zoom original e shader fixo GLES em janela opt-in; flags OFF, paridade/ganho Android pendentes|
 |2|Compositor 2.5D persistente|Parcial|v749 reutiliza o plano (posições/referências) de tiles da Cidade real entre canais de render; nenhum framebuffer extra; redraw do quinto quadro continua|
-|3|CPU/GPU híbrido|Pendente|gate de backend seguro v747 recusa troca SDL Surface para OpenGL sem integração real; CPU preservada|
+|3|CPU/GPU híbrido|Parcial|v749 cria ponte real CPU staging Surface -> GLES2 durante display.flip, preservando HUD/input SDL e fallback SDL, totalmente OFF por padrão|
 |4|Unificação zoom/posprocessamento|Pendente|renderer SDL e GLES laboratório ainda não têm contrato único pixel-exato integrado ao frame real|
 |5|Scroll incremental de pixels|Pendente|prova isolada de strips existe; inserção no loop de cenário real sem atrasar o frame não homologada|
 |6|Recorte de transparências|**Concluída (offline)**|wrapper Fase B; culling RGBA testado|
@@ -46,7 +46,7 @@
 
 ## Bloqueios técnicos específicos para concluir as 20 restantes
 
-Para respeitar *absolutamente* as funções e pixels, os cinco itens dependentes de GPU (#1, #3, #4, #5 e #29) não podem ser marcados como concluídos pela mera presença de classes experimentais. O renderer atual usa `pygame.display.set_mode` com `Surface`; o laboratório GLES abre outra janela e não fornece entrada/HUD compatíveis com a produção. O shader GPU também apresentou divergências de arredondamento no passado. O gate v747 recusa trocar a saída sem integração/igualdade total.
+Para respeitar *absolutamente* as funções e pixels, os itens dependentes de GPU (#1, #3, #4, #5 e #29) não podem ser marcados como concluídos pela mera presença de classes experimentais. O renderer atual usa `pygame.display.set_mode` com `Surface`; o laboratório GLES abre outra janela e não fornece entrada/HUD compatíveis com a produção. O shader GPU também apresentou divergências de arredondamento no passado. O gate v747 recusa trocar a saída sem integração/igualdade total.
 
 Nas 15 parciais, houve avanço: o boot QA pode aquecer o **page cache de arquivos** dos atlas com I/O limitado sem mudar a sequência aleatória (#23); o backend usa seleção conservadora por condições (#12); o quinto quadro possui ferramenta que identifica o estágio da divergência (#2/#10). Não há evidência suficiente para ativar buffers offscreen independentes (v746: neve 10/35 quadros divergentes, deserto 20/35), remover passagens que alterem transparência ou desabilitar efeitos sob pressão RSS.
 
@@ -63,7 +63,7 @@ Nas 15 parciais, houve avanço: o boot QA pode aquecer o **page cache de arquivo
 - **Gates previstos:** `tests/test_qa_stagger_trim_v327748.py` (RGBA clima em todos biomas, multi-instância, 180 flips, fallback), benchmark CPU/RSS `.github/scripts/qa_benchmark_performance_v327748.py`, regressões anteriores e relatório JSON no workflow `qa-offline-v327748.yml`. Somente resultado executado e verificado deve virar aprovação.
 - **Invariantes:** main/DEV, física, HUD, sprites, clima visual, saves, pets, atlas, shaders, rolagem, PBO, GLES e AAB não foram alterados. Nenhum APK foi compilado nem teste Android realizado.
 
-**Placar mantido até comprovação de integração e regressão:** 12 concluídas, 15 parciais, 5 pendentes. Melhorias reais em três frentes parciais não equivalem à conclusão delas.
+**Placar histórico v748:** 12 concluídas, 15 parciais, 5 pendentes. Melhorias reais em três frentes parciais não equivalem à conclusão delas.
 
 ## Avanços da v3.277.49-QA (somente branch isolada)
 
@@ -78,4 +78,12 @@ Nas 15 parciais, houve avanço: o boot QA pode aquecer o **page cache de arquivo
 
 **O que realmente impede 32/32 hoje:** integração segura do presenter GLES na janela SDL existente (#1/#3/#4/#29), paridade e tempo comprovados da rolagem incremental no caminho de Cidade real (#5), testes integrais não realizados de clouds/pets/GC/RSS e clock de driver Android (#12/#22/#25/#26/#28/#32). Implementar APIs laboratoriais não autoriza marcá-las como concluídas.
 
-**Placar conservador ainda: 12 concluídas offline, 15 parciais, 5 pendentes**. A nova branch melhora código real de diversas parciais, mas não conclui as 32 nem declara ganho de FPS antes de medir.
+**Placar conservador de código: 12 concluídas offline, 17 parciais, 3 pendentes**. A nova branch melhora código real de diversas parciais, mas não conclui as 32 nem declara ganho de FPS antes de medir.
+
+### v749 — ponte GPU experimental integrada ao caminho real (SEM homologação)
+
+A ponte `pixelrush_qa_gles_bridge_v327749.py` passa a ser instalada pela entrada de render QA, **mas não age por padrão**. Com ativação experimental explícita `PIXELRUSH_QA_GLES_BRIDGE=1` e, para zoom, `PIXELRUSH_QA_GPU_ZOOM=1`, retorna uma Surface CPU de staging ao jogo, cria presenter GLES, preserva entrada SDL, UI/HUD já composto e apresenta no `pygame.display.flip`. Para zoom, atualiza apenas os mesmos valores originais de `CameraCinematica` e tenta o shader fixo do laboratório GLES (sem mexer em física). Erro de driver ou upload recria uma janela SDL e conserva a Surface de CPU.
+
+Esses fluxos **não possuem aprovação Android**, podem ser mais lentos por upload RGBA por quadro e não são usados na execução normal. O driver GLES2 pode não oferecer PBO GLES3, portanto #29 não foi elevado para parcial/concluído. #4 (unificação de todos passes) e #5 (scroll incremental seguro em todas as cenas) permanecem pendentes.
+
+Status #1 e #3 alterados de PENDENTE para PARCIAL pela presença de uma integração de runtime desligada por segurança; nenhuma nova frente declarada **concluída**. Não realizar testes na plataforma Android nem APK até a solicitação de homologação final.
