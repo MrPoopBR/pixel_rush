@@ -10,6 +10,8 @@ O cache LRU contém apenas texturas visíveis (sem duplicar dezenas de mapas
 """
 from collections import OrderedDict
 import os
+# A flag e lida apenas no import, antes da corrida: zero getenv por tile.
+_QA_NATIVE_CLIP=os.environ.get('PIXELRUSH_QA_CITY_NATIVE_CLIP','1')=='1'
 import math
 import random
 import pygame
@@ -248,7 +250,7 @@ class CityPilotScene(PreviousCity):
             # recorte manual anterior, sem pygame.Rect + area por tile.
             # Verifica visibilidade ANTES de consultar/criar textura LRU.
             # Fallback por PIXELRUSH_QA_CITY_NATIVE_CLIP=0.
-            if os.environ.get('PIXELRUSH_QA_CITY_NATIVE_CLIP','1')=='1':
+            if _QA_NATIVE_CLIP:
                 if x<WIDTH and x+SCENE_W>0:
                     target.blit(self._scaled_surface(variant,map_kind),(x,0))
             else:
