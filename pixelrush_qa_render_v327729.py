@@ -62,6 +62,10 @@ def instalar():
     # o blit direto e 16 comparacoes de pixels sao idênticas.
     from pixelrush_qa_scroll_auto_v327742 import instalar as instalar_scroll_qa
     instalar_scroll_qa()
+    # v3.277.44: batching nas classes v3128/v3130 do mundo REAL,
+    # desativado por padrao ate prova de ganho Android.
+    from pixelrush_qa_modular_batch_v327744 import instalar as instalar_modular_batch_qa
+    instalar_modular_batch_qa()
     # QA v3.277.42: pool meteorologico, limite de cache e Perfetto opcionais;
     # sempre reaproveita o compositor e a camera originais.
     from pixelrush_qa_performance_integrated_v327742 import instalar as instalar_perf_qa

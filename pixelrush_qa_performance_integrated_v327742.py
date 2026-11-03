@@ -31,6 +31,7 @@ _LAST_STATUS={'frames':0,'renderer':None,'cpu_backend':None,'gc_pause_p95_ms':No
 _GC_START={}
 _GC_PAUSES=deque(maxlen=256)
 _FLIP_SAMPLES=deque(maxlen=256)
+_CLEANUP_SAMPLES=deque(maxlen=128)
 
 
 def _ram_budget_mib():
@@ -191,7 +192,10 @@ def _reclaim_inactive_caches():
             world._city_surfaces.pop(key,None)
             count+=1
         city=getattr(world,'city2',None)
-        if city is not None and len(getattr(city,'_scaled',{}))>8:
+        # Nao desalocar texturas escaladas da CIDADE atualmente visivel.
+        # O LRU original ja e limitado a 14; expulsar 6 texturas a cada 180
+        # flips provocava reconstrucoes repetidas sob pressao de RSS.
+        if city is not None and world.biome!='cidade' and len(getattr(city,'_scaled',{}))>8:
             while len(city._scaled)>8:
                 city._scaled.popitem(last=False)
                 count+=1
@@ -238,7 +242,16 @@ def _wrap_flip():
         _FLIP_SAMPLES.append((time.perf_counter_ns()-t0)/1e6)
         _LAST_STATUS['frames']+=1
         if _LAST_STATUS['frames']%180==0:
-            _reclaim_inactive_caches()
+            inicio_limpeza=time.perf_counter_ns()
+            try:
+                _reclaim_inactive_caches()
+            finally:
+                custo_ms=(time.perf_counter_ns()-inicio_limpeza)/1e6
+                _CLEANUP_SAMPLES.append(custo_ms)
+                _LAST_STATUS['cache_cleanup_last_ms']=round(custo_ms,4)
+                ordenados=sorted(_CLEANUP_SAMPLES)
+                _LAST_STATUS['cache_cleanup_p95_ms']=round(
+                    ordenados[round(.95*(len(ordenados)-1))],4)
             try:
                 _LAST_STATUS['renderer']=pygame.display.get_driver()
                 _LAST_STATUS['cpu_backend']=pygame.transform.get_smoothscale_backend()
@@ -296,4 +309,5 @@ def restaurar_para_teste():
         gc.callbacks.remove(_gc_observer)
     _ORIGINALS.clear()
     _WORLDS.clear()
+    _CLEANUP_SAMPLES.clear()
     _INSTALLED=False

@@ -175,6 +175,10 @@ class TestQA742(unittest.TestCase):
             self.assertEqual(dict(fake.cache),{'cidade':'ativo'})
             self.assertEqual(dict(fake.fx_cache),{'cidade':'ativo'})
             self.assertEqual(fake._city_surfaces,{('image',False):'quadro'})
+            self.assertEqual(len(fake.city2._scaled),12)
+            # O mundo ativo conserva suas texturas; em bioma frio o LRU e reduzido.
+            fake.biome='neve'
+            qa._reclaim_inactive_caches()
             self.assertEqual(len(fake.city2._scaled),8)
         finally:
             qa._WORLDS.discard(fake)
