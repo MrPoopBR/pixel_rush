@@ -9,6 +9,7 @@ O cache LRU contém apenas texturas visíveis (sem duplicar dezenas de mapas
 900x500 em memória). Este módulo não muda colisões do jogador ou obstáculos.
 """
 from collections import OrderedDict
+import os
 import math
 import random
 import pygame
@@ -27,6 +28,8 @@ class CityPilotScene(PreviousCity):
         self._glows = {}
         self._sky_cache = OrderedDict()
         self._qa_cloud_sprite_cache = {}
+        # QA v3.277.43: blits cacheados ficaram mais lentos no benchmark Linux.
+        self._qa_cloud_use_cache = os.environ.get('PIXELRUSH_QA_CLOUD_CACHE','0')=='1'
         self._scaled = OrderedDict()
         self._scaled_limit = 14
         self.rand = random.Random(31180)
@@ -295,16 +298,24 @@ class CityPilotScene(PreviousCity):
         # QA 3.277.42: o desenho das 4 circunferencias e identico em
         # todas as 7 nuvens. Pre-renderiza 48x33 RGBA apenas por cor,
         # preservando ordem, coordenadas e blending de pixels opacos.
-        tile=self._qa_cloud_sprite_cache.get(cloud)
-        if tile is None:
-            tile=pygame.Surface((48,33),pygame.SRCALPHA)
-            for dx,dy,r in ((0,0,15),(-12,5,10),(13,5,11),(4,-6,9)):
-                pygame.draw.circle(tile,cloud,(22+dx,15+dy),r)
-            self._qa_cloud_sprite_cache[cloud]=tile
-        for i in range(7):
-            cx=int((i*97+26-travel*.047)%(WIDTH+120))-50
-            cy=37+(i%3)*26
-            target.blit(tile,(cx-22,cy-15))
+        if self._qa_cloud_use_cache:
+            tile=self._qa_cloud_sprite_cache.get(cloud)
+            if tile is None:
+                tile=pygame.Surface((48,33),pygame.SRCALPHA)
+                for dx,dy,r in ((0,0,15),(-12,5,10),(13,5,11),(4,-6,9)):
+                    pygame.draw.circle(tile,cloud,(22+dx,15+dy),r)
+                self._qa_cloud_sprite_cache[cloud]=tile
+            for i in range(7):
+                cx=int((i*97+26-travel*.047)%(WIDTH+120))-50
+                cy=37+(i%3)*26
+                target.blit(tile,(cx-22,cy-15))
+        else:
+            # Mesmo desenho historico, coordenadas e sobreposicoes.
+            for i in range(7):
+                cx=int((i*97+26-travel*.047)%(WIDTH+120))-50
+                cy=37+(i%3)*26
+                for dx,dy,r in ((0,0,15),(-12,5,10),(13,5,11),(4,-6,9)):
+                    pygame.draw.circle(target,cloud,(cx+dx,cy+dy),r)
         if climate in ('chuva','tempestade'):
             for i in range(22 if climate=='chuva' else 32):
                 xx=int((i*51-frame*(3.4 if climate=='chuva' else 5.8))%(WIDTH+35))-15

@@ -158,7 +158,9 @@ def _reclaim_inactive_caches():
     if rss<=_LAST_STATUS['cache_budget_mib']:
         return
     count=0
-    for world in tuple(_WORLDS):
+    mundos=tuple(_WORLDS)
+    ativos={getattr(world,'biome',None) for world in mundos}
+    for world in mundos:
         active=world.biome
         for key in list(world.props_cache):
             if key[0]!=active:
@@ -188,21 +190,20 @@ def _reclaim_inactive_caches():
         for key in cold:
             world._city_surfaces.pop(key,None)
             count+=1
-        # O atlas-base de outros biomas fica em _SOURCE global. O atual
-        # permanece residente, outros reaparecem byte-identicos via PNG.
-        try:
-            from pixelrush_world_v3130 import _SOURCE
-            for key in tuple(_SOURCE):
-                if key!=active:
-                    _SOURCE.pop(key,None)
-                    count+=1
-        except (ImportError,AttributeError):
-            pass
         city=getattr(world,'city2',None)
         if city is not None and len(getattr(city,'_scaled',{}))>8:
             while len(city._scaled)>8:
                 city._scaled.popitem(last=False)
                 count+=1
+    # Fonte global compartilhada: nenhuma instancia viva perde seu bioma.
+    try:
+        from pixelrush_world_v3130 import _SOURCE
+        for key in tuple(_SOURCE):
+            if key not in ativos:
+                _SOURCE.pop(key,None)
+                count+=1
+    except (ImportError,AttributeError):
+        pass
     if count:
         _LAST_STATUS['cache_trim_events']+=1
 

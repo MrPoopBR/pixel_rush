@@ -150,6 +150,7 @@ class QATelemetria:
         self.ultima_falha = None
         self.gravacoes = 0
         self._qa_gravador = None
+        self._qa_snapshot_pendente = None
 
     def iniciar(self, estado, bioma):
         agora = self.relogio()
@@ -240,20 +241,30 @@ class QATelemetria:
             self.piores.append(evento)
             self.piores.sort(key=lambda x: x['trabalho_ms'], reverse=True)
             del self.piores[100:]
+        # Copia ate duas metricas e 64 linhas por quadro; nunca gera JSON aqui.
+        if self._qa_snapshot_pendente is not None:
+            try:
+                pronto = self._qa_snapshot_pendente.passo()
+                if pronto is not None:
+                    self._qa_snapshot_pendente = None
+                    self._enviar_snapshot_periodico(*pronto)
+            except (OSError,ValueError,TypeError,RuntimeError,MemoryError):
+                self._qa_snapshot_pendente = None
+                self.erros_escrita += 1
+                self.ultima_falha = 'snapshot_parcelado'
         if self.contagem % 600 == 0:
-            # Exportacao periodica sem esperar escrita, sync somente na saida.
             self.salvar(esperar=False)
 
-    def relatorio(self, resumir=True):
-        # Snapshot imutavel das janelas de 1800 amostras. A ordenacao e
-        # calculada na thread de I/O nas gravacoes periodicas.
-        snapshot = {}
-        for chave, amostras in self.agregados.items():
-            snapshot[chave] = {
-                'quadros_observados': self.quantidades[chave],
-                'amostras': {nome: tuple(valores) for nome, valores in amostras.items()},
-                'travamentos_trabalho': dict(self.picos[chave]),
-            }
+    def relatorio(self, resumir=True, snapshot=None):
+        # A coleta periodica fornece snapshots prontos em parcelas por frame.
+        if snapshot is None:
+            snapshot = {}
+            for chave, amostras in self.agregados.items():
+                snapshot[chave] = {
+                    'quadros_observados': self.quantidades[chave],
+                    'amostras': {nome: tuple(valores) for nome, valores in amostras.items()},
+                    'travamentos_trabalho': dict(self.picos[chave]),
+                }
         por_modo_bioma = _resumir_grupos_qa(snapshot) if resumir else snapshot
         return {
             'schema': 'pixelrush.qa.android.v1', 'versao': self.versao, 'edicao': self.edicao,
@@ -273,19 +284,48 @@ class QATelemetria:
                 'FPS estimado por intervalo entre inicios, inclui limitador e pausas do SO.',
                 'Travamentos calculados por trabalho sem espera intencional do limitador.',
                 'Janela de 1800 amostras recentes por grupo, ultimos 4000 quadros em CSV.',
-                'A gravacao periodica a cada 600 frames prepara snapshots no quadro; percentis e JSON/CSV sao calculados no worker.',
+                'Snapshots periodicos: ate 2 metricas/64 linhas por quadro; percentis e JSON/CSV no worker.',
                 'Nenhum save, entrada de jogador, identificador pessoal ou conteudo do frame coletado.',
             ],
             'exportacoes_realizadas': self.gravacoes, 'erros_exportacao': self.erros_escrita,
             'ultimo_erro_exportacao': self.ultima_falha,
         }
 
+    def _enviar_snapshot_periodico(self, grupos, linhas):
+        try:
+            if self._qa_gravador is None:
+                from pixelrush_qa_async_export_v327737 import GravadorQA
+                self._qa_gravador = GravadorQA()
+            gravador = self._qa_gravador
+            if gravador._pendente is not None and not gravador._pendente.done():
+                return False
+            relatorio = self.relatorio(resumir=False, snapshot=grupos)
+            gravador.enviar(self.pasta, 'pixelrush_qa_v327743',
+                            relatorio, linhas, esperar=False,
+                            preparar_relatorio=_preparar_exportacao_qa,
+                            linhas_prontas=True)
+            self.gravacoes = gravador.concluidas
+            self.erros_escrita = gravador.falhas
+            self.ultima_falha = gravador.ultimo_erro
+            return True
+        except (OSError, ValueError, TypeError, RuntimeError) as erro:
+            self.erros_escrita += 1
+            self.ultima_falha = type(erro).__name__
+            return False
+
     def salvar(self, esperar=True):
         """Grava snapshots fora do frame; a chamada final espera o ultimo disco.
 
-        Snapshots de deques sao criados no thread principal, enquanto percentis,
-        serializacao JSON/CSV e I/O rodam fora do frame no worker unico.
+        Em exportacoes periodicas as deques/linhas sao copiadas em parcelas,
+        enquanto JSON/CSV e I/O rodam no worker. Ao sair, coleta tudo de uma vez.
         """
+        if not esperar:
+            if self._qa_snapshot_pendente is None:
+                from pixelrush_qa_snapshot_v327743 import CapturaParceladaQA
+                self._qa_snapshot_pendente = CapturaParceladaQA(self)
+            return True
+        # Flush de encerramento: captura o estado final, fora do frame.
+        self._qa_snapshot_pendente = None
         try:
             if self._qa_gravador is None:
                 from pixelrush_qa_async_export_v327737 import GravadorQA
@@ -298,7 +338,7 @@ class QATelemetria:
             relatorio = self.relatorio(resumir=False)
             linhas = tuple(dict(x) for x in self.ultimos)
             aceito = gravador.enviar(
-                self.pasta, 'pixelrush_qa_v327742', relatorio, linhas,
+                self.pasta, 'pixelrush_qa_v327743', relatorio, linhas,
                 esperar=esperar, preparar_relatorio=_preparar_exportacao_qa)
             self.gravacoes = gravador.concluidas
             self.erros_escrita = gravador.falhas

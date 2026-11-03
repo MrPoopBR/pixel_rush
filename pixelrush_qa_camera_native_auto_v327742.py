@@ -124,6 +124,16 @@ def _verificar_primeiro_frame(imagem,camera,jogador,velocidade,momento,ativo):
     return False
 
 
+def preparar_fora_do_frame(imagem,camera,jogador,velocidade=6,momento=False,ativo=True):
+    """Homologacao explicita OFFLINE, nunca invocada no render."""
+    if os.environ.get('PIXELRUSH_QA_NATIVE_AUTO','0')!='1':
+        _REPORT['status']='nao_solicitado'
+        return False
+    aprovado=_verificar_primeiro_frame(imagem,camera,jogador,velocidade,momento,ativo)
+    _REPORT['selecionado']=bool(aprovado)
+    return bool(aprovado)
+
+
 def instalar():
     global _INSTALLED,_ORIGINAL
     if _INSTALLED:
@@ -136,16 +146,10 @@ def instalar():
         if not ativo or jogador is None:
             return _ORIGINAL(self,imagem,jogador,velocidade,momento,ativo)
         if not _REPORT['selecionado']:
-            if _REPORT['status']=='nao_avaliado' and (
-                os.environ.get('PIXELRUSH_QA_NATIVE_AUTO','1')=='1'):
-                aprovado=_verificar_primeiro_frame(
-                    imagem,self,jogador,velocidade,momento,ativo)
-                if aprovado:
-                    _REPORT['selecionado']=True
-                elif aprovado is None:
-                    return _ORIGINAL(self,imagem,jogador,velocidade,momento,ativo)
-            if not _REPORT['selecionado']:
-                return _ORIGINAL(self,imagem,jogador,velocidade,momento,ativo)
+            # O teste completo envolve 12 resamplings e nao cabe no frame.
+            if _REPORT['status']=='nao_avaliado':
+                _REPORT['status']='aguardando_preflight_fora_de_frame'
+            return _ORIGINAL(self,imagem,jogador,velocidade,momento,ativo)
         # Native selecionado: aplica EXATAMENTE a mesma evolucao de zoom/foco.
         geometria=_geometria_camera(
             self,imagem,jogador,velocidade,momento,ativo)

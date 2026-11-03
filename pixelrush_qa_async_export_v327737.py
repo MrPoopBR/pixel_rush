@@ -58,14 +58,14 @@ class GravadorQA:
         self._pendente = None
         return True
 
-    def enviar(self, pasta, prefixo, relatorio, linhas, esperar=False, preparar_relatorio=None):
+    def enviar(self, pasta, prefixo, relatorio, linhas, esperar=False, preparar_relatorio=None, linhas_prontas=False):
         # So a thread principal chama enviar(). Nenhum dado mutavel do jogo
         # e acessado pelo worker: as linhas e relatorio sao snapshots.
         if not self._conferir(esperar):
             return False
         self._pendente = self._executor.submit(
             _escrever, Path(pasta), str(prefixo), relatorio,
-            tuple(dict(l) for l in linhas), preparar_relatorio)
+            linhas if linhas_prontas else tuple(dict(l) for l in linhas), preparar_relatorio)
         if esperar:
             self._conferir(True)
         return True

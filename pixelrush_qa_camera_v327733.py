@@ -35,7 +35,7 @@ def _teste_real(imagem, tamanho):
     if original in ('NEON', 'SSE2'):
         _RESULTADO['resultado'] = 'backend_simd_ja_ativo'
         return original
-    if os.environ.get('PIXELRUSH_QA_CAMERA_AUTOTUNE', '1') != '1':
+    if os.environ.get('PIXELRUSH_QA_CAMERA_AUTOTUNE', '0') != '1':
         _RESULTADO['resultado'] = 'desativado_por_flag'
         return original
 
@@ -100,6 +100,11 @@ def _teste_real(imagem, tamanho):
         pygame.transform.set_smoothscale_backend(original)
 
 
+def preparar_fora_do_frame(imagem, tamanho):
+    """Bancada explicita: certifica backend fora do frame."""
+    return _teste_real(imagem, tamanho)
+
+
 def instalar():
     global _INSTALADO, _ORIGINAL
     if _INSTALADO:
@@ -110,14 +115,7 @@ def instalar():
 
     @wraps(_ORIGINAL)
     def aplicar_qa(self, imagem, jogador=None, velocidade=6, momento=False, ativo=True):
-        if not _RESULTADO['avaliado'] and ativo and jogador is not None:
-            # Avaliar somente apos zoom tornar-se efetivamente visivel.
-            # O primeiro frame normal nao e retido nem renderizado duas vezes.
-            if self.zoom >= .002:
-                w,h = imagem.get_size()
-                ex=max(1,int(w*self.zoom))
-                ey=max(1,int(h*self.zoom))
-                _teste_real(imagem,(w+2*ex,h+2*ey))
+        # Qualquer comparacao de backend ocorre apenas antes da corrida.
         escolhido = _RESULTADO['backend_camera']
         original_backend = pygame.transform.get_smoothscale_backend()
         if escolhido is None or escolhido == original_backend:

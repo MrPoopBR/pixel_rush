@@ -75,43 +75,38 @@ def _bench(texture,target):
                                'pixels_testados':checks},'aprovado' if ganho>=1.20 else 'mais_lento'
 
 
+def preparar_fora_do_frame(world, strip, target):
+    """Benchmark apenas em bancada antes da corrida, nunca dentro de _blit_strip."""
+    allow, results, reason = _bench(strip, target)
+    _MANAGER[world] = (strip, FaixaPersistenteQA(450) if allow else False)
+    _REPORT['avaliado'] = True
+    _REPORT['ativo'] = bool(allow)
+    _REPORT['resultado'] = reason
+    _REPORT['ganho_p50'] = results
+    _REPORT['testes_pixel_exatos'] = results['pixels_testados'] if results else 0
+    _REPORT['tamanho_cache_bytes'] = 450*500*4 if allow else 0
+    return bool(allow)
+
+
 def instalar():
-    global _INSTALLED,_ORIGINAL
+    global _INSTALLED, _ORIGINAL
     if _INSTALLED:
         return
     from pixelrush_world_v3130 import LivingWorld
-    _ORIGINAL=LivingWorld._blit_strip
+    _ORIGINAL = LivingWorld._blit_strip
 
     @wraps(_ORIGINAL)
-    def _blit_scroll_qa(self,target,strip):
-        if strip is None or os.environ.get('PIXELRUSH_QA_SCROLL_AUTO','1')!='1':
-            return _ORIGINAL(self,target,strip)
-        entry=_MANAGER.get(self)
-        # World instance is retained by its owner; store it to avoid false
-        # matches from identity reuse across world switches.
-        if entry is None or entry[0] is not strip:
-            _MANAGER[self]=(strip,None)
-            entry=_MANAGER[self]
-        approved=entry[1]
-        if approved is None:
-            allow,results,reason=_bench(strip,target)
-            _REPORT['avaliado']=True
-            _REPORT['ativo']=bool(allow)
-            _REPORT['resultado']=reason
-            _REPORT['ganho_p50']=results
-            _REPORT['testes_pixel_exatos']=results['pixels_testados'] if results else 0
-            _REPORT['tamanho_cache_bytes']=450*500*4 if allow else 0
-            if not allow:
-                _MANAGER[self]=(strip,False)
-                return _ORIGINAL(self,target,strip)
-            rolling=FaixaPersistenteQA(450)
-            _MANAGER[self]=(strip,rolling)
-            approved=rolling
-        if approved is False:
-            return _ORIGINAL(self,target,strip)
-        target.blit(approved.gerar(strip,self._scroll()),(0,230))
-    LivingWorld._blit_strip=_blit_scroll_qa
-    _INSTALLED=True
+    def _blit_scroll_qa(self, target, strip):
+        # Renderiza sem medir: sem evidencia precomputada, usa o blit original.
+        if strip is None or os.environ.get('PIXELRUSH_QA_SCROLL_AUTO','0')!='1':
+            return _ORIGINAL(self, target, strip)
+        entry = _MANAGER.get(self)
+        if entry is None or entry[0] is not strip or entry[1] is False or entry[1] is None:
+            return _ORIGINAL(self, target, strip)
+        target.blit(entry[1].gerar(strip, self._scroll()), (0, 230))
+
+    LivingWorld._blit_strip = _blit_scroll_qa
+    _INSTALLED = True
 
 
 def restaurar_para_teste():
