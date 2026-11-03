@@ -7,10 +7,10 @@
 ## Resultados discriminados
 
 - **32 de 32 frentes auditadas no código**, incluindo os módulos QA, integração no `main.py` e engine Android.
-- **15 de 32 concluídas em nível de implementação/testes offline direcionados** (12 anteriores + #26 GC cooperativo + #16 culling modular validado no código real); esta categoria **não significa homologação Android**. O gate de #26 passou em teste local sintético de 901 flips pygame-ce, não em corrida Android.
-- **17 de 32 possuem integração ou componentes, mas ainda não cumprem TODOS os critérios de conclusão.** Avanços reais nesta operação nas #2, #7, #10, #16, #22, #23, #24, #25 e #26. Algumas ficam parciais por escopo dos algoritmos, outras exigem hardware.
+- **17 de 32 concluídas em nível de implementação/testes offline direcionados** (12 anteriores + #26 GC cooperativo + #16 culling modular validado no código real); esta categoria **não significa homologação Android**. O gate de #26 passou em teste local sintético de 901 flips pygame-ce, não em corrida Android.
+- **15 de 32 possuem integração ou componentes, mas ainda não cumprem TODOS os critérios de conclusão.** Avanços reais nesta operação nas #2, #7, #10, #16, #22, #23, #24, #25 e #26. Algumas ficam parciais por escopo dos algoritmos, outras exigem hardware.
 - **0 de 32 homologadas como pacote Android completo** nesta tarefa, porque não foi solicitado nem executado APK, Android, Perfetto ou teste final do aparelho.
-- **Não converter as 17 frentes parciais em concluídas artificialmente**: GPU/GLES/PBO/NEON/driver precisam do gate no hardware, e scroll incremental não comprovou desempenho superior para atlas SDL-RLE usados no caminho real.
+- **Não converter as 15 frentes parciais em concluídas artificialmente**: GPU/GLES/PBO/NEON/driver precisam do gate no hardware, e scroll incremental não comprovou desempenho superior para atlas SDL-RLE usados no caminho real.
 
 | # | Melhoria | Estado de implementação | Evidência / pendência |
 |---:|---|---|---|
@@ -31,12 +31,12 @@
 |15|FABRIK/deformação|Concluída offline anteriormente|Buffers QA reutilizados e limitados.|
 |16|Culling fora da tela|**Concluída na implementação e gate offline v758**|Rotinas reais Neve/Deserto e wrapper preservam byte RGBA, inclusive RGB oculto; 180 combinações de camada/canal/travel/bioma aprovadas no CI #41714045870. Homologação Android pendente.|
 |17|Blits em lote|Concluída offline anteriormente|Lote por strips e mapas modulares com fallback.|
-|18|Cache de céu e clima|Integrada, parcial|Nuvens cacheadas apenas quando composição SDL é byte-exata em RGB; alvos SRCALPHA/alpha parcial usam desenho original. Clima modular reutiliza buffers, Cidade sementes; falta gate ampliado da rota completa.|
+|18|Cache de céu e clima|**Concluída na implementação e gate offline v763**|Céu real 7 biomas × fases/noite × RGB/RGBA (168 cenários), nuvens cacheadas RGB com fallback SRCALPHA, 14 climas clássicos e modular RGBA testados (CI #41721393824). Android pendente.|
 |19|Vinheta noturna|Concluída offline anteriormente|BLEND_RGBA_MULT por fill sem superfície adicional.|
 |20|Pool de partículas|Integrada, parcial|Sementes fixas pré-computadas e Surface clima reutilizada; ainda sem pool unificado de todas as famílias.|
 |21|Fontes e labels|Concluída offline anteriormente|Textos e fontes sob cache com limite.|
 |22|Pré-carregar skins/pets|Integrada, parcial|Novo precarga menu: skins ativas e ID pet equipado, em fatias e sem RNG; PetStudio atual é placeholder, não declarar atlas de pet carregado.|
-|23|Pré-aquecimento biomas|Integrada, parcial, avanço v762|SHA atlas PROD na thread original; tiles PROD QA em fatias máximas de 64 KiB por frame só no menu, com SHA+orçamento+fallback e sem RNG/Surface.|
+|23|Pré-aquecimento biomas|**Concluída em implementação e gate offline v763**|Atlas SHA seguem na thread PROD original; tiles oficiais Neve/Deserto/Cidade Futurista SHA 3/3 em 13 passos de menu e 720381 bytes, até 64 KiB/frame, sem RNG/SDL. CI #41721393824; Android pendente.|
 |24|Deduplicação Surfaces|Integrada, parcial|Dedup integral de atlas técnicos + fill uniforme e memo mesma instância/quadro.|
 |25|Limite global de cache|Integrada, parcial|LRUs, trim RSS fora frame 5 e descarte seguro do alias geometry de cena aposentada no switch. Falta orçamento agregado/medição Android.|
 |26|Pausas GC|Concluída na implementação offline v757; refinada v758|Coleta exclusiva de geracao maior quando 30/180/900 coincidem, apenas no quadro 1 mod 5. Gate local de 901 flips aprovado; Android pendente.|
@@ -67,7 +67,7 @@
 
 **Preservação:** `main.py`, branch main, DEV, tutorial, física, hitboxes, cadência de fundo 5:1, pixels e iluminação, sombras/clima, câmera, controles, HUD, lojas/desbloqueios, pets, saves, sons, assets, shaders e workflows de produção não foram alterados nesta branch. A engine QA recebeu apenas ligação do prewarm e versão; Buildozer só versão. **Não ativar GLES, GPU zoom, PBO nem C/NEON sem prova no Android.**
 
-**Pendências de conclusão real:** #1/#3/#8/#12/#28/#29/#32 dependem do aparelho; #4/#5/#7/#10/#18/#20/#22/#23/#24/#25 ainda exigem cobertura/medição completa ou otimização funcional adicional. O trabalho feito nesta operação não pode ser renomeado 32/32 sem evidência. Não existe dependência de teste do usuário para continuar *implementando*; existe dependência de hardware para a homologação de determinados recursos.
+**Pendências de conclusão real:** #1/#3/#8/#12/#28/#29/#32 dependem do aparelho; #4/#5/#7/#10/#20/#22/#24/#25 ainda exigem cobertura/medição completa ou otimização funcional adicional. O trabalho feito nesta operação não pode ser renomeado 32/32 sem evidência. Não existe dependência de teste do usuário para continuar *implementando*; existe dependência de hardware para a homologação de determinados recursos.
 
 ## Revisao de integração v3.277.58 (mesma branch QA)
 
@@ -139,3 +139,9 @@ O preflight QA anterior lia e validava tiles PROD inteiros durante o boot, mesmo
 ## QA v3.277.63 — verificação dos tiles reais, fechamento sujeito ao CI
 
 A suíte anterior #23 tinha fixtures sintéticas aprovadas (CI #41720901804, 29 testes integrados). Foi adicionada uma prova independente dos binários oficiais neve.tiles, deserto.tiles e cidade_futurista.tiles, comparando os SHA reais de produção e exigindo conclusão em até 32 passos de menu de 64 KiB sem RNG/SDL nem arquivo aberto na corrida. Dados fonte do GitHub: 416901, 196268 e 107212 bytes; total 720381 bytes. Essa prova deve ser aprovada antes de promover #23 a concluída offline. A frente #18 já tem céu integral nos sete biomas, cache de nuvens, 14 climas clássicos e comparação RGBA de clima modular: pode ser encerrada offline após confirmação dos gates integrais. No ponto desta gravação mantêm-se 15/32 comprovadas e 17/32 parciais, zero homologação de hardware.
+
+## Fechamento comprovado offline da #18 e #23 — CI v3.277.63
+
+**Execução [GitHub Actions #41721393824](https://github.com/MrPoopBR/pixel_rush/actions/runs/41721393824): status success, 29/29 testes pygame-ce offline aprovados e preflight AST/SHA.** A prova do menu nos arquivos PROD reais confirmou neve.tiles 416901 B, deserto.tiles 196268 B, cidade_futurista.tiles 107212 B (total 720381 bytes), 3/3 SHA verificados em 13 passos de até 64 KiB por quadro; RNG preservado, sem Surface e com rollback. O céu integral dos sete biomas passou no teste do método real em 168 combinações, complementado pela prova de nuvens RGB/RGBA ocultos, 14 climas clássicos e transições modulares. O cache usa fallback SDL original nos casos não pixel-exatos. **#18 e #23 passam a concluídas apenas no critério implementação + QA offline; não significam aprovação de FPS ou hardware Android.**
+
+**Placar vigente: 17/32 concluídas offline; 15/32 ainda parciais; 0/32 homologadas no Android.** As sete frentes dependentes do dispositivo (#1/#3/#8/#12/#28/#29/#32) não foram forçadas a ON e permanecem pendentes. Outras oito frentes ainda precisam de implementação/medição mais extensa (#4/#5/#7/#10/#20/#22/#24/#25). Não fazer APK/AAB nem homologação final nesta operação. Referências anteriores neste documento ao placar 15/32 registram estados históricos dos commits passados.

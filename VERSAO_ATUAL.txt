@@ -67,3 +67,5 @@ QA v3.277.61: na troca de bioma, libera alias antigo da Surface tecnica geometry
 QA v3.277.62: tiles PROD QA leem SHA em fatias de 64KiB no MENU em vez de leitura sincronica no boot; atlas ja aquecidos em thread PROD, sem RNG/SDL/gameplay/Android/APK/AAB. QA_TRACKER_32_v327762.md e QA_CHANGELOG_v327762.md.
 
 QA v3.277.63: gate dos 3 arquivos de tiles PROD reais com SHA e leitura 64KiB por passo de menu, rodando no CI offline sem compilar Android. Geração de evidência para #18 (céu/clima) e #23 (pré-aquecimento), sem fingir homologação hardware. QA_TRACKER_32_v327763.md.
+
+QA v3.277.63 fechada no CI GitHub #41721393824: 29/29 testes offline aprovados; 3 SHA oficiais dos tiles em 13 passos de menu <=64KiB, e céu completo RGB/RGBA dos 7 biomas. #18 e #23 encerradas em implementação/QA offline; placar 17/32 offline, 15 parciais, 0 homologadas Android. Sem APK/AAB/homologação.
