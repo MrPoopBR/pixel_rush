@@ -81,6 +81,7 @@ class CityPilotScene(CidadeAnterior):
                 # A escala 1:1 grava os canais RGBA crus no buffer existente,
                 # sem o alpha-blend cumulativo que um blit produziria.
                 if (self._geometry_view is None or
+                        self._geometry_view is target or
                         self._geometry_view.get_size()!=target.get_size() or
                         self._geometry_view.get_bitsize()!=target.get_bitsize() or
                         self._geometry_view.get_masks()!=target.get_masks() or
