@@ -199,15 +199,20 @@ class ModularBiomeScene(Previous):
                 low.blit(self._weather,(0,0))
         pygame.transform.scale(low,(WIDTH,HEIGHT),target)
         if map_kind=='geometry':
-            # QA750: copia somente na primeira passagem. Nos quadros
-            # seguintes faz escrita exata 1:1 sem alpha-blend anterior.
-            if (self._geometry_view is None or
-                    self._geometry_view.get_size()!=target.get_size() or
-                    self._geometry_view.get_bitsize()!=target.get_bitsize() or
-                    self._geometry_view.get_masks()!=target.get_masks() or
-                    bool(self._geometry_view.get_flags() & pygame.SRCALPHA)!=
-                    bool(target.get_flags() & pygame.SRCALPHA)):
-                self._geometry_view=target.copy()
+            # QA752: alias somente da Surface geometry pertencente ao
+            # compositor World; demais chamadas preservam snapshot.
+            if getattr(self,'_qa_geometry_borrow_target',None) is target:
+                self._geometry_view=target
             else:
-                pygame.transform.scale(target,target.get_size(),self._geometry_view)
+                # QA750: copia somente na primeira passagem. Nos quadros
+                # seguintes faz escrita exata 1:1 sem alpha-blend anterior.
+                if (self._geometry_view is None or
+                        self._geometry_view.get_size()!=target.get_size() or
+                        self._geometry_view.get_bitsize()!=target.get_bitsize() or
+                        self._geometry_view.get_masks()!=target.get_masks() or
+                        bool(self._geometry_view.get_flags() & pygame.SRCALPHA)!=
+                        bool(target.get_flags() & pygame.SRCALPHA)):
+                    self._geometry_view=target.copy()
+                else:
+                    pygame.transform.scale(target,target.get_size(),self._geometry_view)
         self._last_state=(travel,frame,night,climate,phase)
