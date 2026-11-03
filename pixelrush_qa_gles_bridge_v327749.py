@@ -93,8 +93,10 @@ class _Ponte:
                 present_module.VERT,present_module.FRAG=original_shader
                 pygame.display.set_mode=atual
                 pygame.display.gl_set_attribute=setter
-            # O pygame-ce tambem usa a Surface display atual para convert().
-            self.staging=pygame.Surface(requested).convert()
+            # Contexto SDL_OPENGL nao fornece WindowSurface; convert() sem
+            # framebuffer SDL pode falhar. A Surface staging explicita
+            # preserva o contrato RGB de 32 bits e evita depender da janela.
+            self.staging=pygame.Surface(requested,depth=32)
             self.cpu_window=None
             self.modo='gles'
             _STATUS['gpu_ativo']=True
@@ -109,6 +111,9 @@ class _Ponte:
             self.staging=pygame.Surface(requested)
             try:
                 self._reabrir_sdl()
+                # No fallback a Surface precisa manter a referencia do jogo.
+                # Nao trocar por outra Surface depois da primeira entrega.
+                # Antes da primeira entrega, converte apenas se seguro.
                 self.staging=self.staging.convert(self.cpu_window)
                 return self.staging
             except (pygame.error,MemoryError):
