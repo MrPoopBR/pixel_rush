@@ -334,10 +334,17 @@ class ModularBiomeScene:
         off=max(0.,travel)*factor*.5
         first=int(off//LW)
         shift=int(off%LW)
+        # QA 3.277.42: 1 lote C em vez de 2 chamadas Python->SDL;
+        # mantem ordem e area exata, descarta apenas tiles 100% fora.
+        operations=[]
         for j in range(2):
             variant=(first+j)%len(self._layers[layer])
             tile=self._tile_map(layer,variant,kind)
-            dst.blit(tile,(j*LW-shift,0))
+            x=j*LW-shift
+            if x<dst.get_width() and x+tile.get_width()>0:
+                operations.append((tile,(x,0)))
+        if operations:
+            dst.blits(operations,doreturn=False)
 
     def render_scene(self,target,travel,frame,night,climate,phase,foreground_only=False,map_kind='image'):
         if foreground_only: return
