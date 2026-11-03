@@ -73,6 +73,11 @@ def instalar():
     instalar_city_tiles_qa()
     from pixelrush_qa_city_weather_v327749 import instalar as instalar_city_weather_qa
     instalar_city_weather_qa()
+    # QA749: ponte GLES pode receber a Surface CPU do jogo como textura,
+    # preservando HUD/input. Nao instala sem flag experimental explicita.
+    # Antes do wrapper de flip da telemetria, para medi-lo corretamente.
+    from pixelrush_qa_gles_bridge_v327749 import instalar as instalar_gles_bridge_qa
+    instalar_gles_bridge_qa()
     # QA v3.277.42: pool meteorologico, limite de cache e Perfetto opcionais;
     # sempre reaproveita o compositor e a camera originais.
     from pixelrush_qa_performance_integrated_v327742 import instalar as instalar_perf_qa
