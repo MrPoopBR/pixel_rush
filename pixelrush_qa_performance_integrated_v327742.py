@@ -288,7 +288,7 @@ def _wrap_flip():
         # Sob pressao RSS, agenda em 180 e so trabalha nos outros 4 frames,
         # com no maximo 12 entradas por apresentacao. Fallback antigo intacto.
         if ((_TRIMMER is None and _LAST_STATUS['frames']%180==0) or
-                (_TRIMMER is not None and _LAST_STATUS['frames']>180 and
+                (_TRIMMER is not None and _LAST_STATUS['frames']>=180 and
                  _LAST_STATUS['frames']%180==_TRIM_PROBE_PHASE)):
             inicio_limpeza=time.perf_counter_ns()
             try:
