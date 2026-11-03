@@ -1,0 +1,66 @@
+name: PIXEL RUSH QA v3.277.41 - GLES2 GLES3 cenas reais (SEM APK)
+
+on:
+  push:
+    branches:
+      - qa/android-full-performance-v3.277.41
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-gles-real-v327741
+  cancel-in-progress: true
+
+jobs:
+  gles-pixels:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/android-full-performance-v3.277.41'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout QA isolado
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Instalar Python para pygame-ce 2.5.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Instalar Mesa Xvfb pygame-ce e NumPy (nunca Android)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libegl1 libgl1-mesa-dri libgles2 libgl1
+          python3 -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+
+      - name: Provar shaders GLES2/GLES3 com cenas REAIS Cidade/Neve
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tests/test_qa_gles_real_v327741.py
+          xvfb-run -a -s "-screen 0 1024x1280x24" python3 tests/test_qa_gles_real_v327741.py
+          python3 - <<'PY'
+          import json
+          r=json.load(open('qa-gles-real-scenes-v327741.json',encoding='utf8'))
+          assert r['casos']>=144 and r['fontes_reais']==8
+          assert all(s['pixels_exatos'] and not s['gpu_android_real'] for s in r['resultados'])
+          assert not r['autorizacao_android'] and not r['gles_integrado_jogo']
+          print('PASS: frames reais, igualdade GPU em Mesa, Android NAO aprovado')
+          PY
+
+      - name: Publicar relatorio GPU real-scene Mesa (nao Android)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327741-gles-cenas-reais
+          path: qa-gles-real-scenes-v327741.json
+          if-no-files-found: warn
+          retention-days: 14
