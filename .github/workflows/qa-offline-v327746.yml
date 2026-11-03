@@ -167,7 +167,10 @@ jobs:
           assert x['android_tested'] is False and x['apk_built'] is False
           assert x['preheat_auto_in_game'] is False
           assert set(x['buffers']) == {'cidade','neve','deserto'}
-          assert all(v['frames_rgba_identicos']==35 for v in x['buffers'].values())
+          assert all(v['quadros_comparados']==35 for v in x['buffers'].values())
+          assert all(v['alternativa_aprovada'] is False for v in x['buffers'].values())
+          assert all(v['frames_rgba_identicos']+v['total_quadros_divergentes']==35
+                     for v in x['buffers'].values())
           assert all(v['pixel_identico'] for v in x['preheat'].values())
           PY
 

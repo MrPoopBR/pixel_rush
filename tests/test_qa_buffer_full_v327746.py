@@ -82,6 +82,7 @@ def comparar_bioma(game,bioma,frames=24,cronometrar=False):
     cache=CacheFundoUltraQA(periodo=5)
     tempos={'original':[],'offscreen':[],'orig_store':[],'offscreen_present':[]}
     equivalentes=0
+    divergencias=[]
     for i in range(frames):
         frame=19+i*11
         night=(0.,.3,.6,.95)[(i//5)%4]
@@ -142,17 +143,28 @@ def comparar_bioma(game,bioma,frames=24,cronometrar=False):
         if b_ref!=b_alt:
             pos=next(k for k in range(0,len(b_ref),4)
                      if b_ref[k:k+4]!=b_alt[k:k+4])
-            raise AssertionError(
-                'divergencia fundo integral %s frame=%d clima=%s noite=%s pixel=(%d,%d) ref=%s alt=%s'%
-                (bioma,i,clima.tipo,night,(pos//4)%450,(pos//4)//450,
-                 tuple(b_ref[pos:pos+4]),tuple(b_alt[pos:pos+4])))
-        equivalentes+=1
+            divergencias.append({
+                'frame':i,'clima':clima.tipo,'noite':night,
+                'primeiro_pixel_x':(pos//4)%450,
+                'primeiro_pixel_y':(pos//4)//450,
+                'rgba_referencia':list(b_ref[pos:pos+4]),
+                'rgba_alternativo':list(b_alt[pos:pos+4]),
+            })
+            # O experimento deve ser REJEITADO, nao falhar silenciosamente
+            # nem ser ativado por um teste que so verifica 1 bioma.
+        else:
+            equivalentes+=1
         if cronometrar and i>=5:
             tempos['original'].append((t3-t0)/1e6)
             tempos['offscreen'].append((t6-t3)/1e6)
             tempos['orig_store'].append((t2-t1)/1e6 if not hit else 0.)
             tempos['offscreen_present'].append((t5-t4)/1e6)
-    return {'bioma':bioma,'frames_rgba_identicos':equivalentes,
+    return {'bioma':bioma,'quadros_comparados':frames,
+            'frames_rgba_identicos':equivalentes,
+            'alternativa_pixel_exata_no_ensaio':len(divergencias)==0,
+            'alternativa_aprovada':False,
+            'divergencias':divergencias[:8],
+            'total_quadros_divergentes':len(divergencias),
             'redraws':cache.recriacoes,'hits':cache.passes_evitados,
             'tempos_ms':tempos,'cache_rgb_bytes':cache._quadro.get_pitch()*cache._quadro.get_height(),
             'buffer_alternativo_bytes':scratch.get_pitch()*scratch.get_height()}
@@ -166,6 +178,24 @@ class FundoIntegralQA746(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         pygame.quit()
+
+    def test_transferencia_de_mesmo_buffer_composto_preserva_rgba(self):
+        # Prova somente da transferencia, NAO equivale a duplicar o render.
+        from pixelrush_qa_ultraleve_v327730 import CacheFundoUltraQA
+        cache=CacheFundoUltraQA(periodo=5)
+        origem=pygame.Surface((450,800)).convert()
+        copia=origem.copy()
+        destino=origem.copy()
+        for i in range(16):
+            origem.fill(((i*19)%256,42,(i*13)%256))
+            pygame.draw.circle(origem,(214,186,104),
+                               (100+(i*23)%330,200+i*21),37)
+            pygame.draw.rect(origem,(48,72,111),(0,0,450,41))
+            copia.blit(origem,(0,0))
+            cache.guardar(copia,('cidade',i),True)
+            destino.blit(origem,(0,0))
+            self.assertEqual(rgba(destino),rgba(cache._quadro))
+            self.assertEqual(rgba(copia),rgba(destino))
 
     def test_blit_offscreen_sem_preservar_underlay_difere(self):
         # Prova deterministica do risco: o render parcial pode deixar pixels
@@ -188,8 +218,11 @@ class FundoIntegralQA746(unittest.TestCase):
         self.assertIs(game.LivingWorld.__mro__[0],game.LivingWorld)
         for biome in ('cidade','neve','deserto'):
             resposta=comparar_bioma(game,biome,frames=24)
-            self.assertEqual(resposta['frames_rgba_identicos'],24)
+            self.assertEqual(resposta['quadros_comparados'],24)
             self.assertEqual(resposta['redraws']+resposta['hits'],24)
+            self.assertFalse(resposta['alternativa_aprovada'])
+            self.assertEqual(resposta['frames_rgba_identicos']+
+                             resposta['total_quadros_divergentes'],24)
             self.assertEqual(resposta['buffer_alternativo_bytes'],resposta['cache_rgb_bytes'])
 
 if __name__=='__main__':

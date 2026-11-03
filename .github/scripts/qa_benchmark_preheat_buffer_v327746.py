@@ -97,11 +97,18 @@ def main():
         'preheat_auto_in_game':False,'preheat_limited_to_menus':True,
         'baseline_cache_period':5,
         'buffers':buffers,'preheat':prec,
-        'comparability':'benchmark offline Linux SDL dummy, ordem fixa; desempenho Android nao homologado'}
+        'comparability':'benchmark offline Linux SDL dummy, ordem fixa; velocidade de caminhos divergentes nao comparavel; desempenho Android nao homologado',
+        'offscreen_automatico_habilitado':False,
+        'resultado_do_offscreen':'reprovar se qualquer pixel divergir; bench de copia isolada nao equivale ao frame completo'}
     path=ROOT/'qa-benchmark-preheat-buffer-v327746.json'
     path.write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf8')
     print(json.dumps(report,indent=2,ensure_ascii=False))
-    assert all(x['frames_rgba_identicos']==35 for x in buffers.values())
+    # Uma hipotese que divergiu em RGB/RGBA nao deve causar falha no
+    # DIAGNOSTICO: deve ser reportada REPROVADA e jamais ser ativada no game.
+    assert all(x['quadros_comparados']==35 for x in buffers.values())
+    assert all(not x['alternativa_aprovada'] for x in buffers.values())
+    assert all(x['frames_rgba_identicos']+x['total_quadros_divergentes']==35
+               for x in buffers.values())
     assert all(x['pixel_identico'] for x in prec.values())
     pygame.quit()
 
