@@ -175,7 +175,12 @@ class ModularBiomeScene(Previous):
     def _draw_layer(self,dst,layer,travel,kind):
         offset=max(0.,travel)*DEPTH[layer][0]*.5
         first=int(offset//LW);shift=int(offset%LW)
-        for j in range(2):dst.blit(self._tile_map(layer,(first+j)%4,kind),(j*LW-shift,0))
+        # Quando a tela tem 225 px e shift e zero, tile j=1 comeca
+        # exatamente fora da Surface: omitir consulta/criacao e blit
+        # preserva a imagem integral, incluindo alpha e RGB oculto.
+        dst.blit(self._tile_map(layer,first%4,kind),(-shift,0))
+        if shift:
+            dst.blit(self._tile_map(layer,(first+1)%4,kind),(LW-shift,0))
 
     def render_scene(self,target,travel,frame,night,climate,phase,foreground_only=False,map_kind='image'):
         if foreground_only:return
