@@ -30,6 +30,23 @@ def diagnostico():
                 cenas_verificadas=len(_FG_VAZIO),
                 afirmacao_fps_android=False)
 
+def _verificar_fg_vazio(scene):
+    # Verificar ao criar a cena, nao no quinto quadro de render. Os
+    # ChunkVariants e suas Surfaces sao criados uma vez e imutaveis.
+    layers=tuple(layer for layer in scene.layers if layer.foreground)
+    empty=bool(layers) and all(len(layer.variants)>0 for layer in layers)
+    if empty:
+        empty=all(
+            not variant.sprites
+            and bool(variant.image.get_flags() & pygame.SRCALPHA)
+            and variant.image.get_colorkey() is None
+            and variant.image.get_bounding_rect(min_alpha=1).width==0
+            for layer in layers for variant in layer.variants)
+    _FG_VAZIO[scene]=empty
+    _STATUS['fg_cenas_verificadas']+=1
+    return empty
+
+
 def instalar():
     global _INSTALADO
     if _INSTALADO:
@@ -41,6 +58,13 @@ def instalar():
     from pixelrush_city2_v3125 import CityPilotScene
     from pixelrush_world_v3130 import LivingWorld, WIDTH, TOP
     if faz_fg:
+        _ORIGINAIS['city_init']=CityPilotScene.__init__
+        _ORIGINAIS['city_init_local']='__init__' in CityPilotScene.__dict__
+        @wraps(_ORIGINAIS['city_init'])
+        def init(self,*args,**kwargs):
+            _ORIGINAIS['city_init'](self,*args,**kwargs)
+            _verificar_fg_vazio(self)
+        CityPilotScene.__init__=init
         _ORIGINAIS['render_scene']=CityPilotScene.render_scene
         @wraps(_ORIGINAIS['render_scene'])
         def render(self,target,travel,frame,night,climate,phase,
@@ -48,19 +72,9 @@ def instalar():
             if foreground_only and map_kind=='image':
                 empty=_FG_VAZIO.get(self)
                 if empty is None:
-                    layers=tuple(layer for layer in self.layers
-                                 if layer.foreground)
-                    # FG de v3125 eh zero-SRCALPHA. Nenhuma nova Surface
-                    # persistente, so resultado booleano por instancia.
-                    empty=bool(layers) and all(
-                        len(layer.variants)>0 for layer in layers) and all(
-                        not variant.sprites
-                        and bool(variant.image.get_flags() & pygame.SRCALPHA)
-                        and variant.image.get_colorkey() is None
-                        and variant.image.get_bounding_rect(min_alpha=1).width==0
-                        for layer in layers for variant in layer.variants)
-                    _FG_VAZIO[self]=empty
-                    _STATUS['fg_cenas_verificadas']+=1
+                    # Cena criada ANTES da instalação: fallback seguro,
+                    # verifica uma única vez e reutiliza o resultado.
+                    empty=_verificar_fg_vazio(self)
                 if empty:
                     self._last_state=(travel,frame,night,climate,phase)
                     _STATUS['fg_pulado']+=1
@@ -97,6 +111,11 @@ def restaurar_para_teste():
         from pixelrush_world_v3130 import LivingWorld
         if 'render_scene' in _ORIGINAIS:
             CityPilotScene.render_scene=_ORIGINAIS['render_scene']
+        if 'city_init' in _ORIGINAIS:
+            if _ORIGINAIS.get('city_init_local'):
+                CityPilotScene.__init__=_ORIGINAIS['city_init']
+            else:
+                delattr(CityPilotScene,'__init__')
         if 'strip' in _ORIGINAIS:
             LivingWorld._blit_strip=_ORIGINAIS['strip']
     _ORIGINAIS.clear()
