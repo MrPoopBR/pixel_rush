@@ -289,11 +289,18 @@ class CityPilotScene(PreviousCity):
             metadata=None
             if _QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS:
                 metadata=(id(variant),map_kind,id(getattr(variant,map_kind)))
-            if _QA_SKIP_EMPTY_BASE and metadata in self._qa_empty_base_maps:
-                pass  # SRCALPHA=0 em TODOS os pixels; preservar sprites abaixo
+            # QA754: no blit SDL de duas Surfaces SRCALPHA, alfa 0
+            # pode escrever RGB oculto quando o destino tambem tem
+            # alfa 0. Cortar o bbox seria visivelmente igual, MAS
+            # mudaria bytes RGBA, logo evitar o atalho nesse formato.
+            # Para destinos RGB sem alpha por pixel, a omissao e exata.
+            destino_rgb=not bool(target.get_flags() & pygame.SRCALPHA)
+            if (_QA_SKIP_EMPTY_BASE and destino_rgb and
+                    metadata in self._qa_empty_base_maps):
+                pass  # Sem pixels RGB/alpha alterados, sprites preservados.
             elif x<WIDTH and x+SCENE_W>0:
                 area=(self._qa_alpha_bounds.get(metadata)
-                      if _QA_ALPHA_BOUNDS else None)
+                      if _QA_ALPHA_BOUNDS and destino_rgb else None)
                 if area is not None:
                     # QA754: nao processar pixels transparentes fora do bbox.
                     # A area e calculada no boot e escalada exatamente 2x.
