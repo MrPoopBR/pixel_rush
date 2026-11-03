@@ -12,13 +12,15 @@ from collections import OrderedDict
 import os
 # A flag e lida apenas no import, antes da corrida: zero getenv por tile.
 _QA_NATIVE_CLIP=os.environ.get('PIXELRUSH_QA_CITY_NATIVE_CLIP','1')=='1'
-# QA754: materiais/FX estaticos com alpha=0 em toda a textura nao precisam
-# ser escalados para 900x500 nem fazer um blit (inclusive quinto quadro).
-# Analise uma vez no init da cena; rollback antes do import.
+# QA754: atlas SRCALPHA vazios podem ser evitados em destino RGB.
+# Destino SRCALPHA deve manter o blit historico inclusive RGB invisivel
+# com alpha zero: nao acelerar esse caso por aproximacao visual.
+# Analise de atlas so no init, flags de rollback antes do import.
 _QA_SKIP_EMPTY_BASE=os.environ.get('PIXELRUSH_QA_CITY_EMPTY_BASE','1')=='1'
 _QA_CULL_SPRITES_EARLY=os.environ.get('PIXELRUSH_QA_CITY_SPRITE_RIGHT_CULL','1')=='1'
-# Quando um atlas 450x250 tem alfa apenas em subfaixas, o SDL nao precisa
-# processar os pixels transparentes do topo da textura escalada 900x500.
+# Quando destino e RGB, um atlas 450x250 de alfa parcial pode
+# limitar o blit a seu bbox e preservar os bytes RGB exatamente.
+# Em alvo SRCALPHA e mantido o blit integral por paridade de RGB oculto.
 _QA_ALPHA_BOUNDS=os.environ.get('PIXELRUSH_QA_CITY_ALPHA_BOUNDS','1')=='1'
 
 import math
