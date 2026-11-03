@@ -22,6 +22,10 @@ from collections import OrderedDict
 from functools import wraps
 from weakref import WeakKeyDictionary
 
+# Configuradas no boot QA, sem acessar getenv durante os chunks do 5o frame.
+_QA_SCROLL_INIT_CLEAR=os.environ.get('PIXELRUSH_QA_SCROLL_INIT_CLEAR','1')=='1'
+_QA_SCROLL_JUMP_DIRECT=os.environ.get('PIXELRUSH_QA_SCROLL_JUMP_DIRECT','1')=='1'
+
 _INSTALADO=False
 _ORIGINAIS={}
 _CIDADE=WeakKeyDictionary()
@@ -92,7 +96,7 @@ def _atualizar_persistente(scene,variant,kind,x):
         # QA754: nova Surface SRCALPHA nasce transparente em SDL2; nao
         # fazer outra escrita de 450x500 antes da primeira faixa. Mantem
         # fallback manual selecionavel e sem alterar blending posterior.
-        if os.environ.get('PIXELRUSH_QA_SCROLL_INIT_CLEAR','1')!='1':
+        if not _QA_SCROLL_INIT_CLEAR:
             quadro.fill((0,0,0,0))
         else:
             _STATS['cidade_init_sem_fill']+=1
@@ -109,13 +113,20 @@ def _atualizar_persistente(scene,variant,kind,x):
         _STATS['cidade_hit']+=1
         return quadro
     if abs(delta)>=WIDTH or abs(delta)>48:
-        # QA754: reconstruir/limpar 450x500 e depois blitar outro
-        # 450x500 seria trabalho E RAM de banda extras. Em saltos grandes
-        # usar blit DIRETO da fonte na composicao real, sem alterar pixels.
-        # A proxima posicao reinicia o cache apenas quando util.
-        cache.pop(chave,None)
-        _STATS['cidade_salto_direto']+=1
-        return None
+        if _QA_SCROLL_JUMP_DIRECT:
+            # QA754: reconstruir/limpar 450x500 e depois blitar outro
+            # 450x500 seria trabalho E RAM de banda extras. Em saltos
+            # grandes usar blit DIRETO, com bytes e ordem iguais.
+            cache.pop(chave,None)
+            _STATS['cidade_salto_direto']+=1
+            return None
+        # Fallback exato QA753 selecionado antes do import.
+        quadro.fill((0,0,0,0))
+        _copiar_pixel_exato(quadro,fonte,x,quadro.get_rect())
+        cache[chave]=(assinatura,int(x),quadro)
+        _STATS['cidade_rebuild']+=1
+        _STATS['cidade_strip_px']+=WIDTH*SCENE_H
+        return quadro
     quadro.scroll(dx=delta)
     strip=(pygame.Rect(0,0,delta,SCENE_H) if delta>0
            else pygame.Rect(WIDTH+delta,0,-delta,SCENE_H))
