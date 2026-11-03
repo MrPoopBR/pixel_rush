@@ -41,6 +41,15 @@ def instalar():
                               map_kind=kind)
         finally:
             sub_fim()
+        # QA751: mapa nao-image pode estar em uso pela GPU real neste frame.
+        # Guardar apenas biome/frame (nunca Surface extra) para o trim RSS
+        # impedir desalocacoes/recriacao do mesmo mapa sob pressao.
+        if kind!='image':
+            usados=getattr(self,'_qa_surface_last_used',None)
+            if usados is None:
+                usados={}
+                self._qa_surface_last_used=usados
+            usados[chave]=(self.biome,self.frame)
         return surf
 
     LivingWorld._city_surface = _city_surface_qa
