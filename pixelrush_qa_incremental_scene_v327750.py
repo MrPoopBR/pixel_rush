@@ -99,6 +99,14 @@ def instalar():
     global _INSTALADO
     if _INSTALADO:
         return
+    # Sem homologacao/flags: NAO monkeypatchar o frame real nem inserir
+    # consultas a variaveis de ambiente no caminho quente do quinto quadro.
+    habilita_cidade=os.environ.get('PIXELRUSH_QA_CITY_INCREMENTAL','0')=='1'
+    habilita_classico=os.environ.get('PIXELRUSH_QA_CLASSIC_INCREMENTAL','0')=='1'
+    if not (habilita_cidade or habilita_classico):
+        _STATS['habilitado_cidade']=False
+        _STATS['habilitado_classico']=False
+        return
     from pixelrush_city2_v3125 import CityPilotScene
     from pixelrush_world_v3130 import LivingWorld
     _ORIGINAIS['chunk']=CityPilotScene._render_chunk
@@ -144,8 +152,8 @@ def instalar():
     CityPilotScene._render_chunk=chunk
     LivingWorld._blit_strip=strip
     _INSTALADO=True
-    _STATS['habilitado_cidade']=os.environ.get('PIXELRUSH_QA_CITY_INCREMENTAL','0')=='1'
-    _STATS['habilitado_classico']=os.environ.get('PIXELRUSH_QA_CLASSIC_INCREMENTAL','0')=='1'
+    _STATS['habilitado_cidade']=habilita_cidade
+    _STATS['habilitado_classico']=habilita_classico
 
 
 def restaurar_para_teste():
