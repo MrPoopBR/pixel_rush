@@ -14,7 +14,7 @@
 |4|Unificação zoom/posprocessamento|Pendente|renderer SDL e GLES laboratório ainda não têm contrato único pixel-exato integrado ao frame real|
 |5|Scroll incremental de pixels|Pendente|prova isolada de strips existe; inserção no loop de cenário real sem atrasar o frame não homologada|
 |6|Recorte de transparências|**Concluída (offline)**|wrapper Fase B; culling RGBA testado|
-|7|Evitar grandes alocações|Parcial|v749 cache de metadados de tiles por cena/posição e constantes meteorológicas reais; grandes Surfaces do compositor permanecem|
+|7|Evitar grandes alocações|Parcial|v749 cache de metadados de tiles por Layer/posição e constantes meteorológicas reais; grandes Surfaces do compositor permanecem|
 |8|SIMD para smoothscale|Parcial|preflight offline/opt-in, fallback ativo, sem Android|
 |9|Pré-composição de texturas|**Concluída (offline)**|atlas e superfícies estáticas presentes, testes de paridade|
 |10|Remover cópias/passes|Parcial|v749 ativa batching modular de neve/deserto no QA, mantendo ordem; cópia integral do cache do quinto quadro ainda permanece|
@@ -68,7 +68,7 @@ Nas 15 parciais, houve avanço: o boot QA pode aquecer o **page cache de arquivo
 ## Avanços da v3.277.49-QA (somente branch isolada)
 
 **Atualizações efetivamente conectadas ao jogo QA:**
-- #2: `pixelrush_qa_city_tiles_v327749.py` intercepta o método `_layer_tiles` de **CityPilotScene v3125**, que é a classe real de Cidade utilizada pelo `LivingWorld`. Planos idênticos para image/normal/geometry/material/fxmask/flow de mesma posição podem reutilizar tuples de tiles. A cada novo `travel`, descarta o plano anterior; usa WeakKeyDictionary por cena sem duplicar pixels. Fallback por `PIXELRUSH_QA_CIDADE_TILE_PLAN=0`. Benefício restrito à renderização multicanal; não elimina a composição de cada quinto quadro no caminho comum somente image.
+- #2: `pixelrush_qa_city_tiles_v327749.py` intercepta o método `_layer_tiles` de **CityPilotScene v3125**, que é a classe real de Cidade utilizada pelo `LivingWorld`. Planos idênticos para image/normal/geometry/material/fxmask/flow de mesma posição podem reutilizar tuples de tiles. A cada novo `travel`, descarta o plano anterior; usa WeakValueDictionary por Layer sem duplicar pixels. Fallback por `PIXELRUSH_QA_CIDADE_TILE_PLAN=0`. Benefício restrito à renderização multicanal; não elimina a composição de cada quinto quadro no caminho comum somente image.
 - #18/#20: `pixelrush_qa_city_weather_v327749.py` intercepta **CityLifeDirector.draw_atmosphere** e **draw_wet_reflections** da Cidade real, pré-calcula deslocamentos iguais por quadro e conserva SDL, `int`, cores, número de primitivas e ordem. Fallback `PIXELRUSH_QA_CITY_WEATHER_FAST=0`.
 - #10/#17: batching dos dois tiles sobrepostos no módulo de neve/deserto `pixelrush_qa_modular_batch_v327744.py` habilitado por padrão **apenas na cópia QA**, mantendo `PIXELRUSH_QA_MODULAR_BATCH=0` para rollback imediato. Testes RGBA históricos cobriram subconjunto de condições; medição comparativa de CPU/Jitter Android pendente.
 - #7/#24/#25: os planos de tiles não armazenam imagens nem criam novos buffers persistentes; continuam os LRUs e a limpeza RSS v748 com proteção multi-instância. Redução de duplicação de memória de texturas **não comprovada**; não marcar #24 concluída por confundir tuplas com surfaces.
