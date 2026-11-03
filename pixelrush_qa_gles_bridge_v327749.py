@@ -21,6 +21,7 @@ _STATUS={'instalado':False,'gpu_ativo':False,'falhas_gpu':0,
          'frames_gles':0,'frames_fallback':0,'fallback':'nao_solicitado',
          'input_sdl_preservado':True,'hud_cpu_preservado':True,
          'readback_gpu_cpu':False,'zoom_gpu_ativado':False,
+         'shader_pixel_exato_solicitado':False,
          'homologado_android':False}
 _SIZE=(450,800)
 
@@ -32,6 +33,8 @@ class _Ponte:
         self.cpu_window=None
         self.size=None
         self.modo='nativo'
+        self.zoom=0.0
+        self.foco_y=0.0
 
     def _reabrir_sdl(self):
         self.presenter=None
@@ -53,20 +56,34 @@ class _Ponte:
             return _ORIGINALS['set_mode'](size,flags,depth,display,vsync)
         self.size=requested
         try:
+            import pixelrush_qa_gles_present_v327735 as present_module
             from pixelrush_qa_gles_present_v327735 import GLES2DirectPresenterQA
+            # Shader fixo (em vez do bilinear original) somente para laboratorio
+            # GLES habilitado; nao se declara paridade Android.
+            exacto=os.environ.get('PIXELRUSH_QA_GPU_ZOOM','0')=='1'
+            if exacto:
+                from pixelrush_qa_gles_exact_v327736 import shaders
+                vshader,fshader=shaders('GLES2',
+                    pygame.transform.get_smoothscale_backend(),requested)
             # A chamada dentro do construtor usa o set_mode nativo, nao o
             # wrapper de entrada, impedindo recursao/segunda janela.
             atual=pygame.display.set_mode
+            original_shader=(present_module.VERT,present_module.FRAG)
             pygame.display.set_mode=_ORIGINALS['set_mode']
             try:
+                if exacto:
+                    present_module.VERT=vshader
+                    present_module.FRAG=fshader
                 self.presenter=GLES2DirectPresenterQA(*requested)
             finally:
+                present_module.VERT,present_module.FRAG=original_shader
                 pygame.display.set_mode=atual
             # O pygame-ce tambem usa a Surface display atual para convert().
             self.staging=pygame.Surface(requested).convert()
             self.cpu_window=None
             self.modo='gles'
             _STATUS['gpu_ativo']=True
+            _STATUS['shader_pixel_exato_solicitado']=bool(exacto)
             _STATUS['fallback']='nenhum'
             return self.staging
         except (ImportError,OSError,RuntimeError,ValueError,pygame.error,MemoryError) as exc:
@@ -93,7 +110,8 @@ class _Ponte:
                 # O zoom original continua sendo calculado pela camera CPU.
                 # Renderizar na GPU com zoom 0 apenas mostra a imagem final.
                 # Este adaptador NAO afirma acelerar a camera.
-                self.presenter.draw(self.staging,zoom=0.0,focus_y=0)
+                self.presenter.draw(self.staging,zoom=self.zoom,
+                                    focus_y=self.foco_y)
                 current=pygame.display.flip
                 pygame.display.flip=_ORIGINALS['flip']
                 try:
@@ -101,6 +119,7 @@ class _Ponte:
                 finally:
                     pygame.display.flip=current
                 _STATUS['frames_gles']+=1
+                self.zoom=self.foco_y=0.0
                 return None
             except (OSError,RuntimeError,ValueError,pygame.error,MemoryError) as exc:
                 _STATUS['falhas_gpu']+=1
@@ -111,9 +130,56 @@ class _Ponte:
                     _STATUS['fallback']='reabertura_sdl_falhou'
                     raise
         if self.modo=='fallback' and self.staging is not None:
-            self.cpu_window.blit(self.staging,(0,0))
+            imagem=self.staging
+            if self.zoom>=.002:
+                try:
+                    w,h=self.staging.get_size()
+                    extra_x=max(1,int(w*self.zoom))
+                    extra_y=max(1,int(h*self.zoom))
+                    sz=(w+2*extra_x,h+2*extra_y)
+                    expanded=pygame.transform.smoothscale(self.staging,sz)
+                    sy=max(0,min(2*extra_y,extra_y+int(self.foco_y)))
+                    imagem=expanded.subsurface((extra_x,sy,w,h))
+                except (pygame.error,ValueError,MemoryError):
+                    imagem=self.staging
+            self.cpu_window.blit(imagem,(0,0))
             _STATUS['frames_fallback']+=1
+        self.zoom=self.foco_y=0.0
         return _ORIGINALS['flip']()
+
+
+def _instalar_camera_gpu():
+    # Este wrapper substitui somente o smoothscale da camera. A evolucao
+    # de zoom/foco e identica; input, estado do jogador e fisica intactos.
+    if os.environ.get('PIXELRUSH_QA_GPU_ZOOM','0')!='1':
+        return
+    from functools import wraps
+    from pixelrush_cinema_v3172 import CameraCinematica
+    from pixelrush_qa_camera_native_auto_v327742 import _geometria_camera
+    original=CameraCinematica.aplicar
+    _ORIGINALS['camera_aplicar']=original
+
+    @wraps(original)
+    def aplicar(self,imagem,jogador=None,velocidade=6,momento=False,ativo=True):
+        ponte=_BRIDGE
+        if ponte is None or ponte.modo!='gles':
+            return original(self,imagem,jogador,velocidade,momento,ativo)
+        geometria=_geometria_camera(self,imagem,jogador,velocidade,momento,ativo)
+        if geometria is None:
+            ponte.zoom=ponte.foco_y=0.0
+            return imagem
+        if imagem.get_size()!=_SIZE:
+            # Forma diferente: ajustar a imagem pela CPU, sem aplicar duplo
+            # zoom nem divergir da geometria historica.
+            from pixelrush_qa_camera_native_auto_v327742 import _cpu_depois_do_fallback
+            ponte.zoom=ponte.foco_y=0.0
+            return _cpu_depois_do_fallback(self,imagem,geometria)
+        ponte.zoom=self.zoom
+        ponte.foco_y=self.foco_y
+        _STATUS['zoom_gpu_ativado']=True
+        return imagem
+
+    CameraCinematica.aplicar=aplicar
 
 
 def diagnostico():
@@ -143,6 +209,7 @@ def instalar():
     pygame.display.flip=_BRIDGE.flip
     _INSTALLED=True
     _STATUS['instalado']=True
+    _instalar_camera_gpu()
     return diagnostico()
 
 
@@ -151,10 +218,14 @@ def restaurar_para_teste():
     if not _INSTALLED:
         return
     import pygame
+    if 'camera_aplicar' in _ORIGINALS:
+        from pixelrush_cinema_v3172 import CameraCinematica
+        CameraCinematica.aplicar=_ORIGINALS['camera_aplicar']
     pygame.display.set_mode=_ORIGINALS['set_mode']
     pygame.display.get_surface=_ORIGINALS['get_surface']
     pygame.display.flip=_ORIGINALS['flip']
     _ORIGINALS.clear()
     _BRIDGE=None
     _INSTALLED=False
-    _STATUS.update(instalado=False,gpu_ativo=False)
+    _STATUS.update(instalado=False,gpu_ativo=False,
+                   zoom_gpu_ativado=False,shader_pixel_exato_solicitado=False)
