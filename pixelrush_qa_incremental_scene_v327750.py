@@ -28,8 +28,11 @@ _QA_SCROLL_JUMP_DIRECT=os.environ.get('PIXELRUSH_QA_SCROLL_JUMP_DIRECT','1')=='1
 # Quando so uma faixa estreita da textura original aparece, preencher
 # cache + blitar buffer e mais lento que o blit fonte, sem ganho visual.
 # Padrao experimental, scroll geral permanece OFF.
-_QA_SCROLL_MIN_COVER=max(0,min(450,int(
-    os.environ.get('PIXELRUSH_QA_SCROLL_MIN_COVER','192'))))
+try:
+    _QA_SCROLL_MIN_COVER=max(0,min(450,int(
+        os.environ.get('PIXELRUSH_QA_SCROLL_MIN_COVER','192'))))
+except (ValueError,TypeError):
+    _QA_SCROLL_MIN_COVER=192
 
 _INSTALADO=False
 _ORIGINAIS={}
