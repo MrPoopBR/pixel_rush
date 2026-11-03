@@ -4,7 +4,7 @@ from collections import OrderedDict
 import pygame
 import numpy as np
 from pixelrush_biomes2_v3129 import ModularBiomeScene as Previous,LAMP,WATER,DISTRICTS
-from pixelrush_biomes2_v3128 import DEPTH
+from pixelrush_biomes2_v3128 import DEPTH, _QA_SHARE_DAYLIGHT
 from pixelrush_biomes2_v3126 import LW,LH,WIDTH,HEIGHT,SUPPORTED_BIOMES
 # Requested refinements are integrated into normal gameplay. Classic remains opt-out.
 MODULAR_BIOMES=('neve','deserto')
@@ -174,10 +174,16 @@ class ModularBiomeScene(Previous):
         if kind=='image':
             key=(pose,layer,idx,self._night_level)
             if key not in self._night_tiles:
-                dest=src.copy()
-                tint=tuple(round(255*(1-c*self._night_level/4)) for c in (.42,.39,.27))+(255,)
-                dest.fill(tint,special_flags=pygame.BLEND_RGBA_MULT)
-                for xy in self._lamp_pixels[id(src)]:dest.set_at(xy,LAMP)
+                if self._night_level==0 and _QA_SHARE_DAYLIGHT:
+                    # Daylight: multiplicar por (255,255,255,255) e
+                    # restaurar pixels LAMP ja identicos seria uma copia
+                    # redundante por distrito visivel. Fonte imutavel.
+                    dest=src
+                else:
+                    dest=src.copy()
+                    tint=tuple(round(255*(1-c*self._night_level/4)) for c in (.42,.39,.27))+(255,)
+                    dest.fill(tint,special_flags=pygame.BLEND_RGBA_MULT)
+                    for xy in self._lamp_pixels[id(src)]:dest.set_at(xy,LAMP)
                 self._night_tiles[key]=dest
                 while len(self._night_tiles)>24:self._night_tiles.popitem(last=False)
             self._night_tiles.move_to_end(key);return self._night_tiles[key]
