@@ -1,7 +1,10 @@
 """Cidade v3.124: céu único compartilhado ao fundo, sem duplicação vertical."""
 from pixelrush_city2_v3123 import CityPilotScene as CidadeAnterior
 from pixelrush_city2_v3115 import DEFAULT_NORMAL, NEUTRAL_FLOW
+import os
 import pygame
+# Configurada no boot QA; nenhum getenv no quinto quadro.
+_QA_DIRECT_NIGHT_MULT=os.environ.get('PIXELRUSH_QA_DIRECT_NIGHT_MULT','1')=='1'
 
 class CityPilotScene(CidadeAnterior):
     def _make_near_variant(self, idx):
@@ -51,10 +54,8 @@ class CityPilotScene(CidadeAnterior):
                 # de blit RGBA_MULT de uma Surface uniforme 450x500. Evita
                 # criar/manter ate 13 Surfaces RGBA (~11 MiB) e um blit inteiro.
                 # Testes direcionados pygame-ce 2.5.8: RGB/RGBA byte-identicos.
-                import os
-                import pygame
                 cor=(255-key*8,255-key*7,255-key*4,255)
-                if os.environ.get('PIXELRUSH_QA_DIRECT_NIGHT_MULT','1')=='1':
+                if _QA_DIRECT_NIGHT_MULT:
                     target.fill(cor,special_flags=pygame.BLEND_RGBA_MULT)
                 else:
                     veil = self._night_veils.get(key)
