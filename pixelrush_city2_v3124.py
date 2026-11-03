@@ -76,18 +76,21 @@ class CityPilotScene(CidadeAnterior):
             # efemeros continuam fazendo o snapshot original.
             if getattr(self,'_qa_geometry_borrow_target',None) is target:
                 self._geometry_view=target
+                self._qa_geometry_borrowed_surface=target
             else:
                 # QA750: a copy() criava 900 KiB por passe de geometria.
                 # A escala 1:1 grava os canais RGBA crus no buffer existente,
                 # sem o alpha-blend cumulativo que um blit produziria.
                 if (self._geometry_view is None or
                         self._geometry_view is target or
+                        self._geometry_view is getattr(self,'_qa_geometry_borrowed_surface',None) or
                         self._geometry_view.get_size()!=target.get_size() or
                         self._geometry_view.get_bitsize()!=target.get_bitsize() or
                         self._geometry_view.get_masks()!=target.get_masks() or
                         bool(self._geometry_view.get_flags() & pygame.SRCALPHA)!=
                         bool(target.get_flags() & pygame.SRCALPHA)):
                     self._geometry_view=target.copy()
+                    self._qa_geometry_borrowed_surface=None
                 else:
                     pygame.transform.scale(target,target.get_size(),self._geometry_view)
         self._last_state=(travel,frame,night,climate,phase)
