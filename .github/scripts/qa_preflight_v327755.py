@@ -550,7 +550,7 @@ def checar():
         assert proibido not in workflow754.lower()
     # QA755: auditabilidade do SRCALPHA real e fallback SDL-RLE.
     novos755={
-        'tests/test_qa_srcalpha_scroll_v327755.py':'d5624dccc6ede612711b90454d5050d48d5ed115',
+        'tests/test_qa_srcalpha_scroll_v327755.py':'490336402ebb2ed8a05830523512a3c66c2795b8',
         '.github/scripts/qa_benchmark_srcalpha_scroll_v327755.py':'d0b9f42d0615a76ddcdda822922c389996e59f61',
     }
     for nome,sha in novos755.items():
