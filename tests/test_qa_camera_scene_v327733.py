@@ -126,7 +126,7 @@ class QA327733(unittest.TestCase):
         main=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
         telemetria=(ROOT/'pixelrush_qa_android_v327728.py').read_text('utf8')
         workflow=(ROOT/'.github/workflows/qa-apk-debug-v327733.yml').read_text('utf8')
-        self.assertIn('VERSAO = "v3.277.42-QA-ANDROID-RC"',main)
+        self.assertIn('VERSAO = "v3.277.43-QA-ANDROID-RC"',main)
         self.assertIn('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',main)
         self.assertIn('FPS_RENDER = 30 if E_ANDROID else 60',main)
         self.assertIn('PIXELRUSH_DEV_BUILD = False',main)
