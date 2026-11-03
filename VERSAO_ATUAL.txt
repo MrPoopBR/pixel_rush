@@ -1,4 +1,4 @@
-Pixel Rush v3.277.50-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
+Pixel Rush v3.277.51-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -37,3 +37,5 @@ QA v3.277.48: sob pressao de RSS, limpeza de caches frios distribuida entre apre
 QA v3.277.49: otimizacao isolada no caminho do compositor da Cidade 2.5D (plano de tiles reutilizado entre passes image/normal/geometry) e atmosfera/reflexos da Cidade real, preservando valores e primitivas SDL. Novo CI manual, testes RGB/RGBA especificados para execucao posterior. Nenhuma alteracao de jogabilidade, fisica, HUD, arte, saves, pets ou entrada do jogador; sem APK/AAB/Android. Para homologacao 32/32 ainda faltam gates real Android e GPU.
 
 QA v3.277.50: unificacao real camera/zoom, escala e apresentacao no loop QA com fallback ao bloco anterior; scroll incremental de pixels Cidade e mundo classico opt-in; reuso pixel-exato da geometria v3124/v3128 sem Surface.copy() por quadro; alivio RSS de vinhetas noturnas frias, preservando nivel atual. Tudo isolado; regressao/benchmark pygame-ce manual ainda nao executados. Nenhum APK/Android/AAB; fisica, HUD, saves, pets, main, DEV e assets preservados.
+
+QA v3.277.51: Cidade noturna sem alocacao RGBA/blit full-frame via pygame.BLEND_RGBA_MULT direto (flag regressao original), recorte SDL nativo sem Rect por tile, scroll 2.5D experimental incluindo chunks com sprites originais, RSS preserva mapas GPU ativos, buffers geometria validam flags/masks antes do reuso. Gates e benchmark manuais preparados, sem homologacao final. Nenhum APK/Android/AAB; main, DEV, saves, pets, hud, fisica, visual, regras/arte e caches 5:1 preservados.
