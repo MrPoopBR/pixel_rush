@@ -15,7 +15,7 @@ Metadados QA: `v3.277.51-QA-ANDROID-RC`, Buildozer `3.277.51` / `327751` (nenhum
 ## Ensaios pontuais de desenvolvimento (NÃO homologação final)
 
 Em pygame-ce **2.5.8**, SDL dummy local:
-- **24 casos** de multiplicação da vinheta (RGB/RGBA, seis níveis de noite): `Surface.fill(BLEND_RGBA_MULT)` e `blit` do overlay uniforme renderizaram bytes RGBA idênticos.
+- **12 casos** de multiplicação da vinheta (RGB/RGBA, seis níveis de noite): `Surface.fill(BLEND_RGBA_MULT)` e `blit` do overlay uniforme renderizaram bytes RGBA idênticos.
 - **56 casos** de recorte de tile (Surface/target RGB ou RGBA, posições internas e fora do viewport): `blit` direto com clipping SDL e blit com `pygame.Rect` deram RGBA idêntico.
 
 Não foi executada a nova suíte do repositório nem benchmark com corrida completa. Não há resultado de FPS Android nem prova de melhoria p95 de CPU no smartphone.
