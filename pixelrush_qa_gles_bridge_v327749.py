@@ -22,6 +22,7 @@ _STATUS={'instalado':False,'gpu_ativo':False,'falhas_gpu':0,
          'input_sdl_preservado':True,'hud_cpu_preservado':True,
          'readback_gpu_cpu':False,'zoom_gpu_ativado':False,
          'shader_pixel_exato_solicitado':False,
+         'contexto_gles3_solicitado':False,
          'homologado_android':False}
 _SIZE=(450,800)
 
@@ -61,30 +62,44 @@ class _Ponte:
             # Shader fixo (em vez do bilinear original) somente para laboratorio
             # GLES habilitado; nao se declara paridade Android.
             exacto=os.environ.get('PIXELRUSH_QA_GPU_ZOOM','0')=='1'
+            gles3=os.environ.get('PIXELRUSH_QA_GLES3_CONTEXT','0')=='1'
             if exacto:
                 from pixelrush_qa_gles_exact_v327736 import shaders
-                vshader,fshader=shaders('GLES2',
+                vshader,fshader=shaders('GLES3' if gles3 else 'GLES2',
                     pygame.transform.get_smoothscale_backend(),requested)
             # A chamada dentro do construtor usa o set_mode nativo, nao o
             # wrapper de entrada, impedindo recursao/segunda janela.
             atual=pygame.display.set_mode
+            setter=pygame.display.gl_set_attribute
             original_shader=(getattr(present_module,'VERT',None),
                              getattr(present_module,'FRAG',None))
+            # O presenter existente pede ES2. Para o modo PBO3 experimental
+            # exige-se ES3 real, sem simular capacidades na CPU.
+            def pedir_es3(atributo,valor):
+                if atributo==pygame.GL_CONTEXT_MAJOR_VERSION:
+                    return setter(atributo,3)
+                return setter(atributo,valor)
             pygame.display.set_mode=_ORIGINALS['set_mode']
+            if gles3:
+                pygame.display.gl_set_attribute=pedir_es3
             try:
                 if exacto:
                     present_module.VERT=vshader
                     present_module.FRAG=fshader
                 self.presenter=GLES2DirectPresenterQA(*requested)
+                if gles3 and not self.presenter.version.startswith('OpenGL ES 3'):
+                    raise RuntimeError('Contexto GLES3 solicitado nao entregue')
             finally:
                 present_module.VERT,present_module.FRAG=original_shader
                 pygame.display.set_mode=atual
+                pygame.display.gl_set_attribute=setter
             # O pygame-ce tambem usa a Surface display atual para convert().
             self.staging=pygame.Surface(requested).convert()
             self.cpu_window=None
             self.modo='gles'
             _STATUS['gpu_ativo']=True
             _STATUS['shader_pixel_exato_solicitado']=bool(exacto)
+            _STATUS['contexto_gles3_solicitado']=bool(gles3)
             _STATUS['fallback']='nenhum'
             return self.staging
         except (ImportError,AttributeError,OSError,RuntimeError,ValueError,pygame.error,MemoryError) as exc:
@@ -229,4 +244,5 @@ def restaurar_para_teste():
     _BRIDGE=None
     _INSTALLED=False
     _STATUS.update(instalado=False,gpu_ativo=False,
-                   zoom_gpu_ativado=False,shader_pixel_exato_solicitado=False)
+                   zoom_gpu_ativado=False,shader_pixel_exato_solicitado=False,
+                   contexto_gles3_solicitado=False)
