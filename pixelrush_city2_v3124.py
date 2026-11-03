@@ -5,6 +5,9 @@ import os
 import pygame
 # Configurada no boot QA; nenhum getenv no quinto quadro.
 _QA_DIRECT_NIGHT_MULT=os.environ.get('PIXELRUSH_QA_DIRECT_NIGHT_MULT','1')=='1'
+# QA754: near_tiles e consumido somente por image/fxmask (luzes); em
+# normal/geometry/flow/material gerador e suficiente sem alocar tuple.
+_QA_NEAR_TUPLE_ON_DEMAND=os.environ.get('PIXELRUSH_QA_NEAR_PLAN_ON_DEMAND','1')=='1'
 
 class CityPilotScene(CidadeAnterior):
     def _make_near_variant(self, idx):
@@ -33,8 +36,14 @@ class CityPilotScene(CidadeAnterior):
             if layer.foreground!=foreground_only:
                 continue
             # near e reutilizado nas luzes; outros planos consumidos uma vez.
+            # QA754: mapas tecnicos sem luzes nunca consultam near_tiles;
+            # nao materializar tuple que seria descartada apos cada layer.
+            usa_near=(layer.name=='near' and not foreground_only and
+                      map_kind in ('image','fxmask'))
             visible=(tuple(self._layer_tiles(travel,layer))
-                     if layer.name == 'near' else self._layer_tiles(travel,layer))
+                     if (usa_near if _QA_NEAR_TUPLE_ON_DEMAND
+                         else layer.name=='near')
+                     else self._layer_tiles(travel,layer))
             for x,variant,flip in visible:
                 self._render_chunk(target,variant,flip,int(x),frame,night,climate,phase,map_kind)
             if layer.name=='mid' and not foreground_only:
