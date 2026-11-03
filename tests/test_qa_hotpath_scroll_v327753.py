@@ -40,12 +40,12 @@ class RenderScroll753(unittest.TestCase):
         qa.restaurar_para_teste()
         old_render=CityPilotScene.render_scene
         old_init=CityPilotScene.__init__
-        rng=random.getstate()
         with patch.dict(os.environ,{'PIXELRUSH_QA_CITY_EMPTY_FG':'1',
                                     'PIXELRUSH_QA_STRIP_ONE_BLIT':'0'}):
             try:
                 qa.instalar()
                 scene=CityPilotScene()
+                rng=random.getstate()  # isolar desenho do bootstrap da cena
                 self.assertEqual(qa.diagnostico()['fg_cenas_verificadas'],1)
                 for flags in (0,pygame.SRCALPHA):
                     for frame in (0,1,29,100):
