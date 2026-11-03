@@ -88,16 +88,20 @@ def _atualizar_persistente(scene,variant,kind,x):
     # do primeiro blit (quando RLEACCEL ainda nao aparece).
     # Para preservar bytes exatos, RLE deve ir DIRETO a _render_chunk.
     rle_mask=pygame.RLEACCEL | getattr(pygame,'RLEACCELOK',0)
-    if fonte.get_flags() & rle_mask:
+    # QA756: incompatibilidade RLE/SDL e estado NORMAL de render,
+    # nao uma excecao Python a ser criada e capturada a cada quinto frame.
+    # Return None indica blit original, preservando todos os RGBA.
+    flags=fonte.get_flags()
+    if flags & rle_mask:
         _STATS['cidade_rle_direto']+=1
-        raise ValueError('fonte SDL-RLE requer blit direto para RGB oculto')
+        return None
     if (fonte.get_colorkey() is not None or
             fonte.get_alpha() not in (None,255) or
             fonte.get_size()!=(SCENE_W,SCENE_H) or
-            not bool(fonte.get_flags() & pygame.SRCALPHA) or
+            not bool(flags & pygame.SRCALPHA) or
             fonte.get_bitsize()!=32):
         _STATS['cidade_rejeitado_formato']+=1
-        raise ValueError('scroll exige RGBA 32bits, origem 900x500 sem colorkey')
+        return None
     # Nao guardar sequer um OrderedDict para a cena quando a fonte RLE
     # nao passa no gate. No quarto/quinto quadro isso economiza churn.
     cache=_CIDADE.get(scene)
