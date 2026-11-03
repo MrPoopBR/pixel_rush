@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """QA 3.277.50: scroll incremental de pixels no caminho REAL da Cidade e strips.
 
-A Cena 2.5D desenha cada chunk na ordem base -> sprites; o wrapper conserva
-essa ordem ate quando ha sprites dinamicos, delegando ao original apenas
-o passe 'only_sprites'; reconstrói a base estática usando o
-scroll horizontal e a faixa recém-exposta. Camadas com sprites e qualquer
-estado não suportado usam o método real sem alteração.
+A Cena 2.5D desenha cada chunk na ordem base -> sprites. A rota inicial
+QA753 limita o cache incremental aos chunks ESTATICOS far/mid; os chunks
+animados de near seguem intactos. Um modo de laboratório 'all' tambem
+preserva sprites pelo metodo original only_sprites=True. O cache trabalha
+apenas com canais SRCALPHA de formato exato e no maximo duas surfaces
+por instancia da Cidade, sem nunca mudar fisica ou numero de sprites.
 
 Para texturas com alpha não usamos uma segunda composição convencional:
 BLEND_RGBA_MAX sobre buffer TRANSPARENTE copia os canais originais e depois
@@ -28,13 +29,30 @@ _CLASSICOS=WeakKeyDictionary()
 _STATS={'cidade_hit':0,'cidade_rebuild':0,'cidade_strip_px':0,
         'cidade_fallback':0,'classico_frames':0,'classico_fallback':0,
         'limite_surf_cidade_por_cena':2,'habilitado_cidade':False,
-        'habilitado_classico':False}
+        'habilitado_classico':False,'cidade_rejeitado_formato':0,
+        'cidade_sem_cobertura':0,'cidade_sprite_direto':0,
+        'cidade_cache_descartado':0,'modo_cidade':'off'}
 
 
 def diagnostico():
     return dict(_STATS,instalado=_INSTALADO,cenas=len(_CIDADE),
                 mundos_classicos=len(_CLASSICOS),
                 extra_buffer_maximo_cidade_bytes=2*450*500*4)
+
+
+def tem_cache_cena(scene):
+    return scene is not None and bool(_CIDADE.get(scene))
+
+
+def descartar_cena(scene):
+    """Liberar o cache incremental de uma Cidade inativa sob RSS alto."""
+    if scene is not None and scene in _CIDADE:
+        cache=_CIDADE.pop(scene)
+        qtd=len(cache)
+        cache.clear()
+        _STATS['cidade_cache_descartado']+=qtd
+        return qtd
+    return 0
 
 
 def _copiar_pixel_exato(buffer,fonte,x,dest_rect):
@@ -47,7 +65,7 @@ def _copiar_pixel_exato(buffer,fonte,x,dest_rect):
 
 
 def _atualizar_persistente(scene,variant,kind,x):
-    from pixelrush_city2_v3115 import WIDTH, SCENE_H
+    from pixelrush_city2_v3115 import WIDTH, SCENE_W, SCENE_H
     cache=_CIDADE.get(scene)
     if cache is None:
         cache=OrderedDict()
@@ -56,8 +74,11 @@ def _atualizar_persistente(scene,variant,kind,x):
     fonte=scene._scaled_surface(variant,kind)
     if (fonte.get_colorkey() is not None or
             fonte.get_alpha() not in (None,255) or
-            fonte.get_height()!=SCENE_H):
-        raise ValueError('formato de textura nao suportado em scroll QA')
+            fonte.get_size()!=(SCENE_W,SCENE_H) or
+            not bool(fonte.get_flags() & pygame.SRCALPHA) or
+            fonte.get_bitsize()!=32):
+        _STATS['cidade_rejeitado_formato']+=1
+        raise ValueError('scroll exige RGBA 32bits, origem 900x500 sem colorkey')
     assinatura=(id(fonte),fonte.get_size(),fonte.get_flags(),
                 fonte.get_alpha())
     entry=cache.get(chave)
@@ -65,7 +86,8 @@ def _atualizar_persistente(scene,variant,kind,x):
         cache.move_to_end(chave)
     # Duas surfaces no máximo, para não crescer memória em trocas de mapas.
     if entry is None or entry[0]!=assinatura:
-        quadro=pygame.Surface((WIDTH,SCENE_H),pygame.SRCALPHA)
+        quadro=pygame.Surface((WIDTH,SCENE_H),pygame.SRCALPHA,32,
+                               masks=fonte.get_masks())
         quadro.fill((0,0,0,0))
         _copiar_pixel_exato(quadro,fonte,x,quadro.get_rect())
         cache[chave]=(assinatura,int(x),quadro)
@@ -104,6 +126,11 @@ def instalar():
     # consultas a variaveis de ambiente no caminho quente do quinto quadro.
     habilita_cidade=os.environ.get('PIXELRUSH_QA_CITY_INCREMENTAL','0')=='1'
     habilita_classico=os.environ.get('PIXELRUSH_QA_CLASSIC_INCREMENTAL','0')=='1'
+    # 'static' preserva o movimento e animações near inteiramente no
+    # renderizador direto; 'all' habilita o antigo experimento com sprites.
+    escopo=os.environ.get('PIXELRUSH_QA_CITY_SCROLL_SCOPE','static')
+    if escopo not in ('static','all'):
+        escopo='static'
     if not (habilita_cidade or habilita_classico):
         _STATS['habilitado_cidade']=False
         _STATS['habilitado_classico']=False
@@ -117,9 +144,17 @@ def instalar():
     @wraps(_ORIGINAIS['chunk'])
     def chunk(self,target,variant,flip,x,frame,night,climate,phase,
               map_kind='image',only_sprites=False):
-        if (os.environ.get('PIXELRUSH_QA_CITY_INCREMENTAL','0')!='1'
-                or only_sprites or flip
+        if (not habilita_cidade or only_sprites or flip
                 or map_kind!='image' or target.get_size()!=(450,500)):
+            return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
+                                       night,climate,phase,map_kind,only_sprites)
+        # Culling EXATO para base e sprites estaticos fora da viewport.
+        # Nao tocar em sprites dinamicos que podem ultrapassar o chunk.
+        if not variant.sprites and (x>=450 or x+900<=0):
+            _STATS['cidade_sem_cobertura']+=1
+            return
+        if variant.sprites and escopo=='static':
+            _STATS['cidade_sprite_direto']+=1
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
                                        night,climate,phase,map_kind,only_sprites)
         try:
@@ -139,7 +174,7 @@ def instalar():
 
     @wraps(_ORIGINAIS['strip'])
     def strip(self,target,fonte):
-        if (os.environ.get('PIXELRUSH_QA_CLASSIC_INCREMENTAL','0')!='1'
+        if (not habilita_classico
                 or fonte is None or fonte.get_colorkey() is not None
                 or bool(fonte.get_flags() & pygame.SRCALPHA)
                 or fonte.get_alpha() not in (None,255)):
@@ -160,6 +195,7 @@ def instalar():
     _INSTALADO=True
     _STATS['habilitado_cidade']=habilita_cidade
     _STATS['habilitado_classico']=habilita_classico
+    _STATS['modo_cidade']=escopo if habilita_cidade else 'off'
 
 
 def restaurar_para_teste():
