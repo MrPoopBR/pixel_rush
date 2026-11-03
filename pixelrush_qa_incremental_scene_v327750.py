@@ -31,7 +31,8 @@ _STATS={'cidade_hit':0,'cidade_rebuild':0,'cidade_strip_px':0,
         'limite_surf_cidade_por_cena':2,'habilitado_cidade':False,
         'habilitado_classico':False,'cidade_rejeitado_formato':0,
         'cidade_sem_cobertura':0,'cidade_sprite_direto':0,
-        'cidade_cache_descartado':0,'modo_cidade':'off'}
+        'cidade_cache_descartado':0,'modo_cidade':'off',
+        'cidade_salto_direto':0,'cidade_init_sem_fill':0}
 
 
 def diagnostico():
@@ -88,7 +89,13 @@ def _atualizar_persistente(scene,variant,kind,x):
     if entry is None or entry[0]!=assinatura:
         quadro=pygame.Surface((WIDTH,SCENE_H),pygame.SRCALPHA,32,
                                masks=fonte.get_masks())
-        quadro.fill((0,0,0,0))
+        # QA754: nova Surface SRCALPHA nasce transparente em SDL2; nao
+        # fazer outra escrita de 450x500 antes da primeira faixa. Mantem
+        # fallback manual selecionavel e sem alterar blending posterior.
+        if os.environ.get('PIXELRUSH_QA_SCROLL_INIT_CLEAR','1')!='1':
+            quadro.fill((0,0,0,0))
+        else:
+            _STATS['cidade_init_sem_fill']+=1
         _copiar_pixel_exato(quadro,fonte,x,quadro.get_rect())
         cache[chave]=(assinatura,int(x),quadro)
         while len(cache)>2:
@@ -102,18 +109,20 @@ def _atualizar_persistente(scene,variant,kind,x):
         _STATS['cidade_hit']+=1
         return quadro
     if abs(delta)>=WIDTH or abs(delta)>48:
-        quadro.fill((0,0,0,0))
-        _copiar_pixel_exato(quadro,fonte,x,quadro.get_rect())
-        _STATS['cidade_rebuild']+=1
-        _STATS['cidade_strip_px']+=WIDTH*SCENE_H
-    else:
-        quadro.scroll(dx=delta)
-        strip=(pygame.Rect(0,0,delta,SCENE_H) if delta>0
-               else pygame.Rect(WIDTH+delta,0,-delta,SCENE_H))
-        quadro.fill((0,0,0,0),strip)
-        _copiar_pixel_exato(quadro,fonte,x,strip)
-        _STATS['cidade_hit']+=1
-        _STATS['cidade_strip_px']+=abs(delta)*SCENE_H
+        # QA754: reconstruir/limpar 450x500 e depois blitar outro
+        # 450x500 seria trabalho E RAM de banda extras. Em saltos grandes
+        # usar blit DIRETO da fonte na composicao real, sem alterar pixels.
+        # A proxima posicao reinicia o cache apenas quando util.
+        cache.pop(chave,None)
+        _STATS['cidade_salto_direto']+=1
+        return None
+    quadro.scroll(dx=delta)
+    strip=(pygame.Rect(0,0,delta,SCENE_H) if delta>0
+           else pygame.Rect(WIDTH+delta,0,-delta,SCENE_H))
+    quadro.fill((0,0,0,0),strip)
+    _copiar_pixel_exato(quadro,fonte,x,strip)
+    _STATS['cidade_hit']+=1
+    _STATS['cidade_strip_px']+=abs(delta)*SCENE_H
     cache[chave]=(assinatura,int(x),quadro)
     return quadro
 
@@ -161,6 +170,11 @@ def instalar():
             buffer=_atualizar_persistente(self,variant,map_kind,int(x))
         except (pygame.error,MemoryError,ValueError,TypeError,AttributeError):
             _STATS['cidade_fallback']+=1
+            return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
+                                       night,climate,phase,map_kind,only_sprites)
+        # Em mudanca grande de posicao, acesso direto ao atlas evita uma
+        # limpeza e uma copia de framebuffer completo.
+        if buffer is None:
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
                                        night,climate,phase,map_kind,only_sprites)
         # Blit de base na MESMA ordem original; em seguida, delegar ao método
