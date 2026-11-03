@@ -7,8 +7,8 @@
 ## Resultados discriminados
 
 - **32 de 32 frentes auditadas no código**, incluindo os módulos QA, integração no `main.py` e engine Android.
-- **13 de 32 concluídas em nível de implementação/testes offline direcionados** (12 anteriores + #26 GC cooperativo); esta categoria **não significa homologação Android**. O gate de #26 passou em teste local sintético de 901 flips pygame-ce, não em corrida Android.
-- **19 de 32 possuem integração ou componentes, mas ainda não cumprem TODOS os critérios de conclusão.** Avanços reais nesta operação nas #2, #7, #10, #16, #22, #23, #24, #25 e #26. Algumas ficam parciais por escopo dos algoritmos, outras exigem hardware.
+- **14 de 32 concluídas em nível de implementação/testes offline direcionados** (12 anteriores + #26 GC cooperativo + #16 culling modular validado no código real); esta categoria **não significa homologação Android**. O gate de #26 passou em teste local sintético de 901 flips pygame-ce, não em corrida Android.
+- **18 de 32 possuem integração ou componentes, mas ainda não cumprem TODOS os critérios de conclusão.** Avanços reais nesta operação nas #2, #7, #10, #16, #22, #23, #24, #25 e #26. Algumas ficam parciais por escopo dos algoritmos, outras exigem hardware.
 - **0 de 32 homologadas como pacote Android completo** nesta tarefa, porque não foi solicitado nem executado APK, Android, Perfetto ou teste final do aparelho.
 - **Não converter as 19 frentes parciais em concluídas artificialmente**: GPU/GLES/PBO/NEON/driver precisam do gate no hardware, e scroll incremental não comprovou desempenho superior para atlas SDL-RLE usados no caminho real.
 
@@ -29,7 +29,7 @@
 |13|Sprites espelhados|Concluída offline anteriormente|Cache de props refletidos.|
 |14|Alpha overlays|Concluída offline anteriormente|Buffers reutilizados e multiplicação noturna diretamente no destino.|
 |15|FABRIK/deformação|Concluída offline anteriormente|Buffers QA reutilizados e limitados.|
-|16|Culling fora da tela|Integrada, gate de cena pendente|O segundo tile 225x250 totalmente invisível é omitido no código Neve/Deserto e no wrapper, mesmo com batching OFF; sprites Cidade com recorte.|
+|16|Culling fora da tela|**Concluída na implementação e gate offline v758**|Rotinas reais Neve/Deserto e wrapper preservam byte RGBA, inclusive RGB oculto; 180 combinações de camada/canal/travel/bioma aprovadas no CI #41714045870. Homologação Android pendente.|
 |17|Blits em lote|Concluída offline anteriormente|Lote por strips e mapas modulares com fallback.|
 |18|Cache de céu e clima|Integrada, parcial|Cache de céu/nuvens existentes; secas neve/deserto pulam a passagem meteorológica inerte.|
 |19|Vinheta noturna|Concluída offline anteriormente|BLEND_RGBA_MULT por fill sem superfície adicional.|
@@ -51,7 +51,7 @@
 
 **#2/#7/#10/#24 — repetição de mapas técnicos:** `pixelrush_qa_render_v327729._city_surface_qa` (instalado via `main.py`) evita recompor o mesmo mapa `geometry/normal/material/flow/fxmask` quando a mesma instância de World, cena, Surface, frame, bioma, travel, noite, clima, fase e qualidade pedirem o mesmo mapa novamente. Guarda somente dados de estado e **weakrefs**, nenhum framebuffer 450x500 novo. O render `image` e todas as passagens de foreground permanecem sem memo. Rollback `PIXELRUSH_QA_TECH_SAME_FRAME=0`. **Risco a medir**: consumidores externos que deliberadamente editem a Surface devolvida no mesmo frame, fora do contrato do World.
 
-**#16/#10 — 2.5D modular:** `pixelrush_biomes2_v3128` (Neve) e `pixelrush_biomes2_v3130` (Deserto) agora evitam consultar, gerar e blitar um segundo tile quando seu deslocamento é `x=225` e a Surface destino tem largura 225. A mesma guarda existe no batching QA; não modifica climas, posições, crops, contagem visível nem alfa. Teste sintético local RGB/RGBA passou. Teste dos métodos reais com fixtures, várias camadas e RGB oculto foi preparado no repositório, mas **não executado nesta tarefa**.
+**#16/#10 — 2.5D modular:** `pixelrush_biomes2_v3128` (Neve) e `pixelrush_biomes2_v3130` (Deserto) agora evitam consultar, gerar e blitar um segundo tile quando seu deslocamento é `x=225` e a Surface destino tem largura 225. A mesma guarda existe no batching QA; não modifica climas, posições, crops, contagem visível nem alfa. Teste sintético local RGB/RGBA passou. Teste dos métodos reais com fixtures, várias camadas e RGB oculto **executado e aprovado na v758** pelo CI #41714045870 (2 biomas × 3 camadas × 5 canais × 6 deslocamentos = 180 combinações); sem inferir aprovação Android.
 
 **#22 — pré-aquecimento durante menu:** `pixelrush_qa_precarregamento_visual_v327757` é chamado pela engine real somente em menu QA Android; prepara as skins ativas (equipada primeiro) e o ID pet equipado, **1 item a cada 8 quadros de menu**, preservando o estado completo de `random`. Não inicia durante jogo, tutorial, pause ou replay, nem altera desbloqueios, atlas de pets ou saves. **Limite atual:** `PetStudioPlayer.preload()` é um placeholder do jogo, portanto o pré-carregamento do pet não faz render real de pets e a frente continua parcial. 100 quadros `JOGANDO` + 32 de `INICIO` em fixture passaram no ensaio local.
 
@@ -67,15 +67,29 @@
 
 **Preservação:** `main.py`, branch main, DEV, tutorial, física, hitboxes, cadência de fundo 5:1, pixels e iluminação, sombras/clima, câmera, controles, HUD, lojas/desbloqueios, pets, saves, sons, assets, shaders e workflows de produção não foram alterados nesta branch. A engine QA recebeu apenas ligação do prewarm e versão; Buildozer só versão. **Não ativar GLES, GPU zoom, PBO nem C/NEON sem prova no Android.**
 
-**Pendências de conclusão real:** #1/#3/#8/#12/#28/#29/#32 dependem do aparelho; #2/#4/#5/#7/#10/#16/#18/#20/#22/#23/#24/#25 ainda exigem cobertura/medição completa ou otimização funcional adicional. O trabalho feito nesta operação não pode ser renomeado 32/32 sem evidência. Não existe dependência de teste do usuário para continuar *implementando*; existe dependência de hardware para a homologação de determinados recursos.
+**Pendências de conclusão real:** #1/#3/#8/#12/#28/#29/#32 dependem do aparelho; #2/#4/#5/#7/#10/#18/#20/#22/#23/#24/#25 ainda exigem cobertura/medição completa ou otimização funcional adicional. O trabalho feito nesta operação não pode ser renomeado 32/32 sem evidência. Não existe dependência de teste do usuário para continuar *implementando*; existe dependência de hardware para a homologação de determinados recursos.
 
 ## Revisao de integração v3.277.58 (mesma branch QA)
 
 - **#25 (parcial):** `pixelrush_qa_cache_policy_v327758.py` é usado tanto pelo trimmer parcelado quanto pelo fallback de pressão RSS. Um mapa technical ativo sem marcador confiável permanece residente; mapas comprovadamente frios ainda podem ser removidos. O comportamento é por instância de mundo e não retém uma segunda Surface.
 - **#26 (concluída offline; refinamento):** as gerações do GC não se sobrepõem num mesmo flip. Gen2 substitui gen1/gen0, gen1 substitui gen0; 901 flips de SDL dummy permitem verificar 25/4/1 coletas, zero no quinto quadro, restauração do GC.
 - **Testes efetivamente executados localmente neste avanço:** 3/3 testes sintéticos pygame-ce 2.5.8 (política multi-instância, preservação byte-RGBA de mapa quente, GC com 901 flips). A suíte nova `tests/test_qa_cache_gc_v327758.py` de integração dos módulos completos foi criada, mas não executada neste ambiente; não confundir com os três testes sintéticos.
-- **Placar conservador permanece 13/32 concluídas offline e 19/32 parciais**, sem homologação Android. Nenhuma frente foi promovida sem gate integrado. Não foi executada homologação final, nem APK/AAB.
+- **Placar final atualizado pela CI v758: 14/32 concluídas offline e 18/32 parciais**, sem homologação Android. Nenhuma frente foi promovida sem gate integrado. Não foi executada homologação final, nem APK/AAB.
 
 ## Correção pixel-exata descoberta na revisão offline da mesma v758
 
 A verificação com pygame-ce 2.5.8 revelou que blitar `SRCALPHA=(0,0,0,0)` sobre um pixel de alpha zero pode **zerar os bytes RGB ocultos**. A otimização anterior #18/#20 pulava o blit meteorológico em tempo seco e não cumpria igualdade RGBA estrita. O método real `pixelrush_biomes2_v3128.ModularBiomeScene.render_scene` foi corrigido: o blit continua acontecendo, mas o `fill` do buffer é omitido apenas em quadros secos consecutivos, quando o buffer já está limpo. Após neve/areia, a limpeza sempre acontece. Não há outra Surface criada. O novo teste `tests/test_qa_weather_byte_rgba_v327758.py` compara a saída completa do método contra o modo fallback em Neve/Deserto, com sprites sintéticos de RGB oculto e sequência de transições.
+
+## Evidência integrada final v3.277.58 — GitHub Actions #41714045870
+
+**Execução real:** [CI pygame-ce v758](https://github.com/MrPoopBR/pixel_rush/actions/runs/41714045870), conclusão `success`, commit `3f94a61fec4fa8cba5706819e8a06b922c68ccd3`.
+
+- `tests/test_qa_cache_gc_v327758.py`: **4/4 aprovados** (trimmer, fallback RSS, GC exclusivo 901 flips, multi-instância/RGBA).
+- `tests/test_qa_fechamento32_v327757.py`: **4/4 aprovados** (GC/flip, memo por mundo, SHA atlas+tiles, prewarm skins/pet e RNG).
+- `tests/test_qa_fechamento_modular_v327757.py`: **1/1 aprovado** (funções originais `_draw_layer` de Neve/Deserto e 180 cenários byte RGBA); esta evidência fecha **#16 apenas no critério offline**.
+- `tests/test_qa_weather_byte_rgba_v327758.py`: **2/2 aprovados** (render_scene modular RGBA completo e transições meteorológicas, incluindo RGB oculto). Corrigido skip do blit transparente, agora sempre preservado; apenas o fill redundante pode ser omitido.
+- `qa_preflight_v327758.py`: AST, versões, ligações QA e SHA de arquivos protegidos **aprovados**.
+
+**Total da suíte offline integrada: 11/11 testes aprovados.** Isso não mede FPS/RSS Android nem aprova drivers GPU/GLES/PBO/NEON/VSync. Estado consolidado: **14/32 implementadas e cobertas por gate offline**, **18/32 parciais**, **0/32 homologadas como conjunto no aparelho**. As sete frentes associadas a GPU/driver precisam de Android para homologação; as demais ainda precisam de implementação/cobertura adicional e não serão promovidas sem prova.
+
+**Histórico:** referências anteriores a testes `não executados` são relatos da entrega v757; eles foram **executados no workflow da v758**. Não houve testes manuais do usuário, merge `main`, APK ou AAB.

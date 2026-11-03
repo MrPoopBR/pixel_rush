@@ -12,14 +12,18 @@
 
 - Ambiente local Python 3.13.5 + pygame-ce 2.5.8, `SDL_VIDEODRIVER=dummy`.
 - **3/3 testes sintéticos passaram**: regra de frieza multi-instância; preservação de RGBA com 450×500; 901 apresentações pygame com 25/4/1 coletas e restauração de `display.flip` e GC.
-- O teste da integração completa `tests/test_qa_cache_gc_v327758.py` foi **preparado e versionado, ainda não executado**, pois os módulos completos da branch não estavam disponíveis no container. Não afirmar FPS ou RSS Android.
+- A suíte de integração completa `tests/test_qa_cache_gc_v327758.py` foi executada posteriormente no GitHub Actions #41714045870, **4/4 testes aprovados**. O relato inicial da execução local sintética 3/3 permanece histórico; não afirmar FPS ou RSS Android. Não afirmar FPS ou RSS Android.
 - Sem APK, AAB, Buildozer, ADB, testes Android, merge em main ou homologação final. Física, aparência, jogabilidade, efeitos, pets, saves, DEV e produção não foram alterados.
 
 ## Placar da operação
 
-**13 de 32 concluídas no critério offline e 19 ainda parciais**, nenhuma homologação Android. A #25 foi reforçada, mas continua parcial até comprovação agregada; #26 já era concluída offline. Consultar `QA_TRACKER_32_v327758.md`.
+**14 de 32 concluídas no critério offline e 18 ainda parciais**, nenhuma homologação Android. A #25 foi reforçada, mas continua parcial até comprovação agregada; #26 já era concluída offline. Consultar `QA_TRACKER_32_v327758.md`.
 
 ## Correção de regressão RGBA identificada antes do fechamento
 
 - **#18/#20 — Neve e Deserto:** teste SDL dummy demonstrou que blit transparente com alpha zero pode alterar RGB oculto. Por isso o skip integral do segundo blit meteorológico (v757) foi revertido no método real: o blit original é sempre preservado, enquanto o `fill` redundante pode ser eliminado com marcador de limpeza por instância. Transições neve/areia → seco forçam o fill normalmente. Fallback `PIXELRUSH_QA_MODULAR_WEATHER_SKIP=0` mantém fill incondicional. Sem mudar frames, clima, coordenadas, partículas nem pixels intencionais.
 - Acrescentada prova RGBA do método render_scene real em Neve/Deserto na suíte offline, sem executar Android ou compilação.
+
+## Evidência conclusiva da v758 (mesma branch)
+
+O workflow isolado [#41714045870](https://github.com/MrPoopBR/pixel_rush/actions/runs/41714045870) terminou com `success`, sem SDK Android/Buildozer/ADB. Foram **11/11 testes integrados aprovados**: cache/GC 4, mundo/atlas/skins 4, culling modular byte RGBA 1 e clima modular byte RGBA 2; mais preflight estático com hashes, sintaxe e versão. **#16 promovida de parcial para concluída offline** porque o método real foi exercitado em 180 combinações (2 biomas × 3 layers × 5 map kinds × 6 deslocamentos) com preservação integral RGBA. **#18/#20 permanecem parciais**: o bypass de blit de overlay meteorológico de v757 alterava RGB oculto; foi corrigido para preservar sempre o blit e evitar apenas `fill` de buffer já limpo. **#25 permanece parcial** por falta de benchmark RSS agregado Android. Status vigente: **14/32 concluídas offline, 18/32 parciais, 0/32 homologadas no dispositivo**. Nenhuma nova feature, mudança de física/visual, save/pet/DEV/prod, merge ou APK/AAB.
