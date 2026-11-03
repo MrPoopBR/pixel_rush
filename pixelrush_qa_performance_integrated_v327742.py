@@ -21,6 +21,9 @@ _ORIGINALS={}
 _WORLDS=WeakSet()
 _SEEDS_RAIN=tuple((i*103,i*71) for i in range(48))
 _SEEDS_SNOW=tuple((i,i*61,i*73) for i in range(42))
+# QA748: evitar slices e produtos constantes de cada particula por frame.
+_SEEDS_RAIN_NORMAL=_SEEDS_RAIN[:26]
+_SEEDS_SNOW_NORMAL=_SEEDS_SNOW[:26]
 _SEEDS_SAND=tuple((i*53,i*47) for i in range(36))
 _SEEDS_ASH=tuple((i,i*61,i*23) for i in range(24))
 _SEEDS_WIND=tuple((i*51,i*18%260) for i in range(16))
@@ -32,6 +35,8 @@ _GC_START={}
 _GC_PAUSES=deque(maxlen=256)
 _FLIP_SAMPLES=deque(maxlen=256)
 _CLEANUP_SAMPLES=deque(maxlen=128)
+_TRIMMER=None
+_TRIMMER_FALLBACK=False
 
 
 def _ram_budget_mib():
@@ -111,35 +116,46 @@ def _weather_cached(self,surface):
     kind=self.climate;f=self.frame
     if kind in ('chuva','tempestade','chuva_acida'):
         storm=kind=='tempestade'
-        for xseed,yseed in _SEEDS_RAIN[:48 if storm else 26]:
-            x=int((xseed-f*(5.2 if storm else 2.9))%(450+80))-30
-            y=230+int((yseed+f*7.7)%(730-230))
+        rain=_SEEDS_RAIN if storm else _SEEDS_RAIN_NORMAL
+        deslocamento_x=f*(5.2 if storm else 2.9)
+        deslocamento_y=f*7.7
+        for xseed,yseed in rain:
+            x=int((xseed-deslocamento_x)%(450+80))-30
+            y=230+int((yseed+deslocamento_y)%(730-230))
             if 0<=x<450+4:
                 pygame.draw.line(surface,(153,206,240,106),(x,y),(x-4,y+12),1)
     elif kind in ('neve','nevasca'):
         storm=kind=='nevasca'
-        for i,xseed,yseed in _SEEDS_SNOW[:42 if storm else 26]:
-            x=int((xseed+math.sin(f*.04+i)*11-f*(2 if storm else .7))%(450+50))-15
-            y=230+int((yseed+f*(1.9 if storm else .75))%(730-230))
+        snow=_SEEDS_SNOW if storm else _SEEDS_SNOW_NORMAL
+        fase=f*.04
+        deslocamento_x=f*(2 if storm else .7)
+        deslocamento_y=f*(1.9 if storm else .75)
+        for i,xseed,yseed in snow:
+            x=int((xseed+math.sin(fase+i)*11-deslocamento_x)%(450+50))-15
+            y=230+int((yseed+deslocamento_y)%(730-230))
             rad=1+int(i%3==0)
             if -rad<=x<450+rad:
                 pygame.draw.circle(surface,(244,250,255,182),(x,y),rad)
     elif kind in ('areia','tempestade_areia'):
+        deslocamento_x=f*3.2
         for xseed,yseed in _SEEDS_SAND:
-            x=int((xseed-f*3.2)%(450+50))-18
+            x=int((xseed-deslocamento_x)%(450+50))-18
             y=310+yseed%370
             if x+12>=0 and x<450:
                 pygame.draw.line(surface,(233,192,119,88),(x,y),(x+12,y-1),1)
     elif kind in ('cinzas','chuva_meteoros'):
+        deslocamento_x=f*.8
+        deslocamento_y=f*.9
         for i,xseed,yseed in _SEEDS_ASH:
-            x=int((xseed-f*.8)%(450+30))-10
-            y=230+int((yseed+f*.9)%(730-230))
+            x=int((xseed-deslocamento_x)%(450+30))-10
+            y=230+int((yseed+deslocamento_y)%(730-230))
             rad=2 if i%7==0 else 1
             if -rad<=x<450+rad:
                 pygame.draw.circle(surface,(155,117,121,115),(x,y),rad)
     elif kind in ('vento','vento_folhas','polen','brisa_celeste'):
+        deslocamento_x=f*1.6
         for xseed,yseed in _SEEDS_WIND:
-            x=int((xseed-f*1.6)%(450+35))-15
+            x=int((xseed-deslocamento_x)%(450+35))-15
             y=430+yseed
             if x+8>=0 and x<450:
                 pygame.draw.line(surface,(142,215,147,80),(x,y),(x+8,y+2),1)
@@ -233,6 +249,29 @@ def _wrap_trace_camera():
     CameraCinematica.aplicar=camera
 
 
+def _registrar_custo_trim(custo_ms):
+    _CLEANUP_SAMPLES.append(custo_ms)
+    _LAST_STATUS['cache_cleanup_last_ms']=round(custo_ms,4)
+    # Resumo so quando a serie muda, nunca dentro da simulacao.
+    ordenados=sorted(_CLEANUP_SAMPLES)
+    _LAST_STATUS['cache_cleanup_p95_ms']=round(
+        ordenados[round(.95*(len(ordenados)-1))],4)
+
+
+def _ativar_fallback_trim():
+    global _TRIMMER,_TRIMMER_FALLBACK
+    # Optimizacao opcional nunca deve causar crash do loop QA.
+    _TRIMMER_FALLBACK=True
+    _LAST_STATUS['cache_trim_fallback']=True
+    if _TRIMMER is not None:
+        _TRIMMER.cancelar()
+    _TRIMMER=None
+    try:
+        _reclaim_inactive_caches()
+    except Exception:
+        _LAST_STATUS['cache_trim_fallback_falhou']=True
+
+
 def _wrap_flip():
     _ORIGINALS['display_flip']=pygame.display.flip
     @wraps(_ORIGINALS['display_flip'])
@@ -241,28 +280,48 @@ def _wrap_flip():
         result=_trace(b'pixelrush/present',_ORIGINALS['display_flip'])
         _FLIP_SAMPLES.append((time.perf_counter_ns()-t0)/1e6)
         _LAST_STATUS['frames']+=1
+        # A varredura antiga disparava INTEIRA no frame 180, multiplo de 5.
+        # Sob pressao RSS, agenda em 180 e so trabalha nos outros 4 frames,
+        # com no maximo 12 entradas por apresentacao. Fallback antigo intacto.
         if _LAST_STATUS['frames']%180==0:
             inicio_limpeza=time.perf_counter_ns()
             try:
-                _reclaim_inactive_caches()
-            finally:
-                custo_ms=(time.perf_counter_ns()-inicio_limpeza)/1e6
-                _CLEANUP_SAMPLES.append(custo_ms)
-                _LAST_STATUS['cache_cleanup_last_ms']=round(custo_ms,4)
-                ordenados=sorted(_CLEANUP_SAMPLES)
-                _LAST_STATUS['cache_cleanup_p95_ms']=round(
-                    ordenados[round(.95*(len(ordenados)-1))],4)
+                if _TRIMMER is None:
+                    _reclaim_inactive_caches()
+                else:
+                    from pixelrush_world_v3130 import _SOURCE
+                    _TRIMMER.iniciar(
+                        _WORLDS,_SOURCE,_memory_mib(),
+                        _LAST_STATUS['cache_budget_mib'])
+                    _LAST_STATUS['cache_trim_incremental_agendado']=_TRIMMER.ativo
+            except Exception:
+                _ativar_fallback_trim()
+            custo_ms=(time.perf_counter_ns()-inicio_limpeza)/1e6
+            _registrar_custo_trim(custo_ms)
             try:
                 _LAST_STATUS['renderer']=pygame.display.get_driver()
                 _LAST_STATUS['cpu_backend']=pygame.transform.get_smoothscale_backend()
             except pygame.error:
                 pass
+        if (_TRIMMER is not None and _TRIMMER.ativo and
+                _LAST_STATUS['frames']%5!=0):
+            t=time.perf_counter_ns()
+            try:
+                continua=_TRIMMER.passo()
+                if not continua:
+                    if _TRIMMER.removidos:
+                        _LAST_STATUS['cache_trim_events']+=1
+                    _LAST_STATUS['cache_trim_incremental_agendado']=False
+            except Exception:
+                _ativar_fallback_trim()
+            _registrar_custo_trim((time.perf_counter_ns()-t)/1e6)
         return result
     pygame.display.flip=flip
 
 
 def diagnostico():
     out=dict(_LAST_STATUS)
+    out['limpeza_parcelada_qa']=_TRIMMER.diagnostico() if _TRIMMER is not None else None
     if _GC_PAUSES:
         s=sorted(_GC_PAUSES)
         out['gc_pause_p95_ms']=round(s[round(.95*(len(s)-1))],3)
@@ -282,11 +341,20 @@ def diagnostico():
 
 
 def instalar():
-    global _INSTALLED,_GPU_TRACE
+    global _INSTALLED,_GPU_TRACE,_TRIMMER,_TRIMMER_FALLBACK
     if _INSTALLED:
         return
     _LAST_STATUS['cache_budget_mib']=_ram_budget_mib()
     _GPU_TRACE=_AndroidTrace()
+    _TRIMMER=None
+    _TRIMMER_FALLBACK=False
+    if os.environ.get('PIXELRUSH_QA_STAGGER_TRIM','1')=='1':
+        try:
+            from pixelrush_qa_cache_trim_v327748 import EscalonadorTrimQA
+            _TRIMMER=EscalonadorTrimQA(limite_por_passo=12)
+        except (ImportError,RuntimeError,ValueError,MemoryError):
+            _TRIMMER=None
+    _LAST_STATUS['cache_trim_fallback']=_TRIMMER is None
     _wrap_world()
     _wrap_trace_camera()
     _wrap_flip()
@@ -296,9 +364,12 @@ def instalar():
 
 
 def restaurar_para_teste():
-    global _INSTALLED
+    global _INSTALLED,_TRIMMER
     if not _INSTALLED:
         return
+    if _TRIMMER is not None:
+        _TRIMMER.cancelar()
+        _TRIMMER=None
     from pixelrush_world_v3130 import LivingWorld
     from pixelrush_cinema_v3172 import CameraCinematica
     LivingWorld.__init__=_ORIGINALS['world_init']
