@@ -107,6 +107,14 @@ class EscalonadorTrimQA:
         if attr=='_city_surfaces':
             frio=isinstance(key,tuple) and key and key[0] in (
                 'geometry','flow','material','normal','fxmask')
+            # QA751: se uma pospassagem ainda consome este mapa, desalocar
+            # sob pressao provocaria outra Surface de 450x500 no frame seguinte.
+            # Ausencia de marcador mantém semantica legada de limpeza.
+            ultimo=getattr(world,'_qa_surface_last_used',{}).get(key)
+            if frio and ultimo is not None:
+                biome_uso,frame_uso=ultimo
+                frame_atual=getattr(world,'frame',frame_uso)
+                frio=(biome_uso!=active or frame_atual-frame_uso>180)
         elif attr in ('_qa_mirror_props','_qa_deform_buffers'):
             frio=isinstance(key,tuple) and key and key[0]!=active
         elif attr=='props_cache':
