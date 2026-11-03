@@ -128,6 +128,11 @@ def instalar():
     @wraps(_ORIGINAL)
     def init(self,*args,**kwargs):
         _ORIGINAL(self,*args,**kwargs)
+        # QA768: somente atlas tecnicos finalizados, antes de indexar
+        # as identidades dos tiles em _preparar. Tabela global weak,
+        # igualdade RAW; se indisponivel, original continua intacto.
+        from pixelrush_qa_city_intern_v327768 import compartilhar
+        compartilhar(self)
         _preparar(self)
         _STATS['cenas']+=1
     CityPilotScene.__init__=init
@@ -143,6 +148,8 @@ def restaurar_para_teste():
         CityPilotScene.__init__=_ORIGINAL
     else:
         delattr(CityPilotScene,'__init__')
+    from pixelrush_qa_city_intern_v327768 import restaurar_para_teste as limpar_intern
+    limpar_intern()
     _ORIGINAL=None
     _HAD_LOCAL_INIT=False
     _INSTALLED=False

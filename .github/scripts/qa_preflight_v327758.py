@@ -35,6 +35,8 @@ MODULES=(
     'pixelrush_biomes2_v3128.py',
     'pixelrush_qa_city_weather_v327749.py',
     'pixelrush_qa_city_bootstrap_v327759.py',
+    'pixelrush_qa_city_intern_v327768.py',
+    'tests/test_qa_city_intern_v327768.py',
     'tests/test_qa_geometry_weather_v327759.py',
     'tests/test_qa_world_real_v327759.py',
     'pixelrush_qa_scene_v327733.py',
@@ -58,7 +60,7 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.67-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.68-QA-ANDROID-RC"' in engine
     assert "_qa_precarga_visuais.passo(estado)" in engine
     assert "instalar_render_qa()" in (ROOT/'main.py').read_text('utf8')
     perf=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
@@ -75,6 +77,9 @@ def main():
     assert (ROOT/'QA_CHANGELOG_v327766.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327767.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327767.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327768.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327768.md').is_file()
+    assert 'compartilhar(self)' in (ROOT/'pixelrush_qa_city_bootstrap_v327759.py').read_text('utf8')
     assert "'_qa_damage_layer'" in (ROOT/'pixelrush_qa_memory_budget_v327765.py').read_text('utf8')
     assert 'instalar_pool_particulas_qa(ParallaxBackground,Particula)' in engine
     assert "elif _FRAMES>=180 and _FRAMES%180==1:" in gc
@@ -83,8 +88,8 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.67$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327767$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.68$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327768$',spec)
     assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()

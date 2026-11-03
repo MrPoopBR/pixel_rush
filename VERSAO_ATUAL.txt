@@ -1,4 +1,4 @@
-Pixel Rush v3.277.67-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
+Pixel Rush v3.277.68-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
 QA v3.277.29: investigacao renderizacao Android, composicao 2.5D pixel-equivalente e sondas detalhadas de tutorial/camera.
@@ -79,3 +79,5 @@ QA v3.277.65: inventario agregado de Surfaces SDL sem dupla contagem, pressao de
 QA v3.277.66: particle pool JA existente libera somente extras inativos; particulas ambientais reutilizam estruturas entre biomas, RGB/RGBA e RNG preservados, gate pygame-ce. Sem APK, AAB, Android. QA_TRACKER_32_v327766.md.
 
 QA v3.277.67: RAM SDF buffer 450x500 libera se nao ha dano ativo em trim/fallback, segue guardas RGBA; #20 concluida no gate offline 41/41. Novo gate dano, 3 testes; sem Android/APK/AAB. QA_TRACKER_32_v327767.md.
+
+QA v3.277.68: atlas técnicos imutáveis da Cidade compartilhados entre várias instâncias mediante hash+byte RGBA completo, tabela weak e rollback. Limite agregado de cache integrado com 44/44 gates v767 aprovados. Sem APK/AAB/Android. QA_TRACKER_32_v327768.md.
