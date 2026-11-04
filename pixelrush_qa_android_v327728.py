@@ -161,7 +161,7 @@ class QATelemetria:
         self.versao, self.edicao = str(versao), str(edicao)
         # QA781: mesmo coletor de quadros real, com arquivos R12 exclusivos.
         # Legado e DEV continuam com nomes e schema anteriores.
-        self.r12 = ('3.277.81' in self.versao and
+        self.r12 = (any(v in self.versao for v in ('3.277.81','3.277.82')) and
                     os.environ.get('PIXELRUSH_QA_ANDROID') == '1')
         self.prefixo = ('pixelrush_qa_v327781_r12' if self.r12
                         else 'pixelrush_qa_v327747')
