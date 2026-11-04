@@ -48,20 +48,19 @@ def instalar():
         resultado=_FLIP_ORIGINAL()
         _FRAMES+=1
         _STATS['frames']=_FRAMES
-        # Coletas pequenas fora do frame de redraw. Ficam fora da
-        # fisica/ticks e NAO executam o render nem alteram RNG.
-        if _FRAMES%5!=1:
+        # QA779: quadro 1 mod 5 era REDRAW (nao descanso!), e depois
+        # da QA778 o cache do fundo usa periodo 8. Coletas acontecem em
+        # 30*k+2: nunca em 1 mod 5 NEM 1 mod 8, mesmo no rollback.
+        # A prioridade 900 > 180 > 30 evita GC duplicado no mesmo flip.
+        if _FRAMES<32 or _FRAMES%30!=2:
             return resultado
-        # A geracao maior inclui as menores. Coletas concorrentes no
-        # mesmo flip aumentavam a pausa dos quadros 181/901 sem vantagem.
-        # Manter fase 1 mod 5 e prioridade da geracao mais abrangente.
-        if _FRAMES>=900 and _FRAMES%900==1:
+        if _FRAMES>=902 and _FRAMES%900==2:
             gc.collect(2)
             _STATS['coletas_2']+=1
-        elif _FRAMES>=180 and _FRAMES%180==1:
+        elif _FRAMES>=182 and _FRAMES%180==2:
             gc.collect(1)
             _STATS['coletas_1']+=1
-        elif _FRAMES>=30 and _FRAMES%30==1:
+        else:
             gc.collect(0)
             _STATS['coletas_0']+=1
         return resultado
