@@ -1,9 +1,9 @@
-name: PIXEL RUSH QA 3.277.78 — fechamento offline 32 frentes A54
+name: PIXEL RUSH QA 3.277.79 — fechamento offline 32 frentes A54
 
 on:
   push:
     branches:
-      - qa/fechamento-32-ui-v3.277.78
+      - qa/fechar-32-runtime-v3.277.79
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   qa-v776-r11-offline:
-    if: github.ref_name == 'qa/fechamento-32-ui-v3.277.78'
+    if: github.ref_name == 'qa/fechar-32-runtime-v3.277.79'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -94,11 +94,11 @@ jobs:
       - name: Marcadores disjuntos da corrida e preservacao de gameplay
         run: python tests/test_qa_r10_passe_v327776.py
       - name: QA778 - UI limpa, graficos completos e piso RGBA do menu
-        run: python tests/test_qa_menu_limpeza_v327778.py
+        run: python tests/test_qa_menu_limpeza_v327779.py
       - name: Preflight QA774 (versao, AST, gates, sem Android)
         run: |
           python -m py_compile pixelrush_city2_v3118.py pixelrush_city2_v3122.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py tests/test_qa_scale_recycle_v327774.py
-          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.78' in s; assert 'android.numeric_version = 327778' in s; assert 'VERSAO = \"v3.277.78-QA-ANDROID-RC\"' in e"
+          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.79' in s; assert 'android.numeric_version = 327779' in s; assert 'VERSAO = \"v3.277.79-QA-ANDROID-RC\"' in e"
       - name: LRU de escalas real cidade, RGBA oculto, referencias e benchmark
         run: python tests/test_qa_scale_recycle_v327774.py
       - name: Dez frentes - portas de seguranca especificas A54
