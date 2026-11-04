@@ -11,6 +11,13 @@ import random
 import sys
 import json
 import os
+# R11: marcadores QA isolados; em producao/DEV sao funcoes vazias.
+if os.environ.get('PIXELRUSH_QA_ANDROID') == '1':
+    _r11_sub_inicio = _pro_sub_inicio
+    _r11_sub_fim = _pro_sub_fim
+else:
+    def _r11_sub_inicio(_nome): pass
+    def _r11_sub_fim(): pass
 import math
 import array
 import base64
@@ -13982,6 +13989,7 @@ def main():
                     jogador.rect.x += _prod_dx_entrada
                 _pro_sub_fim()
                 _pro_sub_inicio("qa_render_apos_sprites")
+                _r11_sub_inicio("r11_post_alertas")
                 if estado == 'JOGANDO' and frame_count < entrada_corrida_ate:
                     _prod_banner_entrada(display_surface, frame_count, entrada_corrida_ate)
                 if estado == "JOGANDO" and tutorial_corrida and tutorial_corrida.ativo:
@@ -14010,6 +14018,8 @@ def main():
                     if dados.get('acess_contraste', False) or dados.get('acess_sinais', False):
                         desenhar_sinais_acessiveis(display_surface, jogador, obstaculos,
                                                   buracos, dados, modo_grafico_leve(dados))
+                _r11_sub_fim()
+                _r11_sub_inicio("r11_post_pets")
                 # Pets Premium 2.0: estado ligado à corrida, sprite cacheado e seguimento suave.
                 if jogador is not None and estado in ("JOGANDO", "PAUSA"):
                     pet_id_seguindo = dados.get("pet_equipado", "")
@@ -14054,6 +14064,8 @@ def main():
                             desenhar_recarga_pet(display_surface, pet_id_seguindo,
                                                   (pet_x+25,pet_y-26), frame_count,
                                                   pet_salvou_vida_rodada, modo_grafico_leve(dados))
+                _r11_sub_fim()
+                _r11_sub_inicio("r11_post_efeitos_portais")
                 # Contador do grupo de clones; é apenas visual e não afeta colisões.
                 if jogador is not None and jogador.clones_ativos > 0 and estado in ("JOGANDO", "PAUSA"):
                     texto_clones = render_texto_cacheado(
@@ -14144,6 +14156,8 @@ def main():
                     jetpack_laser_avancado.desenhar(display_surface, modo_grafico_leve(dados))
                     desenhar_legibilidade_jetpack(display_surface, jetpack_laser_avancado,
                                                    frame_count, modo_grafico_leve(dados))
+                _r11_sub_fim()
+                _r11_sub_inicio("r11_post_particulas")
                 if jogador_y_fisico is not None:
                     jogador.rect.y = jogador_y_fisico
                 if modo_grafico_leve(dados):
@@ -14152,10 +14166,16 @@ def main():
                 else:
                     particulas.draw(display_surface)
                 textos_flut.draw(display_surface)
+                _r11_sub_fim()
+                _r11_sub_inicio("r11_post_frente_gamefeel")
                 if portal_tipo_ativo is None and estado == "JOGANDO" and not em_cena_jetpack:
                     bg_parallax.draw_foreground(display_surface)
                     if estado == "JOGANDO" and jogador is not None:
+                        _r11_sub_inicio("r11_post_gamefeel")
                         gamefeel.desenhar(display_surface, jogador, combo_contagem, cenario_atual)
+                        _r11_sub_fim()
+                _r11_sub_fim()
+                _r11_sub_inicio("r11_post_clima_transicoes")
                 if portal_tipo_ativo is None:
                     if not modo_grafico_leve(dados):
                         _pro_sub_inicio("clima_render")
@@ -14234,6 +14254,7 @@ def main():
                 desenhar_hitboxes_debug(display_surface, jogador, obstaculos,
                                         perigos_especiais, frame_count, buracos)
 
+            _r11_sub_fim()
             _pro_sub_fim()  # qa_render_apos_sprites
             if estado == "JOGANDO":
                 _pro_sub_inicio("qa_hud_corrida")
