@@ -62,9 +62,10 @@ class Fechamento32QA(unittest.TestCase):
             qa.instalar()
             try:
                 self.assertFalse(gc.isenabled())
-                for _ in range(181):pygame.display.flip()
+                # QA780: geracao 1 no quadro 182, fora dos ciclos 5 e 8.
+                for _ in range(182):pygame.display.flip()
                 diag=qa.diagnostico()
-                self.assertEqual(diag['frames'],181)
+                self.assertEqual(diag['frames'],182)
                 self.assertEqual(diag['coletas_0'],5)
                 self.assertEqual(diag['coletas_1'],1)
                 self.assertEqual(diag['coletas_no_quinto_quadro'],0)
