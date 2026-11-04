@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """QA 3.277.41: paridade pixel a pixel do recorte nativo SSE2/GENERIC.
 
-Testes de cenografia real (cidade, neve) e 240 casos sinteticos RGB/RGBA.
+Testes de cenografia real (cidade atual v3125, neve) e 240 casos RGB/RGBA.
 Sem importar o prototipo no entrypoint. LIB compilada no Linux CI.
 """
 import os
@@ -98,7 +98,7 @@ class NativeCameraQA(unittest.TestCase):
 
     def test_cidade_e_neve_reais(self):
         # A cena vem das classes exatas do jogo, sem imitar a arte.
-        from pixelrush_city2_v3124 import CityPilotScene
+        from pixelrush_city2_v3125 import CityPilotScene
         from pixelrush_biomes2_v3185 import ModularBiomeScene
         total=0
         try:
