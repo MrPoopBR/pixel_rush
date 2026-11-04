@@ -7,6 +7,12 @@ com transparência e mapas técnicos separados para efeitos GPU ModernGL.
 import math
 import json
 import os
+# R11/QA776: rota alternativa só no APK QA; produção/DEV permanecem
+# no blit original sem import, bbox, leitura de pixels ou variáveis extras.
+if os.environ.get('PIXELRUSH_QA_ANDROID')=='1':
+    from pixelrush_qa_r11_world_bounds_v327776 import compor as _qa_r11_compor_city
+else:
+    _qa_r11_compor_city=None
 from collections import OrderedDict
 from functools import lru_cache
 import pygame
@@ -399,7 +405,10 @@ class LivingWorld:
             layer=self._city_surface('image', foreground_only=False)
             if self.damage.chunks:
                 self.damage.apply(layer,self.travel*LAYER_SPEEDS[1])
-            surface.blit(layer,(0,TOP))
+            if self.biome=='cidade' and _qa_r11_compor_city is not None:
+                _qa_r11_compor_city(surface,layer,TOP)
+            else:
+                surface.blit(layer,(0,TOP))
             self.debris.draw(surface,self.travel,LAYER_SPEEDS[2])
             if self.climate in ('tempestade','nevasca','tempestade_areia','cinzas'):
                 self.atmosphere.draw(surface,self.biome,self.night)
