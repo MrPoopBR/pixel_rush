@@ -64,7 +64,11 @@ class WorldBandsR11QA776(unittest.TestCase):
                 before.blit(source,(0,230))
                 clipped(after,source,areas)
                 self.assertEqual(rgba(before),rgba(after),(i,bpp,areas))
-                old=[];new=[]
+                old=[];new=[];bounded=[]
+                bbox=source.get_bounding_rect(min_alpha=1)
+                test_bbox=base.copy()
+                test_bbox.blit(source,(bbox.x,230+bbox.y),bbox)
+                self.assertEqual(rgba(before),rgba(test_bbox),(i,bpp,'bbox'))
                 for j in range(140):
                     t=time.perf_counter_ns()
                     before.blit(source,(0,230))
@@ -72,13 +76,21 @@ class WorldBandsR11QA776(unittest.TestCase):
                     t=time.perf_counter_ns()
                     clipped(after,source,areas)
                     new.append(time.perf_counter_ns()-t)
+                    t=time.perf_counter_ns()
+                    box=source.get_bounding_rect(min_alpha=1)
+                    test_bbox.blit(source,(box.x,230+box.y),box)
+                    bounded.append(time.perf_counter_ns()-t)
                 self.assertEqual(rgba(before),rgba(after),(i,bpp,'repeated'))
                 med_old=statistics.median(old)
                 med_new=statistics.median(new)
+                med_bounded=statistics.median(bounded)
                 results.append({'caso':i,'bpp':bpp,'occupancy_rows':round(occupancy,3),
                                 'bands':len(areas),'old_ms':round(med_old/1e6,4),
                                 'new_ms':round(med_new/1e6,4),
-                                'speedup':round(med_old/med_new,3),'RGBA_exato':True})
+                                'speedup':round(med_old/med_new,3),
+                                'bbox_auto_ms':round(med_bounded/1e6,4),
+                                'bbox_auto_speedup':round(med_old/med_bounded,3),
+                                'RGBA_exato':True})
         REPORT.write_text(json.dumps({'schema':'pixelrush.qa.r11.world_bands.v327776',
             'integrado':False,'hardware_A54':False,'amostras':results},indent=2))
         print('R11 world bands',json.dumps(results))
