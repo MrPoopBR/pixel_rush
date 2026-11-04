@@ -25,19 +25,46 @@ def diagnostico():
     return dict(_REPORT)
 
 
+def registrar_falha_boot(nome):
+    """NAO suspende o jogo: registra motivo sem caminho/ID do dispositivo."""
+    _REPORT['status']='erro_preflight_boot_'+str(nome)[:60]
+    _REPORT['boot_error']=str(nome)[:60]
+
+
 def _load_native():
     global _NATIVE
     if _NATIVE is not None:
         return _NATIVE
-    from pixelrush_qa_crop_native_v327741 import Crop32QA
-    # APK: lib nativa em lib/arm64-v8a. Desktop: caminho absoluto fornecido.
-    lib=os.environ.get('PIXELRUSH_QA_NATIVE_CAMERA_LIB',
-                       'libpixelrush_camera_crop_v327741.so')
     try:
-        _NATIVE=Crop32QA(lib)
-        return _NATIVE
-    except (OSError,RuntimeError,ValueError):
+        from pixelrush_qa_crop_native_v327741 import Crop32QA
+    except (ImportError,RuntimeError,OSError) as erro:
+        registrar_falha_boot('import_'+type(erro).__name__)
         return None
+    # A lib pode nao estar no namespace LD_LIBRARY_PATH do python-for-android.
+    # Primeiro tenta a busca historica SONAME; depois a pasta nativa do APK
+    # descoberta em tempo de execucao, NUNCA path fixo de um aparelho.
+    soname='libpixelrush_camera_crop_v327741.so'
+    candidatos=[os.environ.get('PIXELRUSH_QA_NATIVE_CAMERA_LIB') or soname]
+    if ('ANDROID_ARGUMENT' in os.environ or os.name=='android') and (
+            candidatos[0]==soname):
+        try:
+            from jnius import autoclass
+            activity=autoclass('org.kivy.android.PythonActivity').mActivity
+            native_dir=str(activity.getApplicationInfo().nativeLibraryDir)
+            if native_dir:
+                candidatos.append(os.path.join(native_dir,soname))
+        except (ImportError,AttributeError,RuntimeError,OSError) as erro:
+            _REPORT['native_dir_probe']=type(erro).__name__
+    _REPORT['load_attempts']=len(candidatos)
+    for i,local in enumerate(candidatos):
+        try:
+            _NATIVE=Crop32QA(local)
+            _REPORT['native_lib_resolvida']='soname' if i==0 else 'app_native_lib'
+            return _NATIVE
+        except (OSError,RuntimeError,ValueError) as erro:
+            _REPORT['native_load_error']=type(erro).__name__
+    _REPORT['status']='biblioteca_nativa_indisponivel'
+    return None
 
 
 def _geometria_camera(self,imagem,jogador,velocidade,momento,ativo):
