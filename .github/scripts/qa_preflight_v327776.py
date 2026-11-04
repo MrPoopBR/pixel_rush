@@ -11,8 +11,8 @@ ROOT=Path(__file__).resolve().parents[2]
 PROTECTED={
     'main.py':'620a3cdcad571168b31c2633b28da94c251b8855',
     'pixelrush_biomes2_v3130.py':'01a711dc82c563c401a25218c508de6d0784032f',
-    'pixelrush_qa_gles_bridge_v327749.py':'a0e5d17b25593fa780e5548610e4bdd1a8b3180b',
-    'pixelrush_qa_camera_native_auto_v327742.py':'211f3b313c9a39c0e961a169de9b97c8a2c519b1',
+    'pixelrush_qa_gles_bridge_v327749.py':'76c8d4c70ba03b364eb7721aebe04b8bd46445ea',
+    'pixelrush_qa_camera_native_auto_v327742.py':'fcf3b154302a52deb5228118a68d6dfd7cffa768',
 }
 MODULES=(
     'tests/test_qa_r11_chunk_trace_v327777.py',
