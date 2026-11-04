@@ -122,7 +122,7 @@ jobs:
       - name: Experimento nao integrado - views GameFeel SRCALPHA e RGB16/24/32
         run: python tests/test_qa_r11_vinheta_views_bench_v327776.py
       - name: Gate v777 Cidade 2.5D - atlas versus sprites com RGBA identico
-        run: python tests/test_qa_r11_chunk_trace_v327778.py
+        run: python tests/test_qa_r11_chunk_trace_v327777.py
       - name: Perfil profundo City 2.5D real - chunk sprites alpha e RGBA
         run: python tests/test_qa_r11_city_hotspots_v327776.py
       - name: R11 baseline real A54 preservado e sem 32/32
