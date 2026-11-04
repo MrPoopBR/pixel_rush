@@ -9,6 +9,13 @@ import math
 import random
 from collections import OrderedDict
 import pygame
+import os
+
+# QA Android isolado: sem efeitos na versao LIMPA/DEV fora da branch QA.
+if os.environ.get('PIXELRUSH_QA_ANDROID') == '1':
+    from pixelrush_qa_r11_vinheta_v327776 import desenhar_vinheta as _qa_vinheta
+else:
+    _qa_vinheta = None
 
 W, H = 450, 800
 
@@ -138,7 +145,10 @@ class GameFeel:
             else:
                 self._cache_rotulos_combo.move_to_end(chave_combo)
             surf.blit(texto, (int(x + 17 - texto.get_width() / 2), int(y - texto.get_height() / 2)))
-        surf.blit(self._vinheta, (0, 0))
+        if _qa_vinheta is None:
+            surf.blit(self._vinheta, (0, 0))
+        else:
+            _qa_vinheta(surf, self._vinheta)
 
     def acabamento_camera(self, surf, ativo):
         if not ativo or self.zoom <= .002:
