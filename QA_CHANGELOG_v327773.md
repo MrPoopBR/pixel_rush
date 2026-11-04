@@ -14,3 +14,7 @@ A telemetria real R10 v3.277.72 mediu ~928 quadros de corrida normal, FPS de cad
 Benchmark de captura local pygame-ce 2.5.8 Linux: ganho de mediana ~8% *na captura*, não no frame. Nada comprova que os 86/95/25 ms Android foram reduzidos; o detalhamento R10 serve para apontar um algoritmo de maior impacto na próxima medição. Nenhum APK, testes Android, alterações de jogabilidade, física, zoom, visual, HUD, pets, saves, main, DEV ou workflows AAB/APK.
 
 **Placar:** 22/32 frentes concluídas offline, 10 parciais, 0 homologadas em ARM64 físico.
+
+## Fechamento de testes CI e detalhamento de simulação
+
+O workflow offline exclusivo #41868386459 passou com **78/78** testes, incluindo regressões anteriores e novos testes RGB/RGBA de replay. Benchmark no GitHub (Ubuntu pygame-ce 2.5.8): mediana da captura original **0,15237ms**, com reuso **0,14142ms** (~7,19% a menos só na captura), sem alegação de ganhos em FPS Android. Acrescentados três marcadores isolados observacionais para atualização do parallax/mundo, diretores de eventos e clima dentro dos ticks; o restante da simulação continua intocado. Nenhum APK ou AAB foi compilado.

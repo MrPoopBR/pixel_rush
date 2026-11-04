@@ -12062,6 +12062,7 @@ def main():
                 and febre_turbo_distancia_restante <= 0
                 and evento_corrida is None and transicao_cenario_timer <= 0
                 and not diretor_perseguidores.ativo)
+            _pro_sub_inicio("qa_sim_diretores")
             diretor_eventos_raros.atualizar(
                 metros_atuais, cenario_atual,
                 permitido=(_evento_raro_permitido and OBSTACULOS_QUE_AVANCAM_ATIVOS_PROD),
@@ -12081,6 +12082,7 @@ def main():
                     and obj.rect.right > jogador.rect.left - 15
                     for grupo in (obstaculos, perigos_especiais, buracos)
                     for obj in grupo))
+            _pro_sub_fim()  # qa_sim_diretores
             gamefeel.atualizar(vel_jogo, vel_base,
                                turbo=bool(febre_turbo_distancia_restante > 0 or jogador.tempo_turbo > 0))
 
@@ -12103,7 +12105,9 @@ def main():
                 if jogador.tempo_turbo > 0 and frame_count % 12 == 0:
                     gerenciador_sons.tocar_som("chamas", e_slow, dados["vol_sfx"])
 
+            _pro_sub_inicio("qa_sim_parallax")
             bg_parallax.update(vel_jogo, metros_atuais)
+            _pro_sub_fim()
             for buraco in list(buracos):
                 buraco.update(vel_jogo)
 
@@ -12630,7 +12634,9 @@ def main():
 
             # Clima de baixa sobrecarga. Raios em tempestades podem remover um
             # obstaculo adiante, sem tocar na hitbox ou na fisica do jogador.
+            _pro_sub_inicio("qa_sim_clima")
             alvo_raio = None if portal_tipo_ativo is not None else clima.update(obstaculos, jogador.rect if not jogador.morrendo else None)
+            _pro_sub_fim()
             if portal_tipo_ativo is None and clima.tipo != clima_tipo_anterior:
                 if cenario_atual == "vulcao" and clima.tipo in ("cinzas", "chuva_meteoros"):
                     eventos_vulcao_rodada += 1

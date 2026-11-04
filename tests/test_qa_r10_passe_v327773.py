@@ -8,7 +8,8 @@ ENGINE=ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'
 SUBS=('qa_ceu_2d','qa_world_draw','qa_particulas_mundo',
       'qa_fundo_cache_chao','qa_render_antes_sprites',
       'qa_render_apos_sprites','qa_hud_corrida',
-      'qa_replay_captura','qa_simulacao_ticks')
+      'qa_replay_captura','qa_simulacao_ticks',
+      'qa_sim_diretores','qa_sim_parallax','qa_sim_clima')
 
 class PerfilR10773(unittest.TestCase):
     def test_engine_e_instrumentacao_tem_sintaxe_valida(self):
