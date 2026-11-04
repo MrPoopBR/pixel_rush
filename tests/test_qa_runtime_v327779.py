@@ -119,6 +119,37 @@ class RuntimeQA779(unittest.TestCase):
         texto=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
         self.assertIn("PIXELRUSH_QA_TRIM_PROBE_PHASE','2'",texto)
 
+    def test_pacing_e_jank_gles_sem_gpu_fisica(self):
+        from collections import deque
+        from pixelrush_qa_gles_present_v327735 import GLES2DirectPresenterQA
+        import pixelrush_qa_gles_present_v327735 as gles
+        pygame.init()
+        pygame.display.set_mode((450,800))
+        presenter=GLES2DirectPresenterQA.__new__(GLES2DirectPresenterQA)
+        presenter._egl=None
+        presenter.frame_count=0
+        presenter.frame_intervals_ns=deque(maxlen=256)
+        presenter._last_present_ns=None
+        presenter.swap_method='SDL mock'
+        presenter.swap_interval_aplicado=None
+        presenter.renderer='GLES fake'
+        presenter.version='OpenGL ES3 mock'
+        presenter.readbacks=0
+        ticks=iter([0,10_000_000,40_000_000,70_000_000,
+                    100_000_000,170_000_000])
+        with patch.object(pygame.display,'flip',return_value=None), \
+             patch.object(gles.time,'perf_counter_ns',side_effect=lambda:next(ticks)):
+            presenter.present()
+            presenter.present()
+            presenter.present()
+        resultado=presenter.diagnostico()
+        self.assertEqual(resultado['frames'],3)
+        self.assertEqual(resultado['frame_interval_p95_ms'],100.0)
+        self.assertEqual(resultado['quadros_intervalo_acima_50ms'],2)
+        self.assertEqual(resultado['gpu_to_cpu_readbacks'],0)
+
+
+
 
 if __name__=='__main__':
     unittest.main(verbosity=2)
