@@ -161,7 +161,7 @@ class QATelemetria:
         self.versao, self.edicao = str(versao), str(edicao)
         # QA781: mesmo coletor de quadros real, com arquivos R12 exclusivos.
         # Legado e DEV continuam com nomes e schema anteriores.
-        self.r12 = ('3.277.81' in self.versao and
+        self.r12 = (self.versao.startswith(('v3.277.81-', 'v3.277.82-')) and
                     os.environ.get('PIXELRUSH_QA_ANDROID') == '1')
         self.prefixo = ('pixelrush_qa_v327781_r12' if self.r12
                         else 'pixelrush_qa_v327747')
@@ -358,6 +358,11 @@ class QATelemetria:
             from pixelrush_qa_r12_v327781 import coletar as coletar_r12
             resultado['schema'] = 'pixelrush.qa.android.r12.v327781'
             resultado['r12_runtime'] = coletar_r12()
+            # Mantem nomes R12 para o coletor V2 Windows ja instalado.
+            # A versao de jogo identifica a candidata com camera/tela QA782.
+            resultado['r12_revision'] = (
+                'v327782_camera_tela_cheia' if '3.277.82' in self.versao
+                else 'v327781_original')
             resultado['r12_arquivo_csv'] = self.prefixo.replace(
                 'pixelrush_qa_v','pixelrush_qa_frames_v')+'.csv'
             resultado['r12_arquivo_json'] = self.prefixo+'.json'
