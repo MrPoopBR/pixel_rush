@@ -8,3 +8,7 @@
 - **Crash nas letras v70**: R8 perdeu traceback por `logcat --pid` inválido; coletor Windows R9 separado registra logs sem PID e troca de processos. NÃO atribuir causa ao jogo sem traceback.
 - R8: menu fundo p50 68,3ms (15 amostras); 2.5D tutorial p50 93,4ms (17); câmera p50 0,072ms/p95 160,862ms (111). No MEmu virtual x86_64 com ARM64 traduzido. Sem evidencia de equivalência/ganho para ligar GLES/scroll/PBO. Status das 32 frentes permanece **22 offline / 10 parciais / 0 homologadas ARM64 físico**.
 - Nenhum APK/AAB ou hardware aprovado sem execução real do CI/Android.
+
+### Gate adicional de paridade na mesma v3.277.71
+
+Incluído vetor determinístico 37x53 em RGB opaco e SRCALPHA com canais RGB ocultos sob alfa zero, escalado para 43x61 por backend. Reprova qualquer diferença byte RGBA antes da seleção/benchmark. Padrões RGB+RGBA de estresse detectaram divergência SSE2/GENERIC em pygame-ce 2.5.8 Linux; este caso não deve ativar backend alternativo. Não altera visual nem física.

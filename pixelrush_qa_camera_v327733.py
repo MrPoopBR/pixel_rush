@@ -87,6 +87,33 @@ def _teste_real(imagem, tamanho):
                 if obtido != esperado:
                     _RESULTADO['resultado'] = 'diferenca_de_pixels_teste2: ' + candidato
                     continue
+                # Terceira prova: cores independentes e RGBA oculto sob
+                # alfa zero. Um frame simples de boot pode esconder divergencia
+                # entre GENERIC e NEON/SSE2 que aparece na corrida real.
+                diferente=False
+                for alpha in (False,True):
+                    if alpha:
+                        amostra_cores=pygame.Surface((37,53),pygame.SRCALPHA,32)
+                    else:
+                        amostra_cores=pygame.Surface((37,53)).convert(imagem)
+                    for yy in range(53):
+                        for xx in range(37):
+                            amostra_cores.set_at((xx,yy),
+                                ((xx*23+yy*17)%256,(xx*7+yy*43)%256,
+                                 (xx*59+yy*11)%256,
+                                 (xx*19+yy*13)%256 if alpha else 255))
+                    pygame.transform.set_smoothscale_backend(original)
+                    esperado=pygame.image.tobytes(
+                        pygame.transform.smoothscale(amostra_cores,(43,61)),'RGBA')
+                    pygame.transform.set_smoothscale_backend(candidato)
+                    obtido=pygame.image.tobytes(
+                        pygame.transform.smoothscale(amostra_cores,(43,61)),'RGBA')
+                    if esperado!=obtido:
+                        _RESULTADO['resultado']='diferenca_rgba_estresse: '+candidato
+                        diferente=True
+                        break
+                if diferente:
+                    continue
                 # Alternar 4 pares de medições para reduzir variacao de CPU.
                 originais=[custo]
                 alternativas=[custo_novo]

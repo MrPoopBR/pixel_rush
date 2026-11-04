@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: pixelrush-qa-memu-apk-v327771
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   qa-arm64-memu-debug:

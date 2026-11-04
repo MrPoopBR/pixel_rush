@@ -28,6 +28,11 @@ class Camera771(unittest.TestCase):
         self.assertIn(x,('SSE2','NEON','GENERIC'))
         self.assertEqual(pygame.transform.get_smoothscale_backend(),orig)
         self.assertTrue(qa.resultado()['avaliado'])
+    def test_stress_rgba_opaco_e_oculto_instalado(self):
+        codigo=(BASE/'pixelrush_qa_camera_v327733.py').read_text('utf8')
+        self.assertIn("for alpha in (False,True):",codigo)
+        self.assertIn("diferenca_rgba_estresse",codigo)
+        self.assertIn("pygame.image.tobytes",codigo)
     def test_preflight_qa_antes_loop_e_preserva_camera_real(self):
         s=(BASE/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
         i=s.index('_qa_camera_boot_bench(display_surface')
