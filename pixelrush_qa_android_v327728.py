@@ -95,6 +95,21 @@ def _performance_32_estado():
         return {'ativo':False,'motivo':'nao_inicializado'}
 
 
+def _r11_vinheta_estado():
+    try:
+        from pixelrush_qa_r11_vinheta_v327776 import diagnostico
+        return diagnostico()
+    except (ImportError,RuntimeError,AttributeError):
+        return {'ativo':False,'motivo':'ausente'}
+
+def _r11_passe_estado():
+    try:
+        from pixelrush_qa_r11_passes_v327776 import diagnostico
+        return diagnostico()
+    except (ImportError,RuntimeError,AttributeError):
+        return {'ativo':False,'motivo':'ausente'}
+
+
 def _memoria_rss_mb():
     try:
         with open('/proc/self/status', encoding='ascii') as arquivo:
@@ -300,6 +315,8 @@ class QATelemetria:
             'renderer_backend_qa': _renderer_backend_qa(),
             'camera_backend_autotune_qa': _camera_qa_estado(),
             'qa_20_fases_performance': _performance_32_estado(),
+            'r11_vinheta_qa': _r11_vinheta_estado(),
+            'r11_passe_world_qa': _r11_passe_estado(),
             'gles_camera_gate_qa': _gles_gate_qa(),
             'observacoes': [
                 'Fases principais exclusivas; subsistemas dentro delas: NAO somar duas vezes.',
