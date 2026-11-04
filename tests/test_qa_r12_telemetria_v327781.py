@@ -60,7 +60,7 @@ class R12TelemetriaQA781(unittest.TestCase):
     def test_json_csv_r12_p50_p95_p99_e_passes_reais(self):
         with tempfile.TemporaryDirectory(prefix="pixelrush-r12-") as pasta:
             with patch.dict(os.environ,{"PIXELRUSH_QA_ANDROID":"1"}):
-                q=self._gerar(pasta,"v3.277.81-QA-ANDROID-RC")
+                q=self._gerar(pasta,"v3.277.82-QA-ANDROID-RC")
             self.assertTrue(q.r12)
             destino=Path(pasta)
             j=destino/"pixelrush_qa_v327781_r12.json"
