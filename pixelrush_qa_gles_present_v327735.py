@@ -286,11 +286,14 @@ class GLES2DirectPresenterQA:
              if intervalos else None)
         p95=(round(intervalos[min(len(intervalos)-1,round(.95*(len(intervalos)-1)))]/1e6,3)
              if intervalos else None)
+        p99=(round(intervalos[min(len(intervalos)-1,round(.99*(len(intervalos)-1)))]/1e6,3)
+             if intervalos else None)
         jank=sum(1 for n in intervalos if n>50_000_000)
         return {'renderer':self.renderer,
                 'egl_vsync_aplicado':self.swap_interval_aplicado,
                 'frame_interval_p50_ms':p50,
                 'frame_interval_p95_ms':p95,
+                'frame_interval_p99_ms':p99,
                 'quadros_intervalo_acima_50ms':jank,'gl_version':self.version,
                 'video_driver':pygame.display.get_driver(),
                 'swap_method':self.swap_method,'frames':self.frame_count,
