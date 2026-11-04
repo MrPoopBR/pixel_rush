@@ -110,12 +110,27 @@ def _verificar_primeiro_frame(imagem,camera,jogador,velocidade,momento,ativo):
         return False
     # Calcular geometria SEM alterar o estado real da camera.
     z=camera.zoom;f=camera.foco_y
+    # QA782/R12: camera nova inicia zoom=0. O primeiro passo (zoom
+    # ~0.001 em velocidade 12) fica ABAIXO do limiar 0.002 e o preflight
+    # antigo retornava None sem medir nada: 0 frames C/NEON no Galaxy A54.
+    # Simular a convergencia no estado TEMPORARIO ate existir recorte,
+    # restaurando rigorosamente zoom/foco antes do primeiro frame real.
+    geometria=None
+    tentativas=0
     try:
-        geometria=_geometria_camera(camera,imagem,jogador,velocidade,momento,ativo)
+        for tentativas in range(1,25):
+            geometria=_geometria_camera(camera,imagem,jogador,
+                                       velocidade,momento,ativo)
+            if geometria is not None:
+                break
     finally:
         camera.zoom=z;camera.foco_y=f
+    _REPORT['boot_passos_geometria']=tentativas
+    _REPORT['boot_zoom_estado_preservado']=(
+        camera.zoom==z and camera.foco_y==f)
     if geometria is None:
-        return None
+        _REPORT['status']='preflight_sem_zoom_ativo'
+        return False
     size,crop=geometria
     buf=pygame.Surface(size).convert(imagem)
     formato='RGBA'
