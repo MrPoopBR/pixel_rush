@@ -95,6 +95,9 @@ MODULES=(
     'pixelrush_qa_android_v327728.py',
     'pixelrush_qa_async_export_v327737.py',
     'tests/test_qa_r12_telemetria_v327781.py',
+    'pixelrush_qa_android_display_v327782.py',
+    'tests/test_qa_r12_a54_viewport_v327782.py',
+    'tests/test_qa_r12_camera_preflight_v327782.py',
 )
 def blob(path):
     b=(ROOT/path).read_bytes()
@@ -107,8 +110,18 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.81-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.82-QA-ANDROID-RC"' in engine
     assert 'qa_replay_captura' in engine and 'qa_fundo_cache_chao' in engine
+    # R12 fisico A54: gate da apresentacao e boot NEON efetivos.
+    display_qa=(ROOT/'pixelrush_qa_android_display_v327782.py').read_text('utf8')
+    camera_qa=(ROOT/'pixelrush_qa_camera_native_auto_v327742.py').read_text('utf8')
+    bridge_qa=(ROOT/'pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
+    assert 'pygame.SCALED|pygame.FULLSCREEN' in display_qa
+    assert 'area_preservada' in display_qa and 'dedo_normalizado' in display_qa
+    assert 'camera.zoom = .025' in camera_qa
+    assert 'pygame.FULLSCREEN|pygame.SCALED' in bridge_qa
+    assert (ROOT/'tests/test_qa_r12_a54_viewport_v327782.py').is_file()
+    assert (ROOT/'tests/test_qa_r12_camera_preflight_v327782.py').is_file()
     assert 'instalar_replay_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
     telemetria=(ROOT/'pixelrush_qa_android_v327728.py').read_text('utf8')
     exportador=(ROOT/'pixelrush_qa_async_export_v327737.py').read_text('utf8')
@@ -161,10 +174,10 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.81$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327781$',spec)
-    assert (ROOT/'QA_TRACKER_32_v327781.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327781.md').is_file()
+    assert re.search(r'(?m)^version = 3\.277\.82$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327782$',spec)
+    assert (ROOT/'QA_TRACKER_32_v327782.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327782.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327776.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327776.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327774.md').is_file()
@@ -196,10 +209,10 @@ def main():
     # Auditoria QA775: sem mudancas nos gates CPU/GPU, saves, main ou DEV.
     assert "PIXELRUSH_QA_CITY_RECYCLE_SCALE','1'" in (ROOT/'pixelrush_city2_v3118.py').read_text('utf8')
     assert "PIXELRUSH_QA_GLES_BRIDGE','0'" in (ROOT/'pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
-    result={'schema':'pixelrush.qa.preflight.v327781','status':'AST_E_PINS_APROVADOS',
+    result={'schema':'pixelrush.qa.preflight.v327782','status':'AST_E_PINS_APROVADOS',
             'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
             'android_homologado':False,'gpu_hardware':False}
-    Path('qa-preflight-v327781.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+    Path('qa-preflight-v327782.json').write_text(json.dumps(result,indent=2),encoding='utf8')
     print(json.dumps(result,indent=2))
 if __name__=='__main__':
     main()
