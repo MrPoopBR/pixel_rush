@@ -42,7 +42,11 @@ def preparar_perfil_qa_android():
     if os.environ.get('PIXELRUSH_QA_ACCEL_PROFILE','agressivo') != 'agressivo':
         return False
     for nome,valor in (
-            ('PIXELRUSH_QA_GLES_BRIDGE','1'),
+            # QA782: no A54 R12 o GLES abortou com ModuleNotFoundError.
+            # Nao criar/reabrir janela GLES em toda partida. Permanecer SDL
+            # ate o driver passar os gates; PIXELRUSH_QA_GLES_BRIDGE=1 continua
+            # disponivel para laboratorio e nao perde nenhuma funcionalidade.
+            ('PIXELRUSH_QA_GLES_BRIDGE','0'),
             ('PIXELRUSH_QA_GPU_ZOOM','1'),
             ('PIXELRUSH_QA_GLES3_CONTEXT','1'),
             ('PIXELRUSH_QA_GLES_PBO','1'),
