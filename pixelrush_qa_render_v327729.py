@@ -27,10 +27,40 @@ _INSTALADO = False
 _ORIGINAL = None
 
 
+def preparar_perfil_qa_android():
+    """QA779: conectar as aceleracoes JA existentes no jogo Android QA.
+
+    A configuracao opt-in por variavel individual tem precedencia. Um driver
+    sem GLES3 ou sem biblioteca nativa deve cair no SDL/pygame, nunca impedir
+    o carregamento, nem afetar a branch main, DEV ou AAB.
+    """
+    import sys
+    if os.environ.get('PIXELRUSH_QA_ANDROID') != '1':
+        return False
+    if sys.platform != 'android' and 'ANDROID_ARGUMENT' not in os.environ:
+        return False
+    if os.environ.get('PIXELRUSH_QA_ACCEL_PROFILE','agressivo') != 'agressivo':
+        return False
+    for nome,valor in (
+            ('PIXELRUSH_QA_GLES_BRIDGE','1'),
+            ('PIXELRUSH_QA_GPU_ZOOM','1'),
+            ('PIXELRUSH_QA_GLES3_CONTEXT','1'),
+            ('PIXELRUSH_QA_GLES_PBO','1'),
+            ('PIXELRUSH_QA_CAMERA_AUTOTUNE','1'),
+            ('PIXELRUSH_QA_NATIVE_AUTO','1'),
+            ('PIXELRUSH_QA_CITY_INCREMENTAL','1'),
+            ('PIXELRUSH_QA_CLASSIC_INCREMENTAL','1'),
+            ('PIXELRUSH_QA_TRACE','1')):
+        os.environ.setdefault(nome,valor)
+    return True
+
+
 def instalar():
     global _INSTALADO, _ORIGINAL
     if _INSTALADO:
         return
+    # Antes dos imports QA: cada modulo captura as flags no boot.
+    preparar_perfil_qa_android()
     from pixelrush_world_v3130 import LivingWorld
     _ORIGINAL = LivingWorld._city_surface
 
