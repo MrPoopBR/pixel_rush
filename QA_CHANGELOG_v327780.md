@@ -20,3 +20,6 @@ Branch `qa/homologacao-32-v3.277.80` a partir de `qa/fechar-32-runtime-v3.277.79
 9. Suite offline e Mesa no commit `8ea6f8b0` passaram: offline [#41914146215](https://github.com/MrPoopBR/pixel_rush/actions/runs/41914146215); GPU/Mesa [#41914146128](https://github.com/MrPoopBR/pixel_rush/actions/runs/41914146128). Estas execuções cobrem os arquivos anteriores à inclusão dos JSONs publicados.
 
 **Homologação Galaxy A54 continua pendente**: não há APK QA780 nem R12 com GPU Mali, telemetria de FPS/jank e saves pós-instalação. Não aprovar 32/32 com base apenas nos testes em PC.
+
+10. **Backend selector reconciliado com o runtime QA**: `pixelrush_qa_backend_gate_v327747.selecionar(..., qa_candidato=True)` agora exige contexto OpenGL, contrato SDL/HUD, paridade RGBA, ganho local da câmera, ausência de readback no frame e medição no Android QA. A ponte chama o seletor **somente após** seu preflight real; se o seletor recusar, restaura SDL. O seletor informa explicitamente `homologado_fps_android=False` e mantém `pronto_para_trocar_entrada_real=False`: autorizar experimento QA não significa aprovar produção.
+11. Adicionada regressão do seletor para ambiente desktop, Android simulado, ausência de ganho e impossibilidade de marcar FPS final.
