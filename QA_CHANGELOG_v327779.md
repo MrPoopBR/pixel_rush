@@ -14,3 +14,10 @@ Branch: `qa/fechar-32-runtime-v3.277.79` sobre v3.277.78-QA.
 A integração do backend não equivale a comprovação dos FPS/latência na Mali-G68. A rota GPU é experimental; seu uso depende de contexto GLES3, upload válido, shaders e frame completo sem erro. Nenhum APK foi compilado. Sem alteração intencional de física, colisões, jogador, saves, pets, tutorial, main, DEV, produção ou workflow AAB.
 
 Ver tracker: `QA_TRACKER_32_v327779.md`. Estado conservador: **22 concluídas offline, 10 com integração ou alternativa experimental ainda não homologadas**.
+
+## Aprofundamentos na mesma versão
+- GLES: a inicialização agora testa se `pygame.Surface.convert()` continua funcional após abrir o contexto OpenGL; se não, recua para SDL antes de entregar o framebuffer para o jogo. Isso previne falha tardia na criação de texturas dos biomas.
+- GLES/EGL: `eglSwapInterval` solicita VSync com intervalo 1 (override `PIXELRUSH_QA_VSYNC_INTERVAL=0`) quando suportado; sem EGL permanece o swap original.
+- Medição de apresentação: amostras limitadas dos intervalos de quadros, p50/p95 e número de intervalos maiores que 50ms; leitura estatística somente em `diagnostico()`.
+- Telemetria de desempenho agora inclui `gpu_bridge`, `gpu_observado_neste_aparelho` e `gpu_presenter` (incluindo PBO e VSync), sem confundir observação em um runtime com homologação física.
+- Regressão `test_pacing_e_jank_gles_sem_gpu_fisica` usa pygame-ce com presenter mockado.
