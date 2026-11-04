@@ -1,4 +1,4 @@
-name: PIXEL RUSH QA 3.277.76 — fechamento offline 32 frentes A54
+name: PIXEL RUSH QA 3.277.77 — fechamento offline 32 frentes A54
 
 on:
   push:
@@ -96,7 +96,7 @@ jobs:
       - name: Preflight QA774 (versao, AST, gates, sem Android)
         run: |
           python -m py_compile pixelrush_city2_v3118.py pixelrush_city2_v3122.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py tests/test_qa_scale_recycle_v327774.py
-          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.76' in s; assert 'android.numeric_version = 327776' in s; assert 'VERSAO = \"v3.277.76-QA-ANDROID-RC\"' in e"
+          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.77' in s; assert 'android.numeric_version = 327777' in s; assert 'VERSAO = \"v3.277.77-QA-ANDROID-RC\"' in e"
       - name: LRU de escalas real cidade, RGBA oculto, referencias e benchmark
         run: python tests/test_qa_scale_recycle_v327774.py
       - name: Dez frentes - portas de seguranca especificas A54
@@ -119,6 +119,8 @@ jobs:
         run: python tests/test_qa_r11_world_bands_v327776.py
       - name: Experimento nao integrado - views GameFeel SRCALPHA e RGB16/24/32
         run: python tests/test_qa_r11_vinheta_views_bench_v327776.py
+      - name: Gate v777 Cidade 2.5D - atlas versus sprites com RGBA identico
+        run: python tests/test_qa_r11_chunk_trace_v327777.py
       - name: Perfil profundo City 2.5D real - chunk sprites alpha e RGBA
         run: python tests/test_qa_r11_city_hotspots_v327776.py
       - name: R11 baseline real A54 preservado e sem 32/32

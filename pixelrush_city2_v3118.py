@@ -39,6 +39,11 @@ import math
 import random
 import hashlib
 import pygame
+# QA777: cronometros por atlas/sprites, somente na instrumentacao QA Android.
+_R11_CHUNK_TRACE=(os.environ.get('PIXELRUSH_QA_ANDROID')=='1' and
+    os.environ.get('PIXELRUSH_QA_R11_CHUNK_PASSES','1')=='1')
+if _R11_CHUNK_TRACE:
+    from pixelrush_profiler_v3204 import sub_inicio as _r11_sub_inicio, sub_fim as _r11_sub_fim
 from pixelrush_rle_prod_v327727 import acelerar_textura_estatica
 from pixelrush_city2_v3117 import CityPilotScene as PreviousCity, SpriteLibrary, SpriteInstance, ChunkVariant
 from pixelrush_city2_v3115 import Layer
@@ -422,70 +427,82 @@ class CityPilotScene(PreviousCity):
         # quando TODO pixel original eh RGBA com alpha 255 e mesma cor.
         # Image/animacoes nunca entram aqui. Metadado tem identidade
         # de fonte para nao reutilizar ao trocar uma Surface.
-        solido=None
-        if (_QA_UNIFORM_TECH_FILL and not only_sprites and
-                map_kind in ('geometry','fxmask','normal','material','flow')):
-            entry=self._qa_uniform_tech.get((id(variant),map_kind))
-            if entry is not None and id(getattr(variant,map_kind))==entry[0]:
-                solido=entry[1]
-        if solido is not None:
-            target.fill(solido,(x,0,SCENE_W,SCENE_H))
-            self._qa_uniform_tech_hits+=1
-        else:
-            if not only_sprites:
-                # QA755: raster SRCALPHA nao pode perder RGB oculto no alpha0.
-                # Excecao comprovada: normal/flow usam fill alpha=255 em TODO
-                # o target (ver marcador temporario em v3124 render_scene).
-                # O SRCALPHA resultante permanece opaco em todos os blits.
-                # Image/fxmask/geometry SRCALPHA jamais usam recorte por alpha.
-                pode_recortar=(not (target.get_flags() & pygame.SRCALPHA) or
-                                (map_kind in ('normal','flow') and
-                                 getattr(self,'_qa_opaque_safe_target',None) is target))
-                # Evita a criacao de tuple/id/getattr no quinto quadro image
-                # SRCALPHA, onde nao ha nenhuma otimizacao de bbox permitida.
-                metadata=(id(variant),map_kind,id(getattr(variant,map_kind))
-                          ) if (pode_recortar and
-                                (_QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS)) else None
-                if (_QA_SKIP_EMPTY_BASE and pode_recortar and
-                        metadata in self._qa_empty_base_maps):
-                    pass  # O blit ausente nao alteraria nenhum byte RGBA.
-                elif x<WIDTH and x+SCENE_W>0:
-                    area=(self._qa_alpha_bounds.get(metadata)
-                          if _QA_ALPHA_BOUNDS and pode_recortar else None)
-                    if area is not None:
-                        # QA754: nao processar pixels transparentes fora do bbox.
-                        # A area e calculada no boot e escalada exatamente 2x.
-                        target.blit(self._scaled_surface(variant,map_kind),
-                                    (x+area[0],area[1]),area)
-                    elif _QA_NATIVE_CLIP:
-                        target.blit(self._scaled_surface(variant,map_kind),(x,0))
-                    else:
-                        # QA751 fallback manual; SDL clips preservados.
-                        tex=self._scaled_surface(variant,map_kind)
-                        r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
-                        if r.w>0:target.blit(tex,(max(0,x),0),r)
-        # QA v3.277.39: vento depende apenas do clima, nao de cada sprite.
-        wind=1.5 if climate in ('vento','tempestade','nevasca') else 1.
-        for sp in variant.sprites:
-            # QA754: culling do lado DIREITO independe do tamanho da arte.
-            # Poupa getattr/lookup de textura e possivel conversao/cache
-            # de props cujo centro nunca alcança a viewport.
-            # Para esquerda, mantem a largura real e rotina historica.
-            base_x=x+sp.x*SCALE
-            margem=abs(sp.sway*wind)+1.0
-            if _QA_CULL_SPRITES_EARLY and base_x-margem>=WIDTH+2:
-                continue
-            asset=self.lib.assets.get(sp.kind)
-            if asset is None:continue
-            tex=getattr(asset,map_kind)
-            width=tex.get_width()
-            if base_x-margem>=WIDTH+2 or base_x+width+margem<=-2:
-                continue
-            # A expressao e os arredondamentos originais sao preservados.
-            dx=int(round(math.sin(frame*.025+sp.phase)*sp.sway*wind))
-            px=base_x+dx
-            if px>=WIDTH+2 or px+width<=-2:continue
-            self._draw_sprite(target,sp.kind,px,sp.y*SCALE,frame,night,climate,map_kind,False)
+        if _R11_CHUNK_TRACE:
+            _r11_sub_inicio('r11_city_chunk_base')
+        try:
+            solido=None
+            if (_QA_UNIFORM_TECH_FILL and not only_sprites and
+                    map_kind in ('geometry','fxmask','normal','material','flow')):
+                entry=self._qa_uniform_tech.get((id(variant),map_kind))
+                if entry is not None and id(getattr(variant,map_kind))==entry[0]:
+                    solido=entry[1]
+            if solido is not None:
+                target.fill(solido,(x,0,SCENE_W,SCENE_H))
+                self._qa_uniform_tech_hits+=1
+            else:
+                if not only_sprites:
+                    # QA755: raster SRCALPHA nao pode perder RGB oculto no alpha0.
+                    # Excecao comprovada: normal/flow usam fill alpha=255 em TODO
+                    # o target (ver marcador temporario em v3124 render_scene).
+                    # O SRCALPHA resultante permanece opaco em todos os blits.
+                    # Image/fxmask/geometry SRCALPHA jamais usam recorte por alpha.
+                    pode_recortar=(not (target.get_flags() & pygame.SRCALPHA) or
+                                    (map_kind in ('normal','flow') and
+                                     getattr(self,'_qa_opaque_safe_target',None) is target))
+                    # Evita a criacao de tuple/id/getattr no quinto quadro image
+                    # SRCALPHA, onde nao ha nenhuma otimizacao de bbox permitida.
+                    metadata=(id(variant),map_kind,id(getattr(variant,map_kind))
+                              ) if (pode_recortar and
+                                    (_QA_SKIP_EMPTY_BASE or _QA_ALPHA_BOUNDS)) else None
+                    if (_QA_SKIP_EMPTY_BASE and pode_recortar and
+                            metadata in self._qa_empty_base_maps):
+                        pass  # O blit ausente nao alteraria nenhum byte RGBA.
+                    elif x<WIDTH and x+SCENE_W>0:
+                        area=(self._qa_alpha_bounds.get(metadata)
+                              if _QA_ALPHA_BOUNDS and pode_recortar else None)
+                        if area is not None:
+                            # QA754: nao processar pixels transparentes fora do bbox.
+                            # A area e calculada no boot e escalada exatamente 2x.
+                            target.blit(self._scaled_surface(variant,map_kind),
+                                        (x+area[0],area[1]),area)
+                        elif _QA_NATIVE_CLIP:
+                            target.blit(self._scaled_surface(variant,map_kind),(x,0))
+                        else:
+                            # QA751 fallback manual; SDL clips preservados.
+                            tex=self._scaled_surface(variant,map_kind)
+                            r=pygame.Rect(max(0,-x),0,min(SCENE_W,WIDTH-x)-max(0,-x),SCENE_H)
+                            if r.w>0:target.blit(tex,(max(0,x),0),r)
+        finally:
+            if _R11_CHUNK_TRACE:
+                _r11_sub_fim()
+        if _R11_CHUNK_TRACE:
+            _r11_sub_inicio('r11_city_chunk_sprites')
+        try:
+            # QA v3.277.39: vento depende apenas do clima, nao de cada sprite.
+            wind=1.5 if climate in ('vento','tempestade','nevasca') else 1.
+            for sp in variant.sprites:
+                # QA754: culling do lado DIREITO independe do tamanho da arte.
+                # Poupa getattr/lookup de textura e possivel conversao/cache
+                # de props cujo centro nunca alcança a viewport.
+                # Para esquerda, mantem a largura real e rotina historica.
+                base_x=x+sp.x*SCALE
+                margem=abs(sp.sway*wind)+1.0
+                if _QA_CULL_SPRITES_EARLY and base_x-margem>=WIDTH+2:
+                    continue
+                asset=self.lib.assets.get(sp.kind)
+                if asset is None:continue
+                tex=getattr(asset,map_kind)
+                width=tex.get_width()
+                if base_x-margem>=WIDTH+2 or base_x+width+margem<=-2:
+                    continue
+                # A expressao e os arredondamentos originais sao preservados.
+                dx=int(round(math.sin(frame*.025+sp.phase)*sp.sway*wind))
+                px=base_x+dx
+                if px>=WIDTH+2 or px+width<=-2:continue
+                self._draw_sprite(target,sp.kind,px,sp.y*SCALE,frame,night,climate,map_kind,False)
+        finally:
+            if _R11_CHUNK_TRACE:
+                _r11_sub_fim()
 
     def _draw_sky(self,target,travel,frame,night,phase,climate):
         """Céu com gradiente de verdade, sem BLEND_RGBA_ADD em tela inteira."""
