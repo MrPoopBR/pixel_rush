@@ -9,6 +9,7 @@ sempre usam blit original. Nenhum save, RNG, fisica, sprite ou efeito removido.
 import os
 from weakref import WeakKeyDictionary
 import pygame
+from pixelrush_profiler_v3204 import sub_inicio as _sub_inicio, sub_fim as _sub_fim
 
 W,H=450,800
 _X,_Y=48,25
@@ -51,6 +52,13 @@ def desenhar_vinheta(destino,efeito):
     SRCALPHA, portanto essa combinacao permanece no caminho original.
     """
     _STATS['tentativas']+=1
+    _sub_inicio('r11_post_vinheta')
+    try:
+        return _desenhar_validado(destino,efeito)
+    finally:
+        _sub_fim()
+
+def _desenhar_validado(destino,efeito):
     if (os.environ.get('PIXELRUSH_QA_R11_VINHETA','1')!='1' or
             destino.get_flags() & pygame.SRCALPHA or
             destino.get_colorkey() is not None or
