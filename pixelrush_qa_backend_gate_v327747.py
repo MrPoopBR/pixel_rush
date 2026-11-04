@@ -8,6 +8,8 @@ apresentacao compatível. Este gate recusa automaticamente o caminho inseguro
 e prepara o contrato para a homologacao final sem fabricar resultados GPU.
 """
 from dataclasses import dataclass
+import os
+import sys
 
 @dataclass(frozen=True)
 class CapacidadeVideo:
@@ -16,24 +18,40 @@ class CapacidadeVideo:
     hud_compatível: bool=False
     pixels_todos_iguais: bool=False
     fps_comprovadamente_melhor: bool=False
+    ganho_camera_local: bool=False
     sem_readback: bool=True
     dispositivo_real_medido: bool=False
     perfil: str='sdl_surface'
 
 
-def selecionar(caps=None, *, laboratorio=False):
+def selecionar(caps=None, *, laboratorio=False, qa_candidato=False):
     caps=CapacidadeVideo() if caps is None else caps
     razoes=[]
     if not caps.janela_opengl:razoes.append('janela_sdl_surface_sem_opengl')
     if not caps.input_compatível:razoes.append('eventos_de_entrada_sem_adapter')
     if not caps.hud_compatível:razoes.append('hud_sem_adapter')
     if not caps.pixels_todos_iguais:razoes.append('paridade_rgba_nao_comprovada')
-    if not caps.fps_comprovadamente_melhor:razoes.append('ganho_fps_nao_comprovado')
+    # O gate experimental de bootstrap pode comprovar ganho local da camera,
+    # nunca transformar esse resultado em FPS integral homologado.
+    if qa_candidato:
+        if not caps.ganho_camera_local:
+            razoes.append('ganho_camera_local_nao_comprovado')
+    elif not caps.fps_comprovadamente_melhor:
+        razoes.append('ganho_fps_nao_comprovado')
     if not caps.sem_readback:razoes.append('readback_gpu_cpu')
     if not caps.dispositivo_real_medido:razoes.append('sem_medicao_android')
-    if not laboratorio:razoes.append('ativacao_apenas_em_laboratorio')
-    return {'schema':'pixelrush.qa.backend_gate.v327747',
-            'backend':'gles_laboratorio' if not razoes else 'cpu_sdl_original',
+    if qa_candidato:
+        if not (os.environ.get('PIXELRUSH_QA_ANDROID')=='1' and
+                (sys.platform=='android' or 'ANDROID_ARGUMENT' in os.environ)):
+            razoes.append('fora_do_android_qa')
+    elif not laboratorio:
+        razoes.append('ativacao_apenas_em_laboratorio')
+    backend=('gles_qa_experimental' if qa_candidato else 'gles_laboratorio')
+    return {'schema':'pixelrush.qa.backend_gate.v327780',
+            'backend':backend if not razoes else 'cpu_sdl_original',
+            'homologado_fps_android':False,
+            'pendencias_homologacao':(('fps_integral_e_input_android',)
+                                     if qa_candidato else ()),
             'pronto_para_trocar_entrada_real':False,
             'fallback_preservado':True,'aprovacao_necessaria':tuple(razoes),
             'camera_original_preservada':True,
