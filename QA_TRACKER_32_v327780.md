@@ -32,3 +32,9 @@ Branch isolada `qa/homologacao-32-v3.277.80`, criada da `qa/fechar-32-runtime-v3
 
 ## Estado do processo
 O ponto de partida QA779 falhou no CI offline #41910343167 pelo PIN antigo do bridge. QA780 pretende resolver esta falha e prosseguir com as etapas restantes; incluir run ID, contagens e aprovações **somente após inspecionar logs reais**.
+
+## Gates automatizados efetivamente executados na QA780
+- **Offline pygame-ce**: Actions #41914146215 (passou), incluindo regressões de tutorial, pets, saves, mundo, clima, replay, HUD, memória, câmera e scroll. A suíte temporal QA780 verificou 120 quadros da câmera com igualdade RGBA e scroll RGB/RGBA com offsets e recuos; geração das métricas `qa-temporal-rgba-v327780.json`.
+- **Mesa GLES2/GLES3 + PBO**: Actions #41914146128 (passou), incluindo 720 quadros sintéticos GLES, cenas reais e ring PBO; adicionado novo gate de bootstrap `pixelrush_qa_gpu_preflight_v327780.py` para impedir ativação insegura no driver Android antes da corrida.
+- **GPU auto-preflight**: a exigência de 10 comparações RGBA e ganho mínimo local é intencionalmente mais estrita que a habilitação experimental QA779; em reprovação, preserva SDL. A medição de câmera/zoom **não** permite inferir FPS do frame integral.
+- **Nenhum APK nem AAB foi criado**; o que resta é medição e homologação em hardware A54, que não deve ser inferida dos jobs Linux.
