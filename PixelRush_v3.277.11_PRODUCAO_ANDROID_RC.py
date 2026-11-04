@@ -213,7 +213,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.81-QA-ANDROID-RC"
+VERSAO = "v3.277.82-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -234,7 +234,13 @@ E_ANDROID = (sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ)
 # Inicialização de vídeo otimizada e blindada contra falhas de driver em emuladores
 try:
     if E_ANDROID:
-        tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
+        if os.environ.get('PIXELRUSH_QA_ANDROID','0') == '1':
+            # QA782: janela fisica cheia; canvas original 450x800 intacto.
+            # Corrige fallback GLES que deixava o jogo pequeno no A54.
+            from pixelrush_qa_android_display_v327782 import criar_tela as _qa_criar_tela
+            tela = _qa_criar_tela((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
+        else:
+            tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
     else:
         info_tela = pygame.display.Info()
         LARGURA_TELA = info_tela.current_w
@@ -13253,9 +13259,16 @@ def main():
                                    _qa_pessoa_native,velocidade=12.0)
             del _qa_padrao_native,_qa_pessoa_native
         except (ImportError,pygame.error,ValueError,MemoryError,
-                RuntimeError,OSError,AttributeError):
-            # Driver ou SONAME sem suporte: manter o smoothscale original.
-            pass
+                RuntimeError,OSError,AttributeError) as _qa_native_erro:
+            # R12 detectou 0 chamadas C/NEON: expor a falha de boot
+            # em vez de deixar o diagnostico no estado "aguardando".
+            # O jogo, zoom original e saves seguem inalterados.
+            _qa_modulo_nativo=sys.modules.get('pixelrush_qa_camera_native_auto_v327742')
+            if _qa_modulo_nativo is not None:
+                _qa_relatar=getattr(_qa_modulo_nativo,'registrar_falha_boot',None)
+                if callable(_qa_relatar):
+                    _qa_relatar(type(_qa_native_erro).__name__)
+
 
     rodando = True
     while rodando:
