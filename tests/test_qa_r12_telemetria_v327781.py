@@ -75,7 +75,9 @@ class R12TelemetriaQA781(unittest.TestCase):
                         "cpu_processo_ms","intervalo_entre_inicios_ms",
                         "mundo_2_5d","qa_render_apos_sprites","r11_post_pets",
                         "apresentacao_swap"):
-                self.assertEqual(metrics[key]["n"],20,key)
+                # O 1o quadro nao tem intervalo anterior por definicao.
+                esperado_n = 19 if key == "intervalo_entre_inicios_ms" else 20
+                self.assertEqual(metrics[key]["n"],esperado_n,key)
                 for pct in ("p50","p95","p99"):
                     self.assertIsNotNone(metrics[key][pct],(key,pct))
             self.assertFalse(d["r12_hardware_homologado_a54"])
