@@ -96,7 +96,7 @@ jobs:
       - name: Preflight QA774 (versao, AST, gates, sem Android)
         run: |
           python -m py_compile pixelrush_city2_v3118.py pixelrush_city2_v3122.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py tests/test_qa_scale_recycle_v327774.py
-          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.76' in s; assert 'android.numeric_version = 327775' in s; assert 'VERSAO = \"v3.277.76-QA-ANDROID-RC\"' in e"
+          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.76' in s; assert 'android.numeric_version = 327776' in s; assert 'VERSAO = \"v3.277.76-QA-ANDROID-RC\"' in e"
       - name: LRU de escalas real cidade, RGBA oculto, referencias e benchmark
         run: python tests/test_qa_scale_recycle_v327774.py
       - name: Dez frentes - portas de seguranca especificas A54
