@@ -14,6 +14,8 @@ O tracker da QA781 registra 22 frentes offline aprovadas historicamente, e 10 fr
 
 ## Gates futuros de R13
 1. **Viewport:** `r12_runtime.execucao_observada.tela_cheia_fisica=true` e `resolucao_janela_px` retornando dimensão física válida do A54. Confirmar enquadramento na tela do aparelho, incluindo menu, tutorial e botões.
+2. **Câmera:** corrigido gate que retornava `None` no zoom inicial abaixo de 0,002, sem tocar o estado da câmera; confirmar `boot_passos_geometria > 1`, `boot_zoom_estado_preservado` e testes pixel-exatos antes de aprovar `frames_native>0`.
+
 2. **Câmera:** `r12_runtime.modulos.camera_neon.status`, `frames_native>0` e RGBA aprovado, senão motivo de fallback explícito. Comparar p50/p95/p99 da câmera e FPS entre R12/R13.
 3. **2.5D e vinheta:** comparar `mundo_2_5d`, `qa_fundo_cache_chao`, `qa_render_apos_sprites` nos mesmos biomas; verificar visual e periodicidade 5:1 sem diminuir efeitos.
 4. **GLES/PBO:** sem falso positivo: se desabilitado por segurança, indicar `frames_gles=0`, `gles_pbo_uploads=0`. Opcional apenas laboratório futuro; não ligar sem prova do driver.
