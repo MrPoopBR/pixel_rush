@@ -80,6 +80,20 @@ class DisplayAndroidQA782(unittest.TestCase):
         self.assertIn('android.numeric_version = 327782',spec)
         self.assertIn('android.archs = arm64-v8a',spec)
 
+    def test_relatorio_r12_v2_compativel_com_qa782(self):
+        from pixelrush_qa_android_v327728 import QATelemetria
+        with patch.dict(os.environ,{'PIXELRUSH_QA_ANDROID':'1'}):
+            with patch('pixelrush_qa_android_v327728._renderer_backend_qa',
+                       return_value={'sdl_video':'dummy','smoothscale':'SSE2'}):
+                t=QATelemetria('v3.277.82-QA-ANDROID-RC','LIMPA')
+                self.assertTrue(t.r12)
+                self.assertEqual(t.prefixo,'pixelrush_qa_v327781_r12')
+                d=t.relatorio()
+                self.assertEqual(d['r12_revision'],'v327782_camera_tela_cheia')
+                self.assertIn('tela_cheia_fisica',
+                              d['r12_runtime']['execucao_observada'])
+                self.assertFalse(d['r12_hardware_homologado_a54'])
+
     def test_gles_que_falhou_r12_desligado_somente_com_override(self):
         from pixelrush_qa_render_v327729 import preparar_perfil_qa_android
         with patch.dict(os.environ,{
