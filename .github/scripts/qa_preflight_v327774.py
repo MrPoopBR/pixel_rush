@@ -35,9 +35,9 @@ MODULES=(
     'pixelrush_city2_v3118.py',
     'pixelrush_city2_v3122.py',
     'tests/test_qa_scale_recycle_v327774.py',
-    'pixelrush_qa_replay_pool_v327774.py',
-    'tests/test_qa_replay_reuse_v327774.py',
-    'tests/test_qa_r10_passe_v327774.py',
+    'pixelrush_qa_replay_pool_v327773.py',
+    'tests/test_qa_replay_reuse_v327773.py',
+    'tests/test_qa_r10_passe_v327773.py',
     'pixelrush_biomes2_v3128.py',
     'pixelrush_qa_city_weather_v327749.py',
     'pixelrush_qa_city_bootstrap_v327759.py',
@@ -119,7 +119,7 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.73$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.74$',spec)
     assert re.search(r'(?m)^android\.numeric_version = 327774$',spec)
     assert (ROOT/'QA_TRACKER_32_v327774.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327774.md').is_file()
