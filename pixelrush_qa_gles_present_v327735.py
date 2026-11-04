@@ -295,7 +295,9 @@ class GLES2DirectPresenterQA:
                 'video_driver':pygame.display.get_driver(),
                 'swap_method':self.swap_method,'frames':self.frame_count,
                 'gpu_to_cpu_readbacks':self.readbacks,
-                'integrado_ao_jogo':False,'equivalencia_visual_aprovada':False,
+                'integrado_ao_jogo':bool(getattr(self,'_qa_integrado',False)),
+                'equivalencia_visual_aprovada':bool(getattr(self,'_qa_equivalencia_visual',False)),
+                'homologado_fps_android':False,
                 'qa_pbo_ativo':pbo is not None,
                 'qa_pbo_desabilitado':getattr(self,'_qa_pbo_disabled',False),
                 'qa_pbo_stats':pbo.diagnostico() if pbo else None}
