@@ -31,3 +31,8 @@ Em `pixelrush_qa_gc_cooperativo_v327757.py`, o agendamento antigo `frame % 5 == 
 - `PIXELRUSH_QA_ACCEL_PROFILE=estavel` desliga a ativação agressiva; o caminho CPU legado continua disponível.
 - PBO, GLES, SIMD e NEON podem automaticamente cair para caminhos originais. Disponibilidade de código **não é** aprovação de hardware.
 - Não compilado APK/AAB. Main, branch principal, DEV, compras, física, tutorial e saves não editados.
+
+## Fechamento de implementação de código — status separado
+As 10 frentes que ainda exigiam **integração** agora possuem um caminho ligado ou tentado pelo perfil Android QA agressivo; somadas às 22 anteriores, são **32/32 frentes com implementação localizada no código QA**. Isso **não** quer dizer 32/32 otimizadas com ganhos reais: cada fallback pode escolher SDL, blit direto, smoothscale ou câmera CPU. O número de frentes com aprovação offline/hardware não muda automaticamente.
+
+No backend GLES, `Surface.convert()` é checado antes de assumir a janela de jogo; em incompatibilidade, usa SDL. `eglSwapInterval` é aplicado quando permitido. Novos relatórios do apresentador incluem p50/p95 e jank por intervalo, além de PBO/VSync.
