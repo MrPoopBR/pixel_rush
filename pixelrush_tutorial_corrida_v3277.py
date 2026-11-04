@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Camada de apresentação localizada do tutorial v3.277, sem alterar mecânicas."""
+import os
+import sys
 from functools import lru_cache
 import pygame
 from pixelrush_tutorial_corrida_v3276 import TutorialCorrida as _TutorialAnterior, ETAPAS
@@ -11,6 +13,20 @@ from pixelrush_i18n_v3246 import normalizar_idioma
 def _fonte(idioma,tamanho):
     if idioma in ARQUIVOS_FONTES:
         return fonte_unicode(idioma,tamanho)
+    # Android nao permite executar fc-list: SysFont pode encerrar o tutorial.
+    # Carregar diretamente Roboto do Android, sem subprocessos; fallback SDL.
+    if sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ:
+        for caminho in ('/system/fonts/Roboto-Bold.ttf', '/system/fonts/Roboto-Regular.ttf'):
+            try:
+                fonte = pygame.font.Font(caminho,tamanho)
+            except (OSError, pygame.error):
+                continue
+            if caminho.endswith('Roboto-Regular.ttf'):
+                fonte.set_bold(True)
+            return fonte
+        fonte = pygame.font.Font(None,tamanho)
+        fonte.set_bold(True)
+        return fonte
     return pygame.font.SysFont('arial',tamanho,bold=True)
 
 class TutorialCorrida(_TutorialAnterior):

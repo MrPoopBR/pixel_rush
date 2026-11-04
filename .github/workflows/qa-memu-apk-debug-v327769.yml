@@ -1,4 +1,4 @@
-name: PIXEL RUSH v3.277.69-QA — APK debug MEmu ARM64 isolado
+name: PIXEL RUSH v3.277.70-QA — APK debug MEmu ARM64 isolado
 
 on:
   push:
@@ -6,13 +6,16 @@ on:
       - qa/fechamento-32-v3.277.57
     paths:
       - .github/workflows/qa-memu-apk-debug-v327769.yml
+      - pixelrush_tutorial_corrida_v3277.py
+      - buildozer.spec
+      - PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: pixelrush-qa-memu-apk-v327769
+  group: pixelrush-qa-memu-apk-v327770
   cancel-in-progress: false
 
 jobs:
@@ -36,8 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/scripts/qa_preflight_v327758.py
-          grep -q '^version = 3\.277\.69$' buildozer.spec
-          grep -q '^android.numeric_version = 327769$' buildozer.spec
+          grep -q '^version = 3\.277\.70$' buildozer.spec
+          grep -q '^android.numeric_version = 327770$' buildozer.spec
           grep -q '^android.archs = arm64-v8a$' buildozer.spec
           grep -q '^android.minapi = 26$' buildozer.spec
           python3 .github/scripts/test_android_stdlib_bootstrap.py
@@ -110,14 +113,14 @@ jobs:
           readelf -lW qa_native/libpixelrush_camera_crop_v327741.so | awk '/ LOAD / {if ($NF != "0x4000") exit 1; n++} END {if (n==0) exit 1}'
           sha256sum qa_native/libpixelrush_camera_crop_v327741.so
 
-      - name: Compilar exclusivamente APK DEBUG da v3.277.69
+      - name: Compilar exclusivamente APK DEBUG da v3.277.70
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = 'refs/heads/qa/fechamento-32-v3.277.57'
           unset P4A_RELEASE_KEYSTORE P4A_RELEASE_KEYALIAS \
             P4A_RELEASE_KEYSTORE_PASSWD P4A_RELEASE_KEYALIAS_PASSWD || true
-          buildozer -v android debug 2>&1 | tee build-memu-v327769.log
+          buildozer -v android debug 2>&1 | tee build-memu-v327770.log
           test -n "$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
           if find bin -maxdepth 1 -type f -name '*.aab' | grep -q .; then
             echo 'Build QA nao pode produzir AAB' >&2
@@ -131,26 +134,26 @@ jobs:
           APK="$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$APK"
           unzip -Z1 "$APK" | grep -q '^lib/arm64-v8a/libpixelrush_camera_crop_v327741.so$'
-          python3 .github/scripts/android_debug_audit.py apk --apk "$APK" --report memu-apk-audit-v327769.json
+          python3 .github/scripts/android_debug_audit.py apk --apk "$APK" --report memu-apk-audit-v327770.json
           AAPT="$(command -v aapt || find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/android-sdk}}/build-tools" -name aapt -type f | sort -V | tail -1)"
           test -x "$AAPT"
-          "$AAPT" dump badging "$APK" > memu-apk-badging-v327769.txt
-          grep -q "versionCode='327769'" memu-apk-badging-v327769.txt
-          grep -q "versionName='3.277.69'" memu-apk-badging-v327769.txt
-          grep -q "native-code: 'arm64-v8a'" memu-apk-badging-v327769.txt
-          sha256sum "$APK" > memu-apk-sha256-v327769.txt
+          "$AAPT" dump badging "$APK" > memu-apk-badging-v327770.txt
+          grep -q "versionCode='327770'" memu-apk-badging-v327770.txt
+          grep -q "versionName='3.277.69'" memu-apk-badging-v327770.txt
+          grep -q "native-code: 'arm64-v8a'" memu-apk-badging-v327770.txt
+          sha256sum "$APK" > memu-apk-sha256-v327770.txt
 
       - name: Guardar relatorios QA e logs sem secrets
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pixelrush-v327769-memu-diagnosticos
+          name: pixelrush-v327770-memu-diagnosticos
           path: |
             qa-preflight-v327758.json
-            memu-apk-audit-v327769.json
-            memu-apk-badging-v327769.txt
-            memu-apk-sha256-v327769.txt
-            build-memu-v327769.log
+            memu-apk-audit-v327770.json
+            memu-apk-badging-v327770.txt
+            memu-apk-sha256-v327770.txt
+            build-memu-v327770.log
           if-no-files-found: warn
           retention-days: 14
 
@@ -158,7 +161,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pixelrush-v327769-qa-arm64-apk-debug-memu
+          name: pixelrush-v327770-qa-arm64-apk-debug-memu
           path: bin/*.apk
           if-no-files-found: ignore
           retention-days: 14

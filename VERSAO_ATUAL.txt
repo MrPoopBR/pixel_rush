@@ -1,3 +1,5 @@
+Pixel Rush v3.277.70-QA-ANDROID-RC — hotfix crash de fonte do tutorial Android (fc-list) em MEmu; sem alteracao de fisica, gameplay, saves, pets ou elementos graficos. Evidencia R7 de 2026-11-04. 22/32 offline; 10 frentes parciais; homologacao GPU pendente.
+
 Pixel Rush v3.277.68-QA-ANDROID-RC (branch QA offline; sem compilar APK/Android)
 Base IDENTICA de jogo v3.277.27, mais telemetria QA opt-in por build: grupos corrida normal, replay e outros, CPU de processo, memoria RSS, FPS, picos e subsistemas em JSON/CSV. Conserva SDL-RLE, fisica 60 Hz, tutorial, saves, audio, camera, shaders, DEV, pets, flags OFF e AAB. Homologacao FPS real Android e GPU real pendente de dispositivo.
 
