@@ -9,6 +9,8 @@ import ctypes as C
 import ctypes.util
 # Usar o mesmo alias C em todo o caminho EGL/GLES; 'ctypes' nao foi importado.
 import time
+import os
+from collections import deque
 import pygame
 
 VERT = """attribute vec2 a_pos;
@@ -41,6 +43,9 @@ class GLES2DirectPresenterQA:
         self.readbacks=0
         self.swap_method=None
         self._egl=None
+        self.swap_interval_aplicado=None
+        self.frame_intervals_ns=deque(maxlen=256)
+        self._last_present_ns=None
         self._f={}
         self._create_window()
         self._create_gl()
@@ -101,6 +106,18 @@ class GLES2DirectPresenterQA:
                 self._egl_display=display
                 self._egl_surface=surface
                 self.swap_method='eglSwapBuffers'
+                # QA779: definir VSync de maneira explicita quando a EGL
+                # aceita eglSwapInterval. Evitar sincronizacao forçada
+                # sem EGL ativa; em erro, manter o swap original.
+                intervalo=(0 if os.environ.get('PIXELRUSH_QA_VSYNC_INTERVAL','1')=='0'
+                           else 1)
+                try:
+                    egl.eglSwapInterval.restype=C.c_uint
+                    egl.eglSwapInterval.argtypes=[C.c_void_p,C.c_int]
+                    if egl.eglSwapInterval(display,intervalo):
+                        self.swap_interval_aplicado=intervalo
+                except (AttributeError,OSError,ValueError):
+                    self.swap_interval_aplicado=None
                 return
         except (OSError,AttributeError):
             pass
@@ -254,12 +271,27 @@ class GLES2DirectPresenterQA:
                 raise RuntimeError('eglSwapBuffers falhou')
         else:
             pygame.display.flip()
-        self.cpu_swap_ns=time.perf_counter_ns()-t0
+        fim_ns=time.perf_counter_ns()
+        self.cpu_swap_ns=fim_ns-t0
+        if self._last_present_ns is not None:
+            self.frame_intervals_ns.append(fim_ns-self._last_present_ns)
+        self._last_present_ns=fim_ns
         self.frame_count+=1
 
     def diagnostico(self):
         pbo=getattr(self,'_qa_pbo',None)
-        return {'renderer':self.renderer,'gl_version':self.version,
+        # P50/P95 fora do caminho de desenho. Sem quantis no frame quente.
+        intervalos=sorted(self.frame_intervals_ns)
+        p50=(round(intervalos[len(intervalos)//2]/1e6,3)
+             if intervalos else None)
+        p95=(round(intervalos[min(len(intervalos)-1,int(.95*(len(intervalos)-1)))]/1e6,3)
+             if intervalos else None)
+        jank=sum(1 for n in intervalos if n>50_000_000)
+        return {'renderer':self.renderer,
+                'egl_vsync_aplicado':self.swap_interval_aplicado,
+                'frame_interval_p50_ms':p50,
+                'frame_interval_p95_ms':p95,
+                'quadros_intervalo_acima_50ms':jank,,'gl_version':self.version,
                 'video_driver':pygame.display.get_driver(),
                 'swap_method':self.swap_method,'frames':self.frame_count,
                 'gpu_to_cpu_readbacks':self.readbacks,
