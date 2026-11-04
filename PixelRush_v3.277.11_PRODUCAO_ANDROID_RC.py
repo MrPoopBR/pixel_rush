@@ -10892,7 +10892,11 @@ def main():
     # QA Android: reutiliza o pano de fundo; fisica/HUD/sprites continuam atuais.
     if E_ANDROID:
         from pixelrush_qa_ultraleve_v327730 import CacheFundoUltraQA, FundoMenusUltraQA
-        cache_fundo_mobile = CacheFundoUltraQA(periodo=5)
+        # QA778: amortizar o passe 2.5D no Android, sem tocar na simulacao.
+        # 8 quadros: menos reconstrucoes pesadas; a textura de fundo pode
+        # avancar em passos temporais maiores. Rollback: PIXELRUSH_QA_FUNDO_PERIODO=5.
+        periodo_fundo_qa = 5 if os.environ.get('PIXELRUSH_QA_FUNDO_PERIODO') == '5' else 8
+        cache_fundo_mobile = CacheFundoUltraQA(periodo=periodo_fundo_qa)
         cache_menus_qa = FundoMenusUltraQA(periodo=5)
     else:
         cache_fundo_mobile = CacheFundoMobile()
