@@ -1,9 +1,9 @@
-name: PIXEL RUSH QA v3.277.81 - Mesa GLES2 GLES3 PBO e 720 RGBA (sem Android)
+name: PIXEL RUSH QA v3.277.82 - Mesa GLES2 GLES3 PBO e 720 RGBA (sem Android)
 
 on:
   push:
     branches:
-      - qa/r12-arm64-homologacao-v3.277.81
+      - qa/r13-camera-tela-cheia-v3.277.82
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   gpu-a54-offline:
-    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r12-arm64-homologacao-v3.277.81'
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r13-camera-tela-cheia-v3.277.82'
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     steps:
