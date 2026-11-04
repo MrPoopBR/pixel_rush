@@ -370,7 +370,7 @@ class CityPilotScene(PreviousCity):
                 # bytes, mas somente se ninguem mais referencia a Surface.
                 # Nao reciclar tex 1:1, atlas compartilhado, imagem RLE ou
                 # superficies em uso por outro subsistema/instancia.
-                if len(self._scaled)>=self._scaled_limit:
+                if self._scaled_limit>0 and len(self._scaled)>=self._scaled_limit:
                     _, antiga=self._scaled.popitem(last=False)
                     import sys
                     rle=pygame.RLEACCEL|getattr(pygame,'RLEACCELOK',0)
