@@ -7,6 +7,7 @@ Sem NEON/SSE2 apropriado ou com diferenca RGB: fica no original. O ajuste e
 temporario e nao altera o backend usado por HUD, sprites ou outros efeitos.
 """
 import os
+import statistics
 import time
 from functools import wraps
 
@@ -19,6 +20,10 @@ _RESULTADO = {
     'resultado': 'nao_avaliado',
     'tempo_original_ms': None,
     'tempo_candidato_ms': None,
+    'chamadas': 0,
+    'pico_camera_ms': 0.0,
+    'pico_zoom': 0.0,
+    'pico_tamanho': None,
 }
 
 
@@ -32,9 +37,8 @@ def _teste_real(imagem, tamanho):
     _RESULTADO['backend_original'] = original
     _RESULTADO['backend_camera'] = original
     _RESULTADO['avaliado'] = True
-    if original in ('NEON', 'SSE2'):
-        _RESULTADO['resultado'] = 'backend_simd_ja_ativo'
-        return original
+    # Sob traducao ARM64/x86_64, NEON nao e necessariamente o mais rapido.
+    # Um candidato so sera ativado apos paridade de pixels e benchmark.
     if os.environ.get('PIXELRUSH_QA_CAMERA_AUTOTUNE', '0') != '1':
         _RESULTADO['resultado'] = 'desativado_por_flag'
         return original
@@ -51,7 +55,7 @@ def _teste_real(imagem, tamanho):
         formato = 'RGBA' if imagem.get_flags() & pygame.SRCALPHA else 'RGB'
         referencia_bytes = pygame.image.tobytes(referencia, formato)
         _RESULTADO['tempo_original_ms'] = round(custo, 3)
-        for candidato in ('NEON', 'SSE2'):
+        for candidato in ('NEON', 'SSE2', 'GENERIC'):
             if candidato == original:
                 continue
             try:
@@ -83,13 +87,28 @@ def _teste_real(imagem, tamanho):
                 if obtido != esperado:
                     _RESULTADO['resultado'] = 'diferenca_de_pixels_teste2: ' + candidato
                     continue
-                # Evitar trocar backend por variacao estatistica pequena.
-                if custo_novo < custo * 0.80:
-                    _RESULTADO['backend_camera'] = candidato
-                    _RESULTADO['tempo_candidato_ms'] = round(custo_novo, 3)
-                    _RESULTADO['resultado'] = 'simd_equivalente_mais_rapido'
+                # Alternar 4 pares de medições para reduzir variacao de CPU.
+                originais=[custo]
+                alternativas=[custo_novo]
+                for _ in range(4):
+                    pygame.transform.set_smoothscale_backend(original)
+                    t0=time.perf_counter_ns()
+                    pygame.transform.smoothscale(imagem,tamanho,buffer)
+                    originais.append((time.perf_counter_ns()-t0)/1e6)
+                    pygame.transform.set_smoothscale_backend(candidato)
+                    t1=time.perf_counter_ns()
+                    pygame.transform.smoothscale(imagem,tamanho,buffer)
+                    alternativas.append((time.perf_counter_ns()-t1)/1e6)
+                mediana_original=statistics.median(originais[1:])
+                mediana_alternativa=statistics.median(alternativas[1:])
+                if (mediana_alternativa < mediana_original*.80 and
+                        mediana_original-mediana_alternativa >= .10):
+                    _RESULTADO['backend_camera']=candidato
+                    _RESULTADO['tempo_original_ms']=round(mediana_original,3)
+                    _RESULTADO['tempo_candidato_ms']=round(mediana_alternativa,3)
+                    _RESULTADO['resultado']='backend_pixel_exato_mais_rapido'
                     return candidato
-                _RESULTADO['resultado'] = 'sem_ganho_relevante: ' + candidato
+                _RESULTADO['resultado']='sem_ganho_relevante: '+candidato
             finally:
                 pygame.transform.set_smoothscale_backend(original)
         return original
@@ -118,13 +137,23 @@ def instalar():
         # Qualquer comparacao de backend ocorre apenas antes da corrida.
         escolhido = _RESULTADO['backend_camera']
         original_backend = pygame.transform.get_smoothscale_backend()
-        if escolhido is None or escolhido == original_backend:
-            return _ORIGINAL(self,imagem,jogador,velocidade,momento,ativo)
+        t0=time.perf_counter_ns()
         try:
-            pygame.transform.set_smoothscale_backend(escolhido)
-            return _ORIGINAL(self,imagem,jogador,velocidade,momento,ativo)
+            if escolhido is None or escolhido == original_backend:
+                return _ORIGINAL(self,imagem,jogador,velocidade,momento,ativo)
+            try:
+                pygame.transform.set_smoothscale_backend(escolhido)
+                return _ORIGINAL(self,imagem,jogador,velocidade,momento,ativo)
+            finally:
+                pygame.transform.set_smoothscale_backend(original_backend)
         finally:
-            pygame.transform.set_smoothscale_backend(original_backend)
+            # Sem Surface extra nem I/O no frame.
+            _RESULTADO['chamadas']+=1
+            ms=(time.perf_counter_ns()-t0)/1e6
+            if ms>_RESULTADO['pico_camera_ms']:
+                _RESULTADO['pico_camera_ms']=round(ms,3)
+                _RESULTADO['pico_zoom']=round(float(getattr(self,'zoom',0)),5)
+                _RESULTADO['pico_tamanho']=tuple(imagem.get_size())
 
     CameraCinematica.aplicar = aplicar_qa
     _INSTALADO = True

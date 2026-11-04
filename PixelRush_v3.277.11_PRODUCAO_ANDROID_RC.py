@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.70-QA-ANDROID-RC"
+VERSAO = "v3.277.71-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -13208,6 +13208,19 @@ def main():
             dados.get('skin_equipada','AZUL'), SKINS_ATIVAS_PROD,
             dados.get('pet_equipado'), _quadros_skin, _qa_preparar_pet_menu,
             aquecer_tiles=True)
+
+    # QA771: preflight da camera antes do loop, apenas Android QA.
+    # Nao altera zoom, jogo ou render caso nao haja ganho pixel-identico.
+    if (E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1'
+            and os.environ.get('PIXELRUSH_QA_CAMERA_AUTOTUNE','1')=='1'):
+        try:
+            from pixelrush_qa_camera_v327733 import preparar_fora_do_frame as _qa_camera_boot_bench
+            os.environ.setdefault('PIXELRUSH_QA_CAMERA_AUTOTUNE','1')
+            _qa_w,_qa_h=display_surface.get_size()
+            _qa_camera_boot_bench(display_surface,(_qa_w+18,_qa_h+32))
+        except (pygame.error,ValueError,MemoryError,RuntimeError,OSError):
+            # Fallback seguro: nao impedir o tutorial por falha QA.
+            pass
 
     rodando = True
     while rodando:
