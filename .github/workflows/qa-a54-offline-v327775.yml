@@ -104,11 +104,11 @@ jobs:
       - name: GPU hibrida - CPU seguro e HUD/input mockado
         run: python tests/test_qa_backend_gate_v327747.py && python tests/test_qa_gles_bridge_v327749.py
       - name: Scroll do mundo - SRCALPHA oculto RLE e fallback
-        run: python tests/test_qa_scroll_auto_v327742.py && python tests/test_qa_srcalpha_scroll_v327755.py
+        run: python tests/test_qa_scroll_auto_v327742.py && python qa_a54/run_bootstrap_v327775.py tests/test_qa_srcalpha_scroll_v327755.py
       - name: Scroll camera e cache no pipeline completo (offline)
-        run: python tests/test_qa_pipeline_scroll_v327750.py
+        run: python qa_a54/run_bootstrap_v327775.py tests/test_qa_pipeline_scroll_v327750.py
       - name: Cenario e composicao 2.5D recorte/blits SDL
-        run: python tests/test_qa_hotpath_scroll_v327753.py && python tests/test_qa_alpha_bounds_scroll_v327754.py
+        run: python qa_a54/run_bootstrap_v327775.py tests/test_qa_hotpath_scroll_v327753.py && python qa_a54/run_bootstrap_v327775.py tests/test_qa_alpha_bounds_scroll_v327754.py
       - name: Evidência offline (não é homologação Android)
         if: always()
         uses: actions/upload-artifact@v4
