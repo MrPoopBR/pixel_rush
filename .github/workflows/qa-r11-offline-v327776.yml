@@ -111,7 +111,8 @@ jobs:
           mkdir -p /tmp/pixelrush-qa-native
           cc -std=c11 -O3 -fPIC -Wall -Wextra -shared qa_native/camera_crop_native_v327741.c -o /tmp/pixelrush-qa-native/libpixelrush_camera_crop_v327741.so
           export PIXELRUSH_QA_NATIVE_CAMERA_LIB=/tmp/pixelrush-qa-native/libpixelrush_camera_crop_v327741.so
-          python tests/test_qa_crop_native_v327741.py
+          # CityPilotScene v759 requer o hook de inicializacao QA original.
+          python qa_a54/run_bootstrap_v327775.py tests/test_qa_crop_native_v327741.py
 
       - name: Preflight QA774 (versao, AST, gates, sem Android)
         run: |
