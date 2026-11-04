@@ -109,7 +109,7 @@ class Integracao750(unittest.TestCase):
             # RGB oculto no destino alpha0; nao fabricar hits de cache.
             self.assertGreater(
                 diag['cidade_hit'] + diag['cidade_rle_direto'],0)
-            self.assertLessEqual(len(qa._CIDADE[scene]),2)
+            self.assertLessEqual(len(qa._CIDADE.get(scene, {})), 2)
         finally:
             qa.restaurar_para_teste()
             if prior is None:os.environ.pop('PIXELRUSH_QA_CITY_INCREMENTAL',None)
