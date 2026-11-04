@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[2]
 PROTECTED={
     'main.py':'620a3cdcad571168b31c2633b28da94c251b8855',
     'pixelrush_biomes2_v3130.py':'01a711dc82c563c401a25218c508de6d0784032f',
-    'pixelrush_qa_gles_bridge_v327749.py':'cc253a157299fd1991e282b10070659af5e78de6',
+    'pixelrush_qa_gles_bridge_v327749.py':'a0e5d17b25593fa780e5548610e4bdd1a8b3180b',
     'pixelrush_qa_camera_native_auto_v327742.py':'211f3b313c9a39c0e961a169de9b97c8a2c519b1',
 }
 MODULES=(
@@ -88,6 +88,8 @@ MODULES=(
     'tests/test_qa_runtime_v327779.py',
     'tests/test_qa_temporal_rgba_v327780.py',
     'pixelrush_qa_gpu_preflight_v327780.py',
+    'pixelrush_qa_backend_gate_v327747.py',
+    'tests/test_qa_backend_gate_v327747.py',
     'tests/test_qa_gpu_preflight_v327780.py',
 )
 def blob(path):
