@@ -25,20 +25,20 @@ class VignetteQA776(unittest.TestCase):
     def test_gamefeel_original_igual_rgb_rgba_oculto(self):
         obj=GameFeel()
         rnd=random.Random(327776)
-        for flag in (0,pygame.SRCALPHA):
+        for flags,bpp in ((0,16),(0,24),(0,32),(pygame.SRCALPHA,32)):
             for alpha in (0,1,48,127,255):
-                dest=pygame.Surface((450,800),flag,32)
-                dest.fill((31,57,99,alpha) if flag else (31,57,99))
+                dest=pygame.Surface((450,800),flags,bpp)
+                dest.fill((31,57,99,alpha) if flags else (31,57,99))
                 for _ in range(72):
                     color=(rnd.randrange(256),rnd.randrange(256),rnd.randrange(256),
                            rnd.choice((0,1,127,255)))
-                    pygame.draw.rect(dest,color if flag else color[:3],
+                    pygame.draw.rect(dest,color if flags else color[:3],
                         (rnd.randrange(450),rnd.randrange(800),17,39))
                 esperado=dest.copy();novo=dest.copy()
                 esperado.blit(obj._vinheta,(0,0))
                 obj.desenhar(novo,jogador=None,combo=0)
-                self.assertEqual(rgba(esperado),rgba(novo),(flag,alpha))
-        self.assertEqual(qa.diagnostico()['rapido'],5)
+                self.assertEqual(rgba(esperado),rgba(novo),(flags,bpp,alpha))
+        self.assertEqual(qa.diagnostico()['rapido'],15)
         self.assertEqual(qa.diagnostico()['fallback'],5)
         self.assertEqual(qa.diagnostico()['verificacoes'],1)
 
