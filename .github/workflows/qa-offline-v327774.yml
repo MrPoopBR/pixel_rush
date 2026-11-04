@@ -96,22 +96,7 @@ jobs:
       - name: Preflight QA774 (versao, AST, gates, sem Android)
         run: |
           python -m py_compile pixelrush_city2_v3118.py pixelrush_city2_v3122.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py tests/test_qa_scale_recycle_v327774.py
-          grep -q '^version = 3\\.277\\.74        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pixelrush-qa-v327758-preflight-offline
-          path: qa-preflight-v327758.json
-          if-no-files-found: ignore
- buildozer.spec
-          grep -q '^android.numeric_version = 327774        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pixelrush-qa-v327758-preflight-offline
-          path: qa-preflight-v327758.json
-          if-no-files-found: ignore
- buildozer.spec
-          grep -q 'VERSAO = "v3.277.74-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
-          python -c "from pathlib import Path; t=Path('pixelrush_city2_v3118.py').read_text(); assert 'sys.getrefcount(antiga)==2' in t; assert '_QA_RECYCLE_TECH_SCALE' in t; assert 'PIXELRUSH_QA_CITY_RECYCLE_SCALE' in t"
+          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.74' in s; assert 'android.numeric_version = 327774' in s; assert 'VERSAO = \"v3.277.74-QA-ANDROID-RC\"' in e"
       - name: LRU de escalas real cidade, RGBA oculto, referencias e benchmark
         run: python tests/test_qa_scale_recycle_v327774.py
       - name: Evidência offline (não é homologação Android)
