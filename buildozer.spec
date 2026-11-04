@@ -7,7 +7,7 @@ source.dir = .
 # Recursos usados pela candidata Android v3.277.16 (não somente arquivos Python).
 source.include_exts = py,json,png,ttf,txt,atlas,pbuf,tiles,rgbaz,pcmz
 source.exclude_dirs = .git,.buildozer,bin,p4a-recipes,__pycache__,ferramentas,QA_BUILD_LOCAL
-version = 3.277.80
+version = 3.277.81
 # Valor de TESTE: confirmar versionCode em Google Play antes de assinar/publicar.
 android.numeric_version = 327780
 # p4a/develop usa NumPy 2.3.0 (Python >=3.11). Python e hostpython devem coincidir.
