@@ -213,7 +213,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.78-QA-ANDROID-RC"
+VERSAO = "v3.277.79-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -13229,6 +13229,29 @@ def main():
             _qa_camera_boot_bench(display_surface,(_qa_w+18,_qa_h+32))
         except (pygame.error,ValueError,MemoryError,RuntimeError,OSError):
             # Fallback seguro: nao impedir o tutorial por falha QA.
+            pass
+
+    # QA779: o backend nativo ARM/NEON nunca era aferido no boot; a simples
+    # instalacao do wrapper deixava seu status sempre 'nao_avaliado'.
+    # Validar uma cena de cores variadas fora do loop antes de habilitar.
+    if (E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID')=='1'
+            and os.environ.get('PIXELRUSH_QA_NATIVE_AUTO','0')=='1'):
+        try:
+            from types import SimpleNamespace
+            from pixelrush_qa_camera_native_auto_v327742 import (
+                preparar_fora_do_frame as _qa_camera_native_boot)
+            _qa_padrao_native = pygame.Surface((450,800),depth=32)
+            for _yy in range(0,800,5):
+                _cor = ((_yy*17)%256,(_yy*31)%256,(_yy*53)%256)
+                pygame.draw.rect(_qa_padrao_native,_cor,(0,_yy,450,5))
+            _qa_pessoa_native=SimpleNamespace(
+                no_chao=True,rect=pygame.Rect(52,574,42,52))
+            _qa_camera_native_boot(_qa_padrao_native,camera_cinematica,
+                                   _qa_pessoa_native,velocidade=12.0)
+            del _qa_padrao_native,_qa_pessoa_native
+        except (ImportError,pygame.error,ValueError,MemoryError,
+                RuntimeError,OSError,AttributeError):
+            # Driver ou SONAME sem suporte: manter o smoothscale original.
             pass
 
     rodando = True
