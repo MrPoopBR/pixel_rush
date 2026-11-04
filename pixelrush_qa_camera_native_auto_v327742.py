@@ -84,11 +84,19 @@ def _verificar_primeiro_frame(imagem,camera,jogador,velocidade,momento,ativo):
     # Calcular geometria SEM alterar o estado real da camera.
     z=camera.zoom;f=camera.foco_y
     try:
+        # QA782/R12 A54: no boot o zoom inicia em zero e o primeiro passo
+        # (<0.002) nunca atinge a geometria de teste. O backend ficou
+        # "aguardando_preflight" em TODOS os 2.594 quadros reais.
+        # Usar zoom de AMOSTRA apenas no gate e restaurar o estado integral
+        # antes da primeira simulacao/desenho. Nao altera zoom do jogador.
+        if camera.zoom < .012:
+            camera.zoom = .025
         geometria=_geometria_camera(camera,imagem,jogador,velocidade,momento,ativo)
     finally:
         camera.zoom=z;camera.foco_y=f
     if geometria is None:
-        return None
+        _REPORT['status']='sem_geometria_validavel_no_boot'
+        return False
     size,crop=geometria
     buf=pygame.Surface(size).convert(imagem)
     formato='RGBA'
