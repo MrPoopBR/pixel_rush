@@ -44,7 +44,7 @@ class TestMenuQA778(unittest.TestCase):
         compile(CODE, str(GAME), "exec")
         self.assertIn('VERSAO = "v3.277.80-QA-ANDROID-RC"', CODE)
         spec = (ROOT / "buildozer.spec").read_text("utf-8")
-        self.assertIn("version = 3.277.79", spec)
+        self.assertIn("version = 3.277.80", spec)
         self.assertIn("android.numeric_version = 327780", spec)
 
     def test_perfil_unico_e_migracao(self):
@@ -107,7 +107,7 @@ class TestMenuQA778(unittest.TestCase):
 
     def test_cache_mundo_8_quadros_vs_5_e_paridade_rgba_estatica(self):
         from pixelrush_qa_ultraleve_v327730 import CacheFundoUltraQA
-        self.assertIn("periodo_fundo_qa = 5 if os.environ.get('PIXELRUSH_QA_FUNDO_PERIODO') == '5' else 8", CODE)
+        self.assertIn("periodo_fundo_qa = 8 if os.environ.get('PIXELRUSH_QA_FUNDO_PERIODO') == '8' else 5", CODE)
         base = pygame.Surface((450, 800)).convert()
         base.fill((62, 84, 112))
         pygame.draw.rect(base, (130, 136, 142), (0, 730, 450, 70))
