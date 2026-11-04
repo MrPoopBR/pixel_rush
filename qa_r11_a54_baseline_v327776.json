@@ -1,0 +1,46 @@
+{
+  "schema": "pixelrush.qa.r11.a54.baseline.v327776",
+  "origem": "ZIPs reais Galaxy A54 de 2026-11-04; somente dados derivados sem saves",
+  "modelo": "SM-A546E",
+  "android_api": 36,
+  "versao_fonte": "v3.277.75-QA-ANDROID-RC",
+  "artefatos": {
+    "corrida": {
+      "nome": "PIXELRUSH_R11_A54_CORRIDA_20261104_154736.zip",
+      "sha256": "0a73f94c3512fb661289d8f630fe2cd35328f26e0e67ee953853ddb7d023da04"
+    },
+    "tutorial": {
+      "nome": "PIXELRUSH_R11_A54_TUTORIAL_20261104_154720.zip",
+      "sha256": "656f909ee3302f4af4d740fcb147564787692252a68fe0062b2cc9cc9f80cc96"
+    },
+    "laudo": {
+      "nome": "PIXELRUSH_R11_A54_LAUDO_v327775.md",
+      "sha256": "115fc61930c051c2ea46a31decb214238bca930baaaca5d1d5b8d32b50a5ea41"
+    }
+  },
+  "corrida_normal_cidade": {
+    "quadros_csv": 1380,
+    "fps_estimado": 8.3,
+    "quadro_p50_ms": 100.619,
+    "quadro_p95_ms": 198.842,
+    "pos_sprites_p50_ms": 64.668,
+    "pos_sprites_p95_ms": 73.936,
+    "mundo_2_5d_por_chamada_p50_ms": 88.631,
+    "mundo_2_5d_p95_ms": 126.448,
+    "mundo_2_5d_chamadas": 297,
+    "composicao_interna_p50_ms": 24.758,
+    "qa_world_draw_p50_ms": 65.426,
+    "simulacao_p50_ms": 3.349
+  },
+  "tutorial": {
+    "quadros_csv": 184,
+    "transicao_corrida_confirmada": true,
+    "letras_individuais_confirmadas": false
+  },
+  "observacoes": [
+    "Marcadores inclusivos/externos nao devem ser somados.",
+    "Ganhos offline do helper de vinheta nao provam FPS no A54.",
+    "Perfil GPU Mali real e R12 ausentes.",
+    "Nenhum arquivo save neste benchmark."
+  ]
+}
