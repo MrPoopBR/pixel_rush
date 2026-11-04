@@ -183,23 +183,25 @@ class RenderScroll753(unittest.TestCase):
                 if 'original_accel' in locals():
                     city_core.acelerar_textura_estatica=original_accel
 
-    def test_sonda_rss_181_nunca_180_com_escalonador(self):
+    def test_sonda_rss_182_nunca_180_181_com_escalonador(self):
         import pixelrush_qa_performance_integrated_v327742 as perf
         perf.restaurar_para_teste()
         old_mem=perf._memory_mib
         old_frames=perf._LAST_STATUS['frames']
-        with patch.dict(os.environ,{'PIXELRUSH_QA_TRIM_PROBE_PHASE':'1',
+        with patch.dict(os.environ,{'PIXELRUSH_QA_TRIM_PROBE_PHASE':'2',
                                     'PIXELRUSH_QA_STAGGER_TRIM':'1'}):
             try:
                 perf.instalar()
-                self.assertEqual(perf.diagnostico()['cache_trim_sonda_fase_180'],1)
+                self.assertEqual(perf.diagnostico()['cache_trim_sonda_fase_180'],2)
                 chamados=[]
                 perf._memory_mib=lambda: (chamados.append(perf._LAST_STATUS['frames']) or 400.)
                 perf._LAST_STATUS['frames']=179
-                pygame.display.flip()
+                pygame.display.flip() # frame 180
                 self.assertEqual(chamados,[])
-                pygame.display.flip()
-                self.assertEqual(chamados,[181])
+                pygame.display.flip() # frame 181 = redraw 5:1
+                self.assertEqual(chamados,[])
+                pygame.display.flip() # frame 182 = seguro nos ciclos 5/8
+                self.assertEqual(chamados,[182])
             finally:
                 perf._memory_mib=old_mem
                 perf.restaurar_para_teste()
