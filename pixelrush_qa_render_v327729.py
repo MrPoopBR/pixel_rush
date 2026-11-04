@@ -171,6 +171,11 @@ def instalar():
     # QA773: reuso do replay circular, pixel-exato com rollback.
     from pixelrush_qa_replay_pool_v327773 import instalar as instalar_replay_qa
     instalar_replay_qa()
+    # R11/A54: instrumentar DEPOIS de todos os wrappers preexistentes.
+    # Somente QA Android; sem mudanca de shader, biome, tela ou jogo.
+    if os.environ.get('PIXELRUSH_QA_ANDROID') == '1':
+        from pixelrush_qa_r11_passes_v327776 import instalar as instalar_r11_passes
+        instalar_r11_passes()
     _INSTALADO = True
 
 
@@ -178,6 +183,9 @@ def restaurar_para_teste():
     """Somente em regressao offline, nunca executado no APK."""
     global _INSTALADO
     if _INSTALADO:
+        # Remover primeiro wrappers externos R11, preservando hooks anteriores.
+        from pixelrush_qa_r11_passes_v327776 import restaurar_para_teste as restaurar_r11_passes
+        restaurar_r11_passes()
         from pixelrush_qa_gc_cooperativo_v327757 import restaurar_para_teste as restaurar_gc_qa
         restaurar_gc_qa()
         from pixelrush_qa_geometry_retire_v327761 import restaurar_para_teste as restaurar_geometry_retire_qa
