@@ -93,9 +93,16 @@ class _Ponte:
                 present_module.VERT,present_module.FRAG=original_shader
                 pygame.display.set_mode=atual
                 pygame.display.gl_set_attribute=setter
-            # Contexto SDL_OPENGL nao fornece WindowSurface; convert() sem
-            # framebuffer SDL pode falhar. A Surface staging explicita
-            # preserva o contrato RGB de 32 bits e evita depender da janela.
+            # QA779: o jogo inteiro cria Surfaces via .convert() durante
+            # o boot e em biomas sob demanda. Um contexto OPENGL que nao
+            # fornece o formato de display ao pygame pode abrir a janela
+            # mas derrubar o jogo DEPOIS do bootstrap. Testar agora, antes
+            # de entregar a staging ao main. Se nao houver convert valido,
+            # voltar a SDL software sem risco de tela preta.
+            try:
+                pygame.Surface((2,2),depth=32).convert()
+            except (pygame.error,ValueError):
+                raise RuntimeError('Contexto GLES sem suporte a Surface.convert')
             self.staging=pygame.Surface(requested,depth=32)
             self.cpu_window=None
             self.modo='gles'
