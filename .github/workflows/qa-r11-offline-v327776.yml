@@ -1,9 +1,9 @@
-name: PIXEL RUSH QA 3.277.81 — fechamento offline 32 frentes A54
+name: PIXEL RUSH QA 3.277.82 — fechamento offline 32 frentes A54
 
 on:
   push:
     branches:
-      - qa/r12-arm64-homologacao-v3.277.81
+      - qa/r13-camera-tela-cheia-v3.277.82
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   qa-v776-r11-offline:
-    if: github.ref_name == 'qa/r12-arm64-homologacao-v3.277.81'
+    if: github.ref_name == 'qa/r13-camera-tela-cheia-v3.277.82'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -99,12 +99,24 @@ jobs:
         run: python tests/test_qa_runtime_v327779.py
       - name: QA780 - 120 frames camera, scroll RGB/RGBA e cache temporal
         run: python tests/test_qa_temporal_rgba_v327780.py
-      - name: QA781 - R12 JSON CSV p50 p95 p99 CPU RAM passes e backends
+      - name: QA781/782 - R12 JSON CSV p50 p95 p99 CPU RAM passes e backends
         run: python tests/test_qa_r12_telemetria_v327781.py
+      - name: QA782 - tela fisica Android e fallback nativo preservando RGBA
+        run: python tests/test_qa_r13_camera_tela_v327782.py
+
+      - name: QA782 - 240 gates RGB/RGBA reais da camera C nativa
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pixelrush-qa-native
+          cc -std=c11 -O3 -fPIC -Wall -Wextra -shared qa_native/camera_crop_native_v327741.c -o /tmp/pixelrush-qa-native/libpixelrush_camera_crop_v327741.so
+          export PIXELRUSH_QA_NATIVE_CAMERA_LIB=/tmp/pixelrush-qa-native/libpixelrush_camera_crop_v327741.so
+          python tests/test_qa_crop_native_v327741.py
+
       - name: Preflight QA774 (versao, AST, gates, sem Android)
         run: |
           python -m py_compile pixelrush_city2_v3118.py pixelrush_city2_v3122.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py tests/test_qa_scale_recycle_v327774.py
-          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.81' in s; assert 'android.numeric_version = 327781' in s; assert 'VERSAO = \"v3.277.81-QA-ANDROID-RC\"' in e"
+          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.82' in s; assert 'android.numeric_version = 327782' in s; assert 'VERSAO = \"v3.277.82-QA-ANDROID-RC\"' in e"
       - name: LRU de escalas real cidade, RGBA oculto, referencias e benchmark
         run: python tests/test_qa_scale_recycle_v327774.py
       - name: Dez frentes - portas de seguranca especificas A54
@@ -146,9 +158,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pixelrush-qa-v327781-r12-preflight-offline
+          name: pixelrush-qa-v327782-r13-preflight-offline
           path: |
-            qa-preflight-v327781.json
+            qa-preflight-v327782.json
             qa-temporal-rgba-v327780.json
             qa-r11-world-bands-v327776.json
             qa-r11-city-hotspots-v327776.json
