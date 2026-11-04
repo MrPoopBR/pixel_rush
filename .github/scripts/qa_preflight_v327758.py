@@ -32,6 +32,9 @@ MODULES=(
     'pixelrush_qa_atlas_io_v327747.py',
     'tests/test_qa_tiles_menu_v327761.py',
     'pixelrush_qa_render_v327729.py',
+    'pixelrush_qa_replay_pool_v327773.py',
+    'tests/test_qa_replay_reuse_v327773.py',
+    'tests/test_qa_r10_passe_v327773.py',
     'pixelrush_biomes2_v3128.py',
     'pixelrush_qa_city_weather_v327749.py',
     'pixelrush_qa_city_bootstrap_v327759.py',
@@ -71,7 +74,9 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.72-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.73-QA-ANDROID-RC"' in engine
+    assert 'qa_replay_captura' in engine and 'qa_fundo_cache_chao' in engine
+    assert 'instalar_replay_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
     assert "_qa_precarga_visuais.passo(estado)" in engine
     assert "instalar_render_qa()" in (ROOT/'main.py').read_text('utf8')
     perf=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
@@ -111,8 +116,8 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.72$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327772$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.73$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327773$',spec)
     assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()

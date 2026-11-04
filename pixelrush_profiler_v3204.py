@@ -17,7 +17,11 @@ SECOES = (
 )
 SUBSISTEMAS = (
     "fisica_jogador", "inimigos_objetos", "particulas_update",
-    "mundo_2_5d", "sprites_render", "clima_render"
+    "mundo_2_5d", "sprites_render", "clima_render",
+    "qa_ceu_2d", "qa_world_draw", "qa_particulas_mundo",
+    "qa_fundo_cache_chao", "qa_render_antes_sprites",
+    "qa_render_apos_sprites", "qa_hud_corrida",
+    "qa_replay_captura", "qa_simulacao_ticks",
 )
 
 class Profiler:

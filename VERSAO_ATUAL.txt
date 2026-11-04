@@ -1,3 +1,5 @@
+Pixel Rush v3.277.73-QA-ANDROID-RC — branch qa/r10-performance-v3.277.73 baseada na v3.277.72. Perfis R10, replay com reuso de Surface RGBA original, fallback e benchmarks. APK/AAB não compilados. Preservados física, saves, arte, pets, main e DEV; 22/32 concluídas offline, 10 parciais.
+
 Pixel Rush v3.277.72-QA-ANDROID-RC — correção exclusiva do crash fc-list no banner final da sexta lição do tutorial Android, R9 v3.277.71. Mantém físicas, arte, saves, pets, main, DEV e AAB. 22/32 offline; 10 parciais; homologação Android pendente.
 
 Pixel Rush v3.277.71-QA-ANDROID-RC — hotfix crash de fonte do tutorial Android (fc-list) em MEmu; sem alteracao de fisica, gameplay, saves, pets ou elementos graficos. Evidencia R7 de 2026-11-04. 22/32 offline; 10 frentes parciais; homologacao GPU pendente.

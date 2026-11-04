@@ -168,6 +168,9 @@ def instalar():
     # somente se apontar para buffer que o World acabou de aposentar.
     from pixelrush_qa_geometry_retire_v327761 import instalar as instalar_geometry_retire_qa
     instalar_geometry_retire_qa()
+    # QA773: reuso do replay circular, pixel-exato com rollback.
+    from pixelrush_qa_replay_pool_v327773 import instalar as instalar_replay_qa
+    instalar_replay_qa()
     _INSTALADO = True
 
 
@@ -193,6 +196,8 @@ def restaurar_para_teste():
         from pixelrush_qa_city_weather_v327749 import restaurar_para_teste as restaurar_clima
         restaurar_tiles()
         restaurar_clima()
+        from pixelrush_qa_replay_pool_v327773 import restaurar_para_teste as restaurar_replay_qa
+        restaurar_replay_qa()
         from pixelrush_qa_gles_bridge_v327749 import restaurar_para_teste as restaurar_bridge
         restaurar_bridge()
         _INSTALADO = False

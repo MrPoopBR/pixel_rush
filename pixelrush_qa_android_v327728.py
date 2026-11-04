@@ -21,6 +21,11 @@ SECOES = (
     'camera_smoothscale', 'camera_gamefeel', 'menus_fundo',
     'apresentacao_escala_final', 'apresentacao_blit_final',
     'apresentacao_swap',
+    'qa_ceu_2d', 'qa_world_draw', 'qa_particulas_mundo',
+    'qa_fundo_cache_chao', 'qa_render_antes_sprites',
+    'qa_render_apos_sprites', 'qa_hud_corrida',
+    'qa_replay_captura', 'qa_simulacao_ticks',
+    'render_restante_qa773', 'simulacao_restante_qa773',
     'cenario_ceu', 'cenario_panorama', 'cenario_emenda',
     'cenario_animacoes_fundo', 'cenario_animacoes_frente',
     'cenario_reacao_noturna', 'cenario_foco_pista', 'cenario_acabamento',
@@ -209,6 +214,17 @@ class QATelemetria:
                 sum(fases.get(k, 0.0) for k in
                     ('mundo_2_5d', 'profundidade_fundo', 'sprites_render',
                      'clima_render', 'menus_fundo')))
+        # Disjuntos: nunca somar novamente mundo/clima contidos nos blocos.
+        blocos = ('qa_fundo_cache_chao','qa_render_antes_sprites',
+                  'sprites_render','qa_render_apos_sprites',
+                  'qa_hud_corrida','qa_replay_captura')
+        if 'renderizacao_e_ui' in fases and any(k in fases for k in blocos):
+            fases['render_restante_qa773']=max(0.0,
+                fases['renderizacao_e_ui']-sum(fases.get(k,0.) for k in blocos))
+        if 'simulacao' in fases:
+            fases['simulacao_restante_qa773']=max(0.0,
+                fases['simulacao']-sum(fases.get(k,0.) for k in
+                    ('fisica_jogador','inimigos_objetos','particulas_update')))
         total = max(0, agora - self.inicio) / 1e6
         trabalho = max(0, total - fases.get('limitador_fps', 0))
         cpu = max(0, self.cpu_relogio() - entrada['cpu_inicial']) / 1e6

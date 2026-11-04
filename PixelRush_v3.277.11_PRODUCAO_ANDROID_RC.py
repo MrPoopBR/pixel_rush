@@ -206,7 +206,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.72-QA-ANDROID-RC"
+VERSAO = "v3.277.73-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -7209,6 +7209,7 @@ class ParallaxBackground:
         # Fallback preservado apenas para biomas sem arte nova.
         # Ramo legado mantido apenas para o bioma sem arte nova.
         # Gradiente em mais faixas para dar um ceu mais rico sem custo alto.
+        _pro_sub_inicio("qa_ceu_2d")
         fase = self.fase_ciclo
         peso_noite = max(0.0, min(1.0, self.peso_noite))
         cor_ceu_sat = saturar_cor(cor_ceu, 1.10)
@@ -7283,11 +7284,16 @@ class ParallaxBackground:
                     reflexo = misturar_cores(cor_luz_nuvem, (255, 214, 162), min(0.65, peso_crepusculo * 0.90))
                     pygame.draw.rect(superficie, reflexo, (pos_x + 10 * escala, pos_y + 10 * escala, 18 * escala, 3 * escala), border_radius=escala)
 
+        _pro_sub_fim()  # qa_ceu_2d
         if self._bioma_spriteado_ativo():
             self.world.night = self.peso_noite
             self.world.climate = self.clima_tipo
+            _pro_sub_inicio("qa_world_draw")
             self.world.draw(superficie)
+            _pro_sub_fim()
+            _pro_sub_inicio("qa_particulas_mundo")
             self._desenhar_particulas_ambiente(superficie)
+            _pro_sub_fim()
             return
 
         tile_montanhas = self._obter_tile_montanhas(cor_ceu)
@@ -13312,10 +13318,12 @@ def main():
         # Executa os ticks acumulados antes de aplicar os eventos recem-chegados,
         # para nao aplicar um toque novo retroativamente ao tempo anterior.
         passos_simulacao = 0
+        _pro_sub_inicio("qa_simulacao_ticks")
         while sim_acumulado + 1e-9 >= PASSO_FIXO and passos_simulacao < MAX_PASSOS_POR_FRAME and rodando:
             atualizar_simulacao()
             sim_acumulado -= PASSO_FIXO
             passos_simulacao += 1
+        _pro_sub_fim()
         if E_ANDROID and passos_simulacao == MAX_PASSOS_POR_FRAME:
             # Descartar backlog antigo evita a espiral de travamentos quando
             # o celular nao consegue processar quinze ticks antes de desenhar.
@@ -13720,6 +13728,7 @@ def main():
                     bool(e_noite), bool(tutorial_corrida and tutorial_corrida.ativo),
                     bool(bg_parallax.world.lightweight), display_surface.get_size()
                 )
+                _pro_sub_inicio("qa_fundo_cache_chao")
                 if cache_fundo_mobile.reusar(
                         display_surface, _chave_fundo_mobile, _cache_fundo_mobile_ativo):
                     pass
@@ -13750,6 +13759,8 @@ def main():
                 # O piso rola em todos os quadros, mesmo com fundo em cache.
                 # Sao exatamente os mesmos pixels e a mesma ordem de sobreposicao.
                 bg_parallax.draw_chao(display_surface)
+                _pro_sub_fim()  # qa_fundo_cache_chao
+                _pro_sub_inicio("qa_render_antes_sprites")
                 if estado == 'JOGANDO' and not modo_grafico_leve(dados):
                     desenhar_clima_premium(display_surface, cenario_atual, frame_count)
                 if estado in ("JOGANDO", "PAUSA") and evento_corrida:
@@ -13950,6 +13961,7 @@ def main():
                         display_surface, modo_grafico_leve(dados))
                     diretor_perseguidores.desenhar(
                         display_surface, jogador.rect.left, modo_grafico_leve(dados))
+                _pro_sub_fim()  # qa_render_antes_sprites
                 _pro_sub_inicio("sprites_render")
                 _prod_dx_entrada = 0
                 if (estado == 'JOGANDO' and jogador is not None and frame_count < entrada_corrida_ate
@@ -13963,6 +13975,7 @@ def main():
                 if _prod_dx_entrada:
                     jogador.rect.x += _prod_dx_entrada
                 _pro_sub_fim()
+                _pro_sub_inicio("qa_render_apos_sprites")
                 if estado == 'JOGANDO' and frame_count < entrada_corrida_ate:
                     _prod_banner_entrada(display_surface, frame_count, entrada_corrida_ate)
                 if estado == "JOGANDO" and tutorial_corrida and tutorial_corrida.ativo:
@@ -14215,7 +14228,9 @@ def main():
                 desenhar_hitboxes_debug(display_surface, jogador, obstaculos,
                                         perigos_especiais, frame_count, buracos)
 
+            _pro_sub_fim()  # qa_render_apos_sprites
             if estado == "JOGANDO":
+                _pro_sub_inicio("qa_hud_corrida")
                 if jogador and febre_turbo_distancia_restante > 0:
                     # Aura de cometa estilizada: arcos orbitais, chamas e faíscas; fora da hitbox.
                     px, py = jogador.rect.centerx, jogador.rect.centery
@@ -14337,6 +14352,7 @@ def main():
                         pygame.draw.rect(display_surface, BRANCO, (15, py_pup, 130, 20), 1, border_radius=5)
                         desenhar_icone_powerup(display_surface, pup_key, 27, py_pup + 10)
                         py_pup += 25
+                _pro_sub_fim()  # qa_hud_corrida
 
             if estado == "INICIO":
                 t_anim = anim_menu_tempo / 45.0
@@ -15412,7 +15428,9 @@ def main():
 
         # Replay visual de seis segundos: nunca reexecuta física, spawn nem saves.
         if estado == 'JOGANDO' and jogador is not None:
+            _pro_sub_inicio("qa_replay_captura")
             replay_morte.capturar(display_surface, frame_count)
+            _pro_sub_fim()
         elif estado == 'GAMEOVER':
             if not replay_morte.congelado:
                 replay_morte.iniciar()  # automático, pode ser pulado por toque/tecla
