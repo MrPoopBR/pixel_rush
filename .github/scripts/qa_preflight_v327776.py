@@ -12,7 +12,7 @@ PROTECTED={
     'main.py':'620a3cdcad571168b31c2633b28da94c251b8855',
     'pixelrush_biomes2_v3130.py':'01a711dc82c563c401a25218c508de6d0784032f',
     'pixelrush_qa_gles_bridge_v327749.py':'a0e5d17b25593fa780e5548610e4bdd1a8b3180b',
-    'pixelrush_qa_camera_native_auto_v327742.py':'71398bc822498cc935726ba57c98425a9166f61b',
+    'pixelrush_qa_camera_native_auto_v327742.py':'49c9be835b003c86e71132621e12b789cfaedd97',
 }
 MODULES=(
     'tests/test_qa_r11_chunk_trace_v327777.py',
