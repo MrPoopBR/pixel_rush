@@ -29,7 +29,7 @@ _QA_DEDUP_TECH_SCALED=os.environ.get('PIXELRUSH_QA_CITY_DEDUP_TECH_SCALED','1')=
 # QA774: reciclar apenas buffers técnicos de scale que perderam sua vaga LRU,
 # sem referências externas, mantendo formato SDL, bytes e capacidade originais.
 # Rollback: PIXELRUSH_QA_CITY_RECYCLE_SCALE=0.
-_QA_RECYCLE_TECH_SCALE=os.environ.get('PIXELRUSH_QA_CITY_RECYCLE_SCALE','0')=='1'
+_QA_RECYCLE_TECH_SCALE=os.environ.get('PIXELRUSH_QA_CITY_RECYCLE_SCALE','1')=='1'
 # QA756: atlas técnicos de cor opaca 100% uniforme viram um fill SDL
 # diretamente no destino, sem alocar/ampliar/blitar Surface 900x500.
 # Validação integral dos bytes somente no bootstrap; zero scan no quadro 5.
