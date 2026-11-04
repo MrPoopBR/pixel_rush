@@ -20,6 +20,7 @@ _MODULES = {
     "gc_cooperativo": "pixelrush_qa_gc_cooperativo_v327757",
     "memoria_e_pacing": "pixelrush_qa_performance_integrated_v327742",
     "world_passes": "pixelrush_qa_r11_passes_v327776",
+    "tela_android": "pixelrush_qa_android_display_v327782",
 }
 
 
@@ -48,6 +49,7 @@ def coletar():
     nativo = modulos["camera_neon"]
     scroll = modulos["scroll_incremental"]
     gc = modulos["gc_cooperativo"]
+    viewport = modulos["tela_android"]
     perf = modulos["memoria_e_pacing"]
     presenter = perf.get("gpu_presenter") or {}
     pbo = presenter.get("qa_pbo_stats") or {}
@@ -61,6 +63,9 @@ def coletar():
         "sem_coleta_pessoal": True,
         "modulos": modulos,
         "execucao_observada": {
+            "tela_cheia_fisica": bool(viewport.get("fullscreen_fisico",False)),
+            "resolucao_janela_px": viewport.get("janela_px"),
+            "modo_tela": viewport.get("modo"),
             "gles_frames": int(bridge.get("frames_gles") or 0),
             "gles_fallback_frames": int(bridge.get("frames_fallback") or 0),
             "gles_falhas": int(bridge.get("falhas_gpu") or 0),
