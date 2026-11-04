@@ -96,6 +96,18 @@ jobs:
           assert not d['gpu_em_jogo'] and not d['gpu_android_medido']
           PY
 
+      - name: QA780 - preflight real de RGBA8/ganho GPU e fallback no Mesa
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+          PIXELRUSH_QA_GLES_PBO: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m compileall -q pixelrush_qa_gpu_preflight_v327780.py tests/test_qa_gpu_preflight_v327780.py
+          xvfb-run -a -s "-screen 0 1024x1280x24" python3 tests/test_qa_gpu_preflight_v327780.py
+
       - name: Publicar demonstracao sem hardware Android
         if: always()
         uses: actions/upload-artifact@v4
