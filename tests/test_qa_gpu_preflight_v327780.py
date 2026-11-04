@@ -2,6 +2,7 @@
 """QA780: teste de inicializacao efetiva da ponte GPU Mesa em RGBA8, sem Android."""
 import os
 import sys
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -43,6 +44,8 @@ class PreflightRealGPU780(unittest.TestCase):
                 self.assertFalse(result['fps_android_homologado'])
                 self.assertGreater(result['tempo_cpu_p50_ms'],0)
                 self.assertGreater(result['tempo_gpu_p50_ms'],0)
+                (ROOT/'qa-gpu-preflight-v327780.json').write_text(
+                    json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
                 # Teste visual nao altera flag de integracao do jogo.
                 self.assertFalse(p.diagnostico()['integrado_ao_jogo'])
             finally:
