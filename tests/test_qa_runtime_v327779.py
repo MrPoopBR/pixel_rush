@@ -2,7 +2,7 @@
 """QA779: perfil Android QA, GC/trim e fallback do backend nativo.
 
 Uso offline: SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy
-python tests/test_qa_runtime_v327779.py
+python tests/test_qa_runtime_v327780.py
 """
 import ast
 import os
@@ -30,7 +30,7 @@ class RuntimeQA779(unittest.TestCase):
                 p=ROOT/path
                 ast.parse(p.read_text('utf8'),filename=str(p))
         jogo=(ROOT/arquivos[-1]).read_text('utf8')
-        self.assertIn('VERSAO = "v3.277.79-QA-ANDROID-RC"',jogo)
+        self.assertIn('VERSAO = "v3.277.80-QA-ANDROID-RC"',jogo)
         self.assertIn('preparar_fora_do_frame as _qa_camera_native_boot',jogo)
         self.assertIn("PIXELRUSH_QA_NATIVE_AUTO",jogo)
 
