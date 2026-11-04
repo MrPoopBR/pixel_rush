@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Animações exclusivas PROD: sem texturas carregadas/frame, sem mexer na física."""
 import math
+import os
+import sys
 import pygame
 
 TITULOS_TUTORIAL = {
@@ -18,14 +20,21 @@ _FONTE_CACHE = {}
 def _fonte(idioma, tamanho):
     chave = (idioma, tamanho)
     if chave not in _FONTE_CACHE:
+        # Hotfix R9: ao terminar o tutorial, SysFont tenta executar fc-list
+        # no Android. Reusar o fallback da fonte do tutorial ja existente.
+        android = sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ
         try:
             from pixelrush_fontes_prod_v32771 import fonte_unicode
             fonte = fonte_unicode(idioma, tamanho)
-            # Idiomas latinos sem fonte Unicode dedicada retornam None.
-            # A primeira corrida completa chega aqui e precisa de fonte real.
-            _FONTE_CACHE[chave] = fonte or pygame.font.SysFont('arial', tamanho, bold=True)
         except (ImportError, ValueError, OSError, pygame.error):
-            _FONTE_CACHE[chave] = pygame.font.SysFont('arial', tamanho, bold=True)
+            fonte = None
+        if fonte is None:
+            if android:
+                from pixelrush_tutorial_corrida_v3277 import _fonte as fonte_tutorial
+                fonte = fonte_tutorial(idioma, tamanho)
+            else:
+                fonte = pygame.font.SysFont('arial', tamanho, bold=True)
+        _FONTE_CACHE[chave] = fonte
     return _FONTE_CACHE[chave]
 
 def desenhar_mensagem_tutorial(tela, idioma, frame):

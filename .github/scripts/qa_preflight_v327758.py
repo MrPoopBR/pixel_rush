@@ -42,6 +42,9 @@ MODULES=(
     'tests/test_qa_tutorial_letras_v327771.py',
     'tests/test_qa_camera_backend_v327771.py',
     'pixelrush_tutorial_corrida_v3277.py',
+    'pixelrush_producao_fx_v32771.py',
+    'pixelrush_fontes_prod_v32771.py',
+    'tests/test_qa_fx_tutorial_font_v327772.py',
     'tests/test_qa_tutorial_android_font_v327770.py',
     'tests/test_qa_pet_preload_v327769.py',
     'tests/test_qa_city_intern_v327768.py',
@@ -68,7 +71,7 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.71-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.72-QA-ANDROID-RC"' in engine
     assert "_qa_precarga_visuais.passo(estado)" in engine
     assert "instalar_render_qa()" in (ROOT/'main.py').read_text('utf8')
     perf=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
@@ -89,6 +92,10 @@ def main():
     assert (ROOT/'QA_TRACKER_32_v327769.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327769.md').is_file()
     tutorial=(ROOT/'pixelrush_tutorial_corrida_v3277.py').read_text('utf8')
+    fx=(ROOT/'pixelrush_producao_fx_v32771.py').read_text('utf8')
+    unicode=(ROOT/'pixelrush_fontes_prod_v32771.py').read_text('utf8')
+    assert "from pixelrush_tutorial_corrida_v3277 import _fonte as fonte_tutorial" in fx
+    assert "'ANDROID_ARGUMENT' in os.environ" in unicode
     assert "'/system/fonts/Roboto-Bold.ttf'" in tutorial
     assert "'ANDROID_ARGUMENT' in os.environ" in tutorial
     assert '_qa_camera_boot_bench(display_surface,(_qa_w+18,_qa_h+32))' in engine
@@ -104,8 +111,8 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.71$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327771$',spec)
+    assert re.search(r'(?m)^version = 3\.277\.72$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327772$',spec)
     assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()

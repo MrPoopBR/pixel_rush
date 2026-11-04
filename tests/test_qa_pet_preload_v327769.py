@@ -80,7 +80,7 @@ class PetPreload769(unittest.TestCase):
 
     def test_integracao_somente_no_qa(self):
         texto=ENGINE.read_text(encoding='utf8')
-        self.assertIn('VERSAO = "v3.277.71-QA-ANDROID-RC"',texto)
+        self.assertIn('VERSAO = "v3.277.72-QA-ANDROID-RC"',texto)
         self.assertIn('preparar_pet_compativel(',texto)
         self.assertIn("dados.get('pet_equipado')",texto)
         self.assertIn('PIXELRUSH_QA_PRELOAD_VISUAL',texto)

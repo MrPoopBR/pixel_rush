@@ -7,6 +7,8 @@ Fontes cacheadas uma vez por idioma/tamanho, fora do loop de desenho.
 """
 from functools import lru_cache
 from pathlib import Path
+import os
+import sys
 import pygame
 from pixelrush_traducoes_v3247 import fonte_unicode as _fonte_integrada
 
@@ -29,6 +31,10 @@ def _caminho_sistema(codigo):
         caminho = Path('/system/fonts') / nome
         if caminho.is_file():
             return str(caminho)
+    # match_font() usa fc-list no Unix; o Android/MEmu bloqueia a execucao.
+    # Conservar fontes nativas existentes ou o subset integrado no projeto.
+    if sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ:
+        return None
     for nome in _NOMES.get(codigo, ()):
         resultado = pygame.font.match_font(nome)
         if resultado:
