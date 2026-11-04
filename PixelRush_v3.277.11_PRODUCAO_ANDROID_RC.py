@@ -213,7 +213,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.77-QA-ANDROID-RC"
+VERSAO = "v3.277.78-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -2636,8 +2636,8 @@ PARTICULAS_VISUAIS_LIMITADAS = False
 
 
 def modo_grafico_leve(dados):
-    modo = dados.get('modo_grafico', 'auto')
-    return modo == 'leve' or (modo == 'auto' and MONITOR_QUALIDADE_VISUAL.reduzido)
+    """Perfil grafico unico COMPLETO, inclusive em saves migrados."""
+    return False
 
 
 # Raridades usadas apenas na apresentação, sem alterar chances/preços.
@@ -3952,7 +3952,7 @@ def carregar_dados():
     dados_padrao = {
         "recorde": 0, "moedas_totais": 0, "skin_equipada": "AZUL", "skins_desbloqueadas": ["AZUL"],
         "upgrades": {"IMA": 0, "TURBO": 0, "ESCUDO": 0, "MULT_2X": 0, "SLOW": 0, "JETPACK": 0, "CLONE": 0, "PRISMA": 0, "CRONO": 0, "TURBO_FANTASMA": 0},
-        "vol_sfx": 0.7, "vol_musica": 0.5, "idioma": "pt_BR", "vibracao": True, "modo_grafico": "auto", "acess_contraste": False, "acess_sinais": False, "acess_reduzir_efeitos": False, "ajuda_pulo": True, "rastro_visual": "DESLIGADO", "controle_modo": "CLASSICO", "sensibilidade_toque": 30, "controle_canhoto": False, "gamepad_ativo": True,
+        "vol_sfx": 0.7, "vol_musica": 0.5, "idioma": "pt_BR", "vibracao": True, "modo_grafico": "completo", "acess_contraste": False, "acess_sinais": False, "acess_reduzir_efeitos": False, "ajuda_pulo": True, "rastro_visual": "DESLIGADO", "controle_modo": "CLASSICO", "sensibilidade_toque": 30, "controle_canhoto": False, "gamepad_ativo": True,
         "conquistas_desbloqueadas": [], "skins_compradas_confirmadas": [],
         "recordes_biomas": {"cidade": 0, "deserto": 0, "neve": 0, "vulcao": 0, "cidade_futurista": 0, "floresta": 0, "reino_submerso": 0, "ilhas_celestes": 0},
         "recompensas_biomas": [],
@@ -4001,7 +4001,7 @@ def carregar_dados():
                 dados.setdefault("evento_sazonal", {})
                 dados.setdefault("cosmeticos_sazonais", [])
                 dados.setdefault("desafios_periodicos", {})
-                dados.setdefault("modo_grafico", "auto")
+                dados["modo_grafico"] = "completo"
                 dados.setdefault("ajuda_pulo", True)
                 dados["rastro_visual"] = "DESLIGADO"
                 dados.setdefault("evolucao_pets", {})
@@ -10733,6 +10733,7 @@ def main():
                                              desenhar_entrada as _prod_banner_entrada,
                                              desenhar_transicao as _prod_fx_transicao)
     dados = carregar_dados()
+    dados["modo_grafico"] = "completo"
     if dados.get('skin_equipada') not in SKINS_ATIVAS_PROD:
         dados['skin_equipada'] = 'AZUL'
     dados['rastro_visual'] = 'DESLIGADO'
@@ -11071,6 +11072,7 @@ def main():
     btn_base_corredor = pygame.Rect(152, 555, 140, 44)
     btn_progress_reliquias = pygame.Rect(300, 555, 122, 44)
     btn_progress_ranking = pygame.Rect(28, 610, 394, 42)
+    btn_voltar_progresso = pygame.Rect(75, 610, 300, 50)
     btn_voltar_base = pygame.Rect(75, 710, 300, 50)
     btn_progress_conquistas = btn_conquistas
     btn_progress_base = btn_base_corredor
@@ -11150,7 +11152,7 @@ def main():
         'gamepad': pygame.Rect(57, 484, 336, 56),
         'voltar': pygame.Rect(75, 632, 300, 58),
     }
-    btn_voltar_config = pygame.Rect(75, 655, 300, 50)
+    btn_voltar_config = pygame.Rect(75, 525, 300, 50)
     btn_acessibilidade = pygame.Rect(75, 712, 300, 43)
     acess_rects = {
         'acess_contraste': pygame.Rect(52, 192, 346, 72),
@@ -11512,14 +11514,8 @@ def main():
                 pagina_conquistas = max(0, pagina_conquistas - 1)
             elif estado == "CONQUISTAS" and btn_ach_prox.collidepoint(pos):
                 pagina_conquistas = min((len(CONQUISTAS_CONFIG) - 1) // 5, pagina_conquistas + 1)
-            elif estado == "RECORDES" and btn_progress_conquistas.collidepoint(pos):
-                estado = "CONQUISTAS"
-            elif estado == "RECORDES" and btn_progress_base.collidepoint(pos):
-                estado = "BASE_CORREDOR"
-            elif estado == "RECORDES" and btn_progress_reliquias.collidepoint(pos):
-                estado = "RELIQUIAS"
-            elif estado == "RECORDES" and btn_progress_ranking.collidepoint(pos):
-                estado = "RANKING"
+            elif estado == "RECORDES" and btn_voltar_progresso.collidepoint(pos):
+                estado = "INICIO"
             elif estado == "DESAFIOS" and btn_percurso_abrir.collidepoint(pos):
                 codigo_editavel = codigo_diario()[3:]
                 estado = "DESAFIO_PERCURSO"
@@ -11600,12 +11596,7 @@ def main():
                 salvar_dados(dados)
 
         elif estado == "CONFIG":
-            if btn_acessibilidade.collidepoint(pos):
-                estado = 'CONFIG_ACESSIBILIDADE'
-            elif btn_config_controles.collidepoint(pos):
-                controle_dedos.reset()
-                estado = 'CONFIG_CONTROLES'
-            elif btn_voltar_config.collidepoint(pos):
+            if btn_voltar_config.collidepoint(pos):
                 salvar_dados(dados)
                 estado = "INICIO"
             elif btn_musica_menos.collidepoint(pos):
@@ -11629,11 +11620,6 @@ def main():
             elif btn_lang.collidepoint(pos):
                 dados["idioma"] = _i18n247.proximo_idioma(dados.get("idioma", "pt_BR"))
                 aplicar_fontes_localizadas(dados)
-                salvar_dados(dados)
-            elif btn_modo_grafico.collidepoint(pos):
-                modos = ('auto', 'completo', 'leve')
-                atual = dados.get('modo_grafico', 'auto')
-                dados['modo_grafico'] = modos[(modos.index(atual) + 1) % 3] if atual in modos else 'auto'
                 salvar_dados(dados)
             # Opção de rastro removida da interface desta edição.
 
@@ -14387,6 +14373,8 @@ def main():
 
                 (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
                  if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
+                # Menu e corrida usam o mesmo piso do cenario; nao estava no fundo cacheado.
+                bg_parallax.draw_chao(display_surface)
 
                 offset_y_titulo = int((1.0 - ease_out) * -220)
                 float_y = math.sin(frame_count * 0.05) * 4
@@ -14923,7 +14911,7 @@ def main():
                 ease_out = 1.0 - (1.0 - t_anim) ** 3
                 (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
                  if cache_menus_qa is not None else bg_parallax.draw(display_surface, cor_ceu_tupla, False))
-                desenhar_painel_identidade(display_surface, pygame.Rect(35, 114, 380, 604),
+                desenhar_painel_identidade(display_surface, pygame.Rect(35, 114, 380, 475),
                                            UI_CIANO, discreto=True)
 
                 off_top = int((1.0 - ease_out) * -150)
@@ -14979,28 +14967,6 @@ def main():
                 display_surface.blit(surf_l, (
                 btn_lang.centerx - surf_l.get_width() // 2, btn_lang.centery - surf_l.get_height() // 2))
 
-                pygame.draw.rect(display_surface, CINZA_BOTAO, btn_modo_grafico, border_radius=10)
-                pygame.draw.rect(display_surface, BRANCO, btn_modo_grafico, 2, border_radius=10)
-                modo_gfx_str = (t('graficos_leves', dados) if dados.get('modo_grafico', 'auto') == 'leve'
-                                else t('graficos_auto', dados) if dados.get('modo_grafico', 'auto') == 'auto'
-                                else t('graficos_completos', dados))
-                rotulo_gfx = f"{t('modo_grafico', dados)}: {modo_gfx_str}"
-                fonte_gfx = (fonte_missoes if _IDIOMA_ATUAL_I18N not in ('pt_BR','en_US')
-                             and fonte.size(rotulo_gfx)[0] > btn_modo_grafico.width - 16 else fonte)
-                surf_gfx = render_texto_cacheado(fonte_gfx, texto_ajustado_hud(rotulo_gfx, fonte_gfx, btn_modo_grafico.width - 14), BRANCO)
-                display_surface.blit(surf_gfx, (
-                btn_modo_grafico.centerx - surf_gfx.get_width() // 2, btn_modo_grafico.centery - surf_gfx.get_height() // 2))
-
-                # Rastro do personagem removido; espaço mantido intocado para
-                # não deslocar botões de acessibilidade e controles.
-
-                # Entrada da nova página de controles; ajuda de pulo permanece acessível lá.
-                pygame.draw.rect(display_surface, (42, 80, 105), btn_config_controles, border_radius=9)
-                pygame.draw.rect(display_surface, CIANO_ESCUDO, btn_config_controles, 1, border_radius=9)
-                desenhar_rotulo_botao(display_surface,
-                    'CONTROLES / INPUT' if dados.get('idioma') == 'pt_BR' else 'CONTROLS / INPUT',
-                    fonte_missoes, BRANCO, PRETO, btn_config_controles)
-
                 # Salvar e Voltar
                 pygame.draw.rect(display_surface, (46, 204, 113), btn_voltar_config, border_radius=10)
                 pygame.draw.rect(display_surface, BRANCO, btn_voltar_config, 2, border_radius=10)
@@ -15008,12 +14974,6 @@ def main():
                 display_surface.blit(surf_voltar_config, (btn_voltar_config.centerx - surf_voltar_config.get_width() // 2,
                                                           btn_voltar_config.centery - surf_voltar_config.get_height() // 2))
                 _v3178_acabamento_config(display_surface)
-                pygame.draw.rect(display_surface, (44, 82, 106), btn_acessibilidade, border_radius=9)
-                pygame.draw.rect(display_surface, (185, 233, 249), btn_acessibilidade, 2, border_radius=9)
-                rotulo_acess = ('ACCESSIBILITY' if dados.get('idioma') == 'en_US'
-                                else 'ACESSIBILIDADE')
-                desenhar_rotulo_botao(display_surface, rotulo_acess, fonte_missoes,
-                                      BRANCO, PRETO, btn_acessibilidade)
 
             elif estado == "CONQUISTAS":
                 (cache_menus_qa.desenhar(display_surface, bg_parallax, cor_ceu_tupla, estado)
@@ -15188,24 +15148,11 @@ def main():
                     display_surface.blit(surf_rotulo_bioma, (rect_bioma.centerx - surf_rotulo_bioma.get_width() // 2, rect_bioma.y + 6))
                     surf_recorde_bioma = render_texto_cacheado(fonte_pequena, f"{int(recordes.get(id_bioma, 0))} m", BRANCO)
                     display_surface.blit(surf_recorde_bioma, (rect_bioma.centerx - surf_recorde_bioma.get_width() // 2, rect_bioma.y + 31))
-                for rect_atalho, rotulo, cor_atalho in (
-                    (btn_progress_conquistas, "CONQUISTAS", (230, 126, 34)),
-                    (btn_progress_base, "BASE", (30, 180, 165)),
-                    (btn_progress_reliquias, "RELÍQUIAS", (150, 95, 205)),
-                ):
-                    pygame.draw.rect(display_surface, cor_atalho, rect_atalho, border_radius=9)
-                    pygame.draw.rect(display_surface, BRANCO, rect_atalho, 2, border_radius=9)
-                    surf_atalho = render_texto_cacheado(fonte_missoes, rotulo, BRANCO)
-                    display_surface.blit(surf_atalho, (rect_atalho.centerx - surf_atalho.get_width() // 2,
-                                                       rect_atalho.centery - surf_atalho.get_height() // 2))
-                pygame.draw.rect(display_surface, (40, 165, 175), btn_progress_ranking, border_radius=9)
-                pygame.draw.rect(display_surface, BRANCO, btn_progress_ranking, 2, border_radius=9)
-                desenhar_rotulo_botao(display_surface, "RANKING LOCAL", fonte_missoes, BRANCO, PRETO, btn_progress_ranking)
-                pygame.draw.rect(display_surface, CINZA_BOTAO, btn_voltar, border_radius=10)
-                pygame.draw.rect(display_surface, BRANCO, btn_voltar, 2, border_radius=10)
+                pygame.draw.rect(display_surface, CINZA_BOTAO, btn_voltar_progresso, border_radius=10)
+                pygame.draw.rect(display_surface, BRANCO, btn_voltar_progresso, 2, border_radius=10)
                 surf_voltar_rec = render_texto_cacheado(fonte, t("voltar", dados), BRANCO)
-                display_surface.blit(surf_voltar_rec, (btn_voltar.centerx - surf_voltar_rec.get_width() // 2,
-                                                       btn_voltar.centery - surf_voltar_rec.get_height() // 2))
+                display_surface.blit(surf_voltar_rec, (btn_voltar_progresso.centerx - surf_voltar_rec.get_width() // 2,
+                                                       btn_voltar_progresso.centery - surf_voltar_rec.get_height() // 2))
                 if bioma_recorde_popup is not None:
                     display_surface.blit(OVERLAY_PAUSA, (0, 0))
                     pygame.draw.rect(display_surface, (22, 28, 48), rect_recorde_bioma_popup, border_radius=16)
