@@ -174,5 +174,42 @@ class QA774ReusoEscalas(unittest.TestCase):
         # alocacoes e igualdade sao gates deterministas acima.
 
 
+    def test_benchmark_renderizacao_cidade_real_multicanal(self):
+        """Percurso real CityPilotScene, comparando passes de todos os canais.
+
+        Bytes RGBA completos incluindo alpha0; reporta tempos sem impor
+        threshold inconstante de runner compartilhado. LRU14 original.
+        """
+        scene=self.scene
+        outputs={}
+        tempos={}
+        stats={}
+        roteiro=[(kind,j) for j in range(5)
+                 for kind in ('image','geometry','normal','material','flow','fxmask')]
+        for mode in (False,True):
+            self.base._QA_RECYCLE_TECH_SCALE=mode
+            self.clear(limit=14)
+            images=[]
+            ns=[]
+            for kind,j in roteiro:
+                dst=pygame.Surface((450,500),pygame.SRCALPHA,32)
+                dst.fill((23,45,77,0))
+                t=time.perf_counter_ns()
+                scene.render_scene(dst, 180.9+71.3*j, 44+j*5,
+                                   .33,'chuva',.47,map_kind=kind)
+                ns.append(time.perf_counter_ns()-t)
+                images.append(rgba(dst))
+            outputs[mode]=images
+            tempos[mode]=(statistics.median(ns)/1e6,
+                          max(ns)/1e6,sum(ns)/1e6)
+            stats[mode]=(scene._qa_scaled_allocated,
+                         scene._qa_scaled_reused,
+                         scene._qa_scaled_rejected)
+        self.assertEqual(outputs[False],outputs[True])
+        print('QA774 Cidade REAL 30 passes p50/max/total (ms):',tempos,
+              'alocadas/reusadas/rejeitadas:',stats)
+        # Nenhuma aprovacao de FPS Android baseada no runner Ubuntu.
+
+
 if __name__=='__main__':
     unittest.main(verbosity=2)
