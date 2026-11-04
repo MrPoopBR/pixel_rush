@@ -46,7 +46,7 @@ jobs:
       - name: Instalar dependências de testes SDL dummy (sem SDK Android)
         run: python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy pillow
       - name: Versão, AST, SHA preservados e integração QA
-        run: python .github/scripts/qa_preflight_v327758.py
+        run: python .github/scripts/qa_preflight_v327774.py
       - name: Cache multi-instância, RAM e GC
         run: python tests/test_qa_cache_gc_v327758.py
       - name: Compositor multipass, skins, RNG, SHA, 181 flips
@@ -104,5 +104,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pixelrush-qa-v327758-preflight-offline
-          path: qa-preflight-v327758.json
+          path: qa-preflight-v327774.json
           if-no-files-found: ignore
