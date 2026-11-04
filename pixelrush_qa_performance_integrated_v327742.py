@@ -358,8 +358,11 @@ def _wrap_flip():
                 _LAST_STATUS['cpu_backend']=pygame.transform.get_smoothscale_backend()
             except pygame.error:
                 pass
+        # QA779: liberar memoria SOMENTE em quadros fora dos redesenhos
+        # de fundo tanto no periodo legado 5 quanto no atual 8.
         if (_TRIMMER is not None and _TRIMMER.ativo and
-                _LAST_STATUS['frames']%5!=0):
+                _LAST_STATUS['frames']%5!=1 and
+                _LAST_STATUS['frames']%8!=1):
             t=time.perf_counter_ns()
             try:
                 continua=_TRIMMER.passo()
@@ -378,7 +381,7 @@ def diagnostico():
     out=dict(_LAST_STATUS)
     out['limpeza_parcelada_qa']=_TRIMMER.diagnostico() if _TRIMMER is not None else None
     out['cache_trim_sonda_fase_180']=_TRIM_PROBE_PHASE
-    out['sonda_memoria_fora_quinto_quadro']=bool(_TRIMMER is not None and _TRIM_PROBE_PHASE==1)
+    out['sonda_memoria_fora_quinto_quadro']=bool(_TRIMMER is not None and _TRIM_PROBE_PHASE==2)
     if _GC_PAUSES:
         s=sorted(_GC_PAUSES)
         out['gc_pause_p95_ms']=round(s[round(.95*(len(s)-1))],3)
@@ -411,11 +414,11 @@ def instalar():
             _TRIMMER=EscalonadorTrimQA(limite_por_passo=12)
         except (ImportError,RuntimeError,ValueError,MemoryError):
             _TRIMMER=None
-    # Com limpeza parcelada, sondar somente no quadro 181, nao no 180
-    # (a corrida atualiza o cache do fundo a cada 5 frames).
-    # O fallback de varredura antiga mantem a fase 0.
-    _TRIM_PROBE_PHASE=(1 if _TRIMMER is not None and
-        os.environ.get('PIXELRUSH_QA_TRIM_PROBE_PHASE','1')=='1' else 0)
+    # QA779: fase 181 (1 mod 5) coincidiu com o redraw do cache.
+    # Fase 182 (2 mod 5; 6 mod 8) fica fora de ambos os periodos.
+    # Fallback antigo mantem fase 0, caso o escalonador nao exista.
+    _TRIM_PROBE_PHASE=(2 if _TRIMMER is not None and
+        os.environ.get('PIXELRUSH_QA_TRIM_PROBE_PHASE','2')=='2' else 0)
     _LAST_STATUS['cache_trim_fallback']=_TRIMMER is None
     _wrap_world()
     _wrap_trace_camera()
