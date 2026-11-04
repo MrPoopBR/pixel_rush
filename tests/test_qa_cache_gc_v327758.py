@@ -102,10 +102,17 @@ class CacheGC758(unittest.TestCase):
             if not enabled:gc.enable()
             qa.instalar()
             try:
-                with patch.object(qa.gc,'collect',wraps=gc.collect) as collect:
-                    for _ in range(901):pygame.display.flip()
+                quadros_coleta = []
+                coleta_original = gc.collect
+                def coletar_qa(geracao):
+                    quadros_coleta.append((qa._FRAMES, geracao))
+                    return coleta_original(geracao)
+                with patch.object(qa.gc,'collect',side_effect=coletar_qa) as collect:
+                    for _ in range(902):pygame.display.flip()
                 self.assertEqual(collect.call_count,30)
                 self.assertEqual([qa.diagnostico()[x] for x in ('coletas_0','coletas_1','coletas_2')],[25,4,1])
+                self.assertTrue(all(frame%5!=1 and frame%8!=1 for frame,_ in quadros_coleta))
+                self.assertEqual([geracao for frame,geracao in quadros_coleta if frame==902],[2])
                 self.assertEqual(qa.diagnostico()['coletas_no_quinto_quadro'],0)
             finally:
                 qa.restaurar_para_teste()
