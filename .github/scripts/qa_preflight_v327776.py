@@ -137,7 +137,7 @@ def main():
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
     assert re.search(r'(?m)^version = 3\.277\.77$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327777$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327778$',spec)
     assert (ROOT/'QA_TRACKER_32_v327778.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327778.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327776.md').is_file()
