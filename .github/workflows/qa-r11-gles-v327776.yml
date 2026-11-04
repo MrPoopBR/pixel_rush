@@ -1,9 +1,9 @@
-name: PIXEL RUSH QA v3.277.77 - Mesa GLES2 GLES3 PBO e 720 RGBA (sem Android)
+name: PIXEL RUSH QA v3.277.78 - Mesa GLES2 GLES3 PBO e 720 RGBA (sem Android)
 
 on:
   push:
     branches:
-      - qa/r11-passes-v3.277.76
+      - qa/fechamento-32-ui-v3.277.78
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   gpu-a54-offline:
-    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r11-passes-v3.277.76'
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/fechamento-32-ui-v3.277.78'
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     steps:
