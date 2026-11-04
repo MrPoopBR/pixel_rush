@@ -30,6 +30,14 @@ SECOES = (
     'cenario_ceu', 'cenario_panorama', 'cenario_emenda',
     'cenario_animacoes_fundo', 'cenario_animacoes_frente',
     'cenario_reacao_noturna', 'cenario_foco_pista', 'cenario_acabamento',
+    # R11/A54 v3.277.76: blocos inclusivos e subpasses do 5o quadro.
+    'r11_post_alertas','r11_post_pets','r11_post_efeitos_portais',
+    'r11_post_particulas','r11_post_frente_gamefeel','r11_post_gamefeel',
+    'r11_post_vinheta','r11_post_clima_transicoes',
+    'r11_world_total','r11_world_cena','r11_world_particulas',
+    'r11_city_total','r11_city_chunk','r11_city_textura','r11_city_trem',
+    'r11_city_ponte','r11_city_cabos','r11_city_pombos',
+    'r11_city_janelas','r11_city_atmosfera','r11_city_reflexos',
 )
 
 
