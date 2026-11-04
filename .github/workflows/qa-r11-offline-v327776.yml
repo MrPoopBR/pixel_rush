@@ -1,0 +1,133 @@
+name: PIXEL RUSH QA 3.277.76 — fechamento offline 32 frentes A54
+
+on:
+  push:
+    branches:
+      - qa/r11-passes-v3.277.76
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-a54-v327776-offline
+  cancel-in-progress: true
+
+jobs:
+  qa-v776-r11-offline:
+    if: github.ref_name == 'qa/r11-passes-v3.277.76'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+      PYTHONPATH: .
+      PIXELRUSH_QA_ANDROID: '0'
+      PIXELRUSH_QA_GEOMETRY_BORROW: '1'
+      PIXELRUSH_QA_MODULAR_SEEDS: '1'
+      PIXELRUSH_QA_CITY_PARTICLE_SEEDS: '1'
+      PIXELRUSH_QA_SAFE_CLOUD_CACHE: '1'
+      PIXELRUSH_QA_GEOMETRY_RETIRE: '1'
+      PIXELRUSH_GPU: 'off'
+      PIXELRUSH_QA_MODULAR_BATCH: '0'
+      PIXELRUSH_QA_TECH_SAME_FRAME: '1'
+      PIXELRUSH_QA_TILES_IO_PREWARM: '1'
+      PIXELRUSH_QA_SURFACE_BUDGET: '1'
+      PIXELRUSH_QA_PARTICULAS_POOL: '1'
+      PIXELRUSH_QA_PARTICULA_RELEASE: '1'
+      PIXELRUSH_QA_CITY_GLOBAL_INTERN: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Instalar dependências de testes SDL dummy (sem SDK Android)
+        run: python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy pillow
+      - name: Versão, AST, SHA preservados e integração QA
+        run: python .github/scripts/qa_preflight_v327776.py
+      - name: Cache multi-instância, RAM e GC
+        run: python tests/test_qa_cache_gc_v327758.py
+      - name: Compositor multipass, skins, RNG, SHA, 181 flips
+        run: python tests/test_qa_fechamento32_v327757.py
+      - name: Neve e Deserto reais RGBA, RGB oculto, culling
+        run: python tests/test_qa_fechamento_modular_v327757.py
+      - name: Clima modular completo, RGBA oculto e transições seco/chuva
+        run: python tests/test_qa_weather_byte_rgba_v327758.py
+      - name: Geometry 2.5D/oclusão e clima byte-RGBA sem Android
+        run: python tests/test_qa_geometry_weather_v327759.py
+      - name: LivingWorld real QA, multiinstancia, troca de bioma e microbenchmark
+        run: python tests/test_qa_world_real_v327759.py
+      - name: Nuvens RGB seguras, RGBA oculto, clima classico e microbenchmark
+        run: python tests/test_qa_cloud_weather_v327760.py
+      - name: Liberação segura de geometry ao trocar biomas e weakrefs
+        run: python tests/test_qa_geometry_retire_v327761.py
+      - name: Céu real nos 7 biomas e estados dia/noite RGB e RGBA
+        run: python tests/test_qa_sky_full_v327761.py
+      - name: Tiles SHA em fatias no menu, RNG, sem SDL nem jogo
+        run: python tests/test_qa_tiles_menu_v327761.py
+      - name: Evicção de caches modulares frios, Deserto RGBA e guarda Neve
+        run: python tests/test_qa_modular_cold_cache_v327762.py
+      - name: Memória SDL aliases globais e trim fora do quadro 5
+        run: python tests/test_qa_memory_budget_v327765.py
+      - name: Zoom camera e apresentacao RGBA original versus QA
+        run: python tests/test_qa_unified_post_v327765.py
+      - name: Particulas ambientais oito biomas e explosoes com pool real
+        run: python tests/test_qa_particle_reuse_v327766.py
+      - name: Buffer de dano SDF sem chunks, RAM global e rollback
+        run: python tests/test_qa_damage_memory_v327767.py
+      - name: Atlas Cidade globais, duas instancias, hidden RGB e frieza weak
+        run: python tests/test_qa_city_intern_v327768.py
+      - name: Prewarm de skins e pets reais em menu, RGBA transparente e RNG
+        run: python tests/test_qa_pet_preload_v327776.py
+      - name: Regressao Android tutorial SysFont sem fc-list / desktop preservado
+        run: python tests/test_qa_tutorial_android_font_v327770.py
+      - name: Gate de camera QA e backend conservador
+        run: python tests/test_qa_camera_backend_v327776.py
+      - name: Cinco letras do tutorial ate transicao final
+        run: python tests/test_qa_tutorial_letras_v327771.py
+      - name: Regressão R9 de fc-list na faixa de conclusão e fonte Unicode
+        run: python tests/test_qa_fx_tutorial_font_v327776.py
+      - name: Replay verdadeiro RGBA RGB oculto e benchmark
+        run: python tests/test_qa_replay_reuse_v327773.py
+      - name: Marcadores disjuntos da corrida e preservacao de gameplay
+        run: python tests/test_qa_r10_passe_v327776.py
+      - name: Preflight QA774 (versao, AST, gates, sem Android)
+        run: |
+          python -m py_compile pixelrush_city2_v3118.py pixelrush_city2_v3122.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py tests/test_qa_scale_recycle_v327774.py
+          python -c "from pathlib import Path; s=Path('buildozer.spec').read_text(); e=Path('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(); assert 'version = 3.277.76' in s; assert 'android.numeric_version = 327775' in s; assert 'VERSAO = \"v3.277.76-QA-ANDROID-RC\"' in e"
+      - name: LRU de escalas real cidade, RGBA oculto, referencias e benchmark
+        run: python tests/test_qa_scale_recycle_v327774.py
+      - name: Dez frentes - portas de seguranca especificas A54
+        run: python tests/test_qa_a54_matrix_v327776.py
+      - name: GPU hibrida - CPU seguro e HUD/input mockado
+        run: python tests/test_qa_backend_gate_v327747.py && python tests/test_qa_gles_bridge_v327749.py
+      - name: Scroll do mundo - SRCALPHA oculto RLE e fallback
+        run: python tests/test_qa_scroll_auto_v327742.py && python qa_a54/run_bootstrap_v327775.py tests/test_qa_srcalpha_scroll_v327755.py
+      - name: Scroll camera e cache no pipeline completo (offline)
+        run: python qa_a54/run_bootstrap_v327775.py tests/test_qa_pipeline_scroll_v327775.py
+      - name: Cenario e composicao 2.5D recorte/blits SDL
+        run: python qa_a54/run_bootstrap_v327775.py tests/test_qa_hotpath_scroll_v327775.py && python qa_a54/run_bootstrap_v327775.py tests/test_qa_alpha_bounds_scroll_v327754.py
+      - name: R11 vinheta GameFeel RGB/RGBA hidden pixels e 350-frame benchmark
+        run: python tests/test_qa_r11_vinheta_v327776.py
+      - name: R11 passes de City, world e rollback sobre cenas reais
+        run: python tests/test_qa_r11_passe_v327776.py
+      - name: R11 baseline real A54 preservado e sem 32/32
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('qa_r11_a54_baseline_v327776.json').read_text())
+          assert d['corrida_normal_cidade']['pos_sprites_p50_ms']==64.668
+          assert d['corrida_normal_cidade']['mundo_2_5d_por_chamada_p50_ms']==88.631
+          assert d['corrida_normal_cidade']['quadros_csv']==1380
+          assert not d['tutorial']['letras_individuais_confirmadas']
+          PY
+      - name: Evidência offline (não é homologação Android)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327776-r11-preflight-offline
+          path: qa-preflight-v327776.json
+          if-no-files-found: ignore
