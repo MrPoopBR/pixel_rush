@@ -33,3 +33,20 @@
 **Placar antes de testes no Galaxy A54: 22/32 concluídas offline; 10/32 parciais; 0/32 homologadas em hardware Android físico.** Não marcar 32/32 por expectativa.
 
 **Não alterado:** `main.py`, DEV, AAB de publicação, assets, tutorial, sons, pets, saves, física, jogabilidade, zoom efetivo, câmera efetiva, shaders, cadência do 5º quadro. Somente identificação QA, testes, relatórios e workflows isolados.
+
+
+## Auditoria de fechamento das falhas de CI — v3.277.75-QA, 04/11/2026
+
+**Correções comprovadas restritas à suíte de testes (jogo inalterado):**
+1. O teste legado de scroll acessava `qa._CIDADE[scene]` apesar de o atlas SDL-RLE legítimo não criar cache: corrigido na cópia `tests/test_qa_pipeline_scroll_v327775.py` usando o acesso seguro `.get(scene,{})`. Igualdade byte RGBA e exigência de fallback continuam válidas.
+2. O teste GLES importava a Cidade v3124, anterior ao bootstrap de metadados v759. Criada a cópia `tests/test_qa_gles_real_v327775.py` com `CityPilotScene` final v3125 e comando de execução pelo bootstrap QA real; nenhum shader, backend ou sprite foi alterado.
+3. O teste antigo de limpeza do scroll exigia uma entrada persistente mesmo para atlas RLE recusado por segurança. Criada `tests/test_qa_hotpath_scroll_v327775.py` com textura técnica SRCALPHA **não-RLE** compatível, comparação RGBA contra `_render_chunk` original e verificação do descarte por bioma inativo. O renderer real continua recusando atlas RLE.
+
+**Gates realmente executados após as correções:**
+- [CI offline #41882454813](https://github.com/MrPoopBR/pixel_rush/actions/runs/41882454813): **123/123 testes pygame-ce 2.5.8 aprovados**, 32 grupos, AST/preflight SHA e proteção da versão, scroll, memória, clima, Cidade/Neve, câmera, tutorial e replay.
+- [GPU Mesa #41882454845](https://github.com/MrPoopBR/pixel_rush/actions/runs/41882454845): **720** cenários GLES2/3 RGB/RGBA byte-exatos, **288** casos das cenas Cidade/Neve byte-exatos e **6** cenários PBO GLES3 byte-exatos, com **3 uploads e 3 quadros iguais sem reupload**; GPU usada nos testes é **Mesa llvmpipe no Ubuntu**, não Mali do Galaxy A54.
+- [APK ARM64 #41876923149](https://github.com/MrPoopBR/pixel_rush/actions/runs/41876923149): **sucesso** na compilação e auditoria, com SHA-256 **`aca53e7c2efac6f608981b713ac1bef82fd19e7edcfebc28f1eea220451d3fc1`**. Metadados `com.bigheadmobile_pixelrush`, `versionCode=327775`, `versionName=3.277.75`, `minSdk=26`, `targetSdk=36`, ABI `arm64-v8a`, Python 3.12, pygame-ce 2.5.8, NumPy 2.3.0.
+- Inspeção direta dos ZIPs publicados: 58.222.948 bytes de APK, ZIP integro, 17 entradas `.so` externas das quais 16 são ELF com **55 segmentos PT_LOAD alinhados a 16 KiB**, e `libpybundle.so` é arquivo de suporte **gzip/tar com 114 extensões nativas**; total **130 bibliotecas nativas**, compatível com o relatório. As `.so` externas estão comprimidas no APK e o **manifesto confirma `extractNativeLibs=true`**, portanto serão extraídas; `ZIP_STORED` se refere ao pacote da stdlib Python, não a essas entradas externas. 56 módulos stdlib com DT_NEEDED verificados no gate; ZIP align auditado no workflow. APK debug possui bloco de assinatura, mas **a compatibilidade da assinatura com a instalação existente do usuário NÃO foi comprovada**.
+- O APK foi compilado no commit `a761d2e` e as correções posteriores afetam somente `tests/` e `.github/workflows/`; **código executável, arquivos de saves, `main.py`, DEV, recursos, física, jogabilidade, câmera e AAB não foram modificados**. Não é necessário recompilar APK para mudanças em testes de CI.
+
+**Pendências não eliminadas:** faltam testes físicos no Galaxy A54 (Mali, entrada/HUD, FPS/p95, quinto quadro, RSS, NEON, driver, PBO, Perfetto), e comparação de assinatura do pacote instalado antes de `adb install -r`. Nunca desinstalar ou limpar dados para contornar falha de assinatura. **Placar preservado: 22/32 concluídas offline, 10/32 parciais, nenhuma homologada integralmente no hardware A54.**
