@@ -397,6 +397,21 @@ def diagnostico():
         out['native_camera']=n
     except (ImportError,RuntimeError):
         out['nova_camera_ativada']=False
+    # QA779: expor o backend efetivamente escolhido e PBO/frames de GPU
+    # no proprio diagnostico QA, sem confundir com homologacao de hardware.
+    # A leitura e fora da renderizacao e nao faz readback do framebuffer.
+    try:
+        import pixelrush_qa_gles_bridge_v327749 as ponte_gles
+        ponte_estado=ponte_gles.diagnostico()
+        out['gpu_bridge']=ponte_estado
+        out['gpu_observado_neste_aparelho']=bool(
+            ponte_estado.get('frames_gles',0))
+        adaptador=getattr(ponte_gles,'_BRIDGE',None)
+        presenter=getattr(adaptador,'presenter',None)
+        if presenter is not None:
+            out['gpu_presenter']=presenter.diagnostico()
+    except (ImportError,AttributeError,RuntimeError,OSError,pygame.error):
+        out['gpu_observado_neste_aparelho']=False
     return out
 
 
