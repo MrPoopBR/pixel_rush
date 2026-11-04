@@ -15,3 +15,9 @@ O protótipo local pygame-ce 2.5.8 SDL dummy Python 3.13 com 36 texturas sintét
 Para #5, ensaio de blit individual versus lote não apresentou ganho robusto; não foi aplicado. #1/#3/#8/#12/#28/#29/#32 precisam hardware GPU/native/driver e permanecem parciais. #7/#10 avançaram apenas na implementação de uma rota segura, **sem fechamento de frente**. Placar ainda **22/32 concluídas offline, 10 parciais, 0 homologadas Android**.
 
 **Preservação:** `main.py`, DEV, AAB, saves, pets, arte, tutorial, física, controles, câmera, HUD, áudio, shaders, assets e cronograma 5:1 não foram alterados. Não foram acionadas compilações APK nem AAB.
+
+## Evidência integrada CI — rodada de benchmark Cidade real (QA774)
+
+A execução [#41873468315](https://github.com/MrPoopBR/pixel_rush/actions/runs/41873468315) concluiu com **84/84 testes pygame-ce 2.5.8 aprovados**, incluindo comparações byte-RGBA e RGB oculto, produção real `CityPilotScene`, referências externas e rollback. O benchmark alternado de scale no runner Ubuntu registrou p50 **0,892/0,910 ms** original contra **0,179/0,176 ms** no reciclador (é operação isolada). O benchmark de **30 passes reais** de City 2.5D (image, geometry, normal, material, flow e fxmask) mostrou **62,76 ms total original versus 42,76 ms reuso** (redução ~31,9% *nesses passes de teste*), p50 por passe **1,9603 ms versus 1,1188 ms**, com imagens RGBA completamente idênticas em todos os 30 estados; **16 novas escalas, 44 buffers reciclados, 5 recusa de reuso**. Runner Ubuntu/SDL dummy, não MEmu.
+
+Em razão dessa prova offline de cena REAL, a rota fica **ativada por padrão na branch v3.277.74-QA**; rollback explícito `PIXELRUSH_QA_CITY_RECYCLE_SCALE=0`. Ainda faltam telemetria R10 do MEmu, RSS real e ganho de frame completo para considerar #7/#10 concluídas e homologar. A CI é repetida após a ativação por padrão. Nenhum APK/AAB, main, DEV, saves, assets, física, jogabilidade, HUD, pets ou AAB alterados.
