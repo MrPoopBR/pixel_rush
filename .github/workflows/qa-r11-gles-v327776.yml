@@ -1,9 +1,9 @@
-name: PIXEL RUSH QA v3.277.80 - Mesa GLES2 GLES3 PBO e 720 RGBA (sem Android)
+name: PIXEL RUSH QA v3.277.81 - Mesa GLES2 GLES3 PBO e 720 RGBA (sem Android)
 
 on:
   push:
     branches:
-      - qa/homologacao-32-v3.277.80
+      - qa/r12-arm64-homologacao-v3.277.81
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   gpu-a54-offline:
-    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/homologacao-32-v3.277.80'
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r12-arm64-homologacao-v3.277.81'
     runs-on: ubuntu-24.04
     timeout-minutes: 65
     steps:
@@ -112,7 +112,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pixelrush-qa-a54-v327776-gles-offline
+          name: pixelrush-qa-a54-v327781-gles-offline
           path: |
             qa-gles-exact-v327736.json
             qa-gles-real-scenes-v327741.json
