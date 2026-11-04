@@ -84,15 +84,15 @@ jobs:
       - name: Regressao Android tutorial SysFont sem fc-list / desktop preservado
         run: python tests/test_qa_tutorial_android_font_v327770.py
       - name: Gate de camera QA e backend conservador
-        run: python tests/test_qa_camera_backend_v327771.py
+        run: python tests/test_qa_camera_backend_v327774.py
       - name: Cinco letras do tutorial ate transicao final
         run: python tests/test_qa_tutorial_letras_v327771.py
       - name: Regressão R9 de fc-list na faixa de conclusão e fonte Unicode
-        run: python tests/test_qa_fx_tutorial_font_v327772.py
+        run: python tests/test_qa_fx_tutorial_font_v327774.py
       - name: Replay verdadeiro RGBA RGB oculto e benchmark
         run: python tests/test_qa_replay_reuse_v327773.py
       - name: Marcadores disjuntos da corrida e preservacao de gameplay
-        run: python tests/test_qa_r10_passe_v327773.py
+        run: python tests/test_qa_r10_passe_v327774.py
       - name: Preflight QA774 (versao, AST, gates, sem Android)
         run: |
           python -m py_compile pixelrush_city2_v3118.py pixelrush_city2_v3122.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py tests/test_qa_scale_recycle_v327774.py
