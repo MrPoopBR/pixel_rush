@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""QA779 (regressao QA778): regressao isolada da interface, piso do menu e perfil Completo.
+"""QA778: regressao isolada da interface, piso do menu e perfil Completo.
 
 Nao roda o jogo nem toca no save; executa somente metodos de render extraidos
 do codigo de producao QA usando pygame-ce/SDL dummy.
