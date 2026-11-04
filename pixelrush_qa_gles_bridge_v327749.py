@@ -23,7 +23,8 @@ _STATUS={'instalado':False,'gpu_ativo':False,'falhas_gpu':0,
          'readback_gpu_cpu':False,'zoom_gpu_ativado':False,
          'shader_pixel_exato_solicitado':False,
          'contexto_gles3_solicitado':False,
-         'homologado_android':False,'preflight_gpu':None}
+         'homologado_android':False,'preflight_gpu':None,
+         'selecionador_gpu':None}
 _SIZE=(450,800)
 
 
@@ -116,6 +117,21 @@ class _Ponte:
                     _STATUS['preflight_gpu']=_qa_gpu_relatorio()
                     raise RuntimeError('GPU_preflight_sem_paridade_ou_ganho')
                 _STATUS['preflight_gpu']=_qa_gpu_relatorio()
+                # Seletor unico de CPU/GPU: so autoriza a rota QA local
+                # depois da prova de driver; nunca marca FPS Android final.
+                from pixelrush_qa_backend_gate_v327747 import (
+                    CapacidadeVideo, selecionar)
+                decisoes=selecionar(CapacidadeVideo(
+                    janela_opengl=True,
+                    input_compatível=True, hud_compatível=True,
+                    pixels_todos_iguais=True,
+                    ganho_camera_local=True,
+                    sem_readback=True, dispositivo_real_medido=True,
+                    perfil='gles_qa_boot'),
+                    qa_candidato=True)
+                _STATUS['selecionador_gpu']=decisoes
+                if decisoes['backend']!='gles_qa_experimental':
+                    raise RuntimeError('Seletor_GPU_QA_rejeitou_backend')
                 self.presenter._qa_integrado=True
                 self.presenter._qa_equivalencia_visual=True
             self.staging=pygame.Surface(requested,depth=32)
