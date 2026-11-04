@@ -21,7 +21,7 @@ class PassesR11QA776(unittest.TestCase):
 
     def test_codigo_pessoal_preservado_e_instrumentacao_explicita(self):
         codigo=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-        assert 'VERSAO = "v3.277.76-QA-ANDROID-RC"' in codigo
+        assert 'VERSAO = "v3.277.77-QA-ANDROID-RC"' in codigo
         assert codigo.count('_r11_sub_inicio("r11_post_')>=7
         for nome in ('alertas','pets','efeitos_portais','particulas',
                      'frente_gamefeel','gamefeel','clima_transicoes'):
