@@ -118,6 +118,12 @@ class CityPilotScene(_City120):
         self._flips=OrderedDict();self._flip_limit=10
         self._glows={};self._sky_cache=OrderedDict()
         self._scaled=OrderedDict();self._scaled_limit=14
+        # QA774: apenas weakrefs de outputs do scale, sem Surface extra.
+        from weakref import WeakSet
+        self._qa_scaled_owned=WeakSet()
+        self._qa_scaled_reused=0
+        self._qa_scaled_allocated=0
+        self._qa_scaled_rejected=0
         self.rand=random.Random(31220)
         self.lib=SpriteLibraryFinalPlus()
         self.layers=self._build_layers()
