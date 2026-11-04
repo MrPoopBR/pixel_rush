@@ -147,6 +147,7 @@ jobs:
           name: pixelrush-qa-v327776-r11-preflight-offline
           path: |
             qa-preflight-v327780.json
+            qa-temporal-rgba-v327780.json
             qa-r11-world-bands-v327776.json
             qa-r11-city-hotspots-v327776.json
             qa-vinheta-views-bench-v327776.json
