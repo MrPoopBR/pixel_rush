@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""QA778: regressao isolada da interface, piso do menu e perfil Completo.
+"""QA779 (regressao QA778): regressao isolada da interface, piso do menu e perfil Completo.
 
 Nao roda o jogo nem toca no save; executa somente metodos de render extraidos
 do codigo de producao QA usando pygame-ce/SDL dummy.
@@ -42,10 +42,10 @@ class TestMenuQA778(unittest.TestCase):
 
     def test_python_compila_e_versao(self):
         compile(CODE, str(GAME), "exec")
-        self.assertIn('VERSAO = "v3.277.78-QA-ANDROID-RC"', CODE)
+        self.assertIn('VERSAO = "v3.277.79-QA-ANDROID-RC"', CODE)
         spec = (ROOT / "buildozer.spec").read_text("utf-8")
-        self.assertIn("version = 3.277.78", spec)
-        self.assertIn("android.numeric_version = 327778", spec)
+        self.assertIn("version = 3.277.79", spec)
+        self.assertIn("android.numeric_version = 327779", spec)
 
     def test_perfil_unico_e_migracao(self):
         fn = funcao_isolada("modo_grafico_leve")
