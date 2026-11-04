@@ -22,7 +22,7 @@ _BORDAS=(
 _CENTRO=pygame.Rect(_X,_Y,W-2*_X,H-2*_Y)
 _SEGURAS=WeakKeyDictionary()
 _STATS={'tentativas':0,'rapido':0,'fallback':0,
-        'verificacoes':0,'centro_rejeitado':0}
+        'verificacoes':0,'centro_rejeitado':0, 'ultimo_destino_bpp':None}
 
 def diagnostico():
     return dict(_STATS,superficies_verificadas=len(_SEGURAS))
@@ -52,6 +52,7 @@ def desenhar_vinheta(destino,efeito):
     SRCALPHA, portanto essa combinacao permanece no caminho original.
     """
     _STATS['tentativas']+=1
+    _STATS['ultimo_destino_bpp']=destino.get_bitsize()
     _sub_inicio('r11_post_vinheta')
     try:
         return _desenhar_validado(destino,efeito)
