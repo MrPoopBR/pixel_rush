@@ -138,6 +138,33 @@ class NativeAndroidQA782(unittest.TestCase):
         finally:
             neon._NATIVE=antiga
 
+    def test_preflight_boot_inicial_zoom_zero_restaura_estado(self):
+        # R12: zoom=0 no boot, primeira aplicacao com velocidade 12
+        # ficava abaixo de 0.002, pulava a prova e nunca ligava C/NEON.
+        image=pygame.Surface((90,160)).convert()
+        for y in range(160):
+            pygame.draw.line(image,(y*17%256,y*23%256,y*37%256),
+                             (0,y),(89,y))
+        player=types.SimpleNamespace(
+            no_chao=True,rect=pygame.Rect(45,100,16,24))
+        camera=types.SimpleNamespace(zoom=0.0,foco_y=0.0)
+        class NativeFake:
+            def suportado(self,s):
+                return True
+            def processar(self,source,size,crop,backend=None):
+                w,h=source.get_size()
+                return pygame.transform.smoothscale(source,size).subsurface(
+                    (crop[0],crop[1],w,h))
+        neon._REPORT.update(teste_real=False,pixels_exatos=None)
+        with patch.object(neon,'_load_native',return_value=NativeFake()):
+            neon._verificar_primeiro_frame(
+                image,camera,player,velocidade=12,momento=False,ativo=True)
+        self.assertTrue(neon.diagnostico()['teste_real'])
+        self.assertTrue(neon.diagnostico()['pixels_exatos'])
+        self.assertGreater(neon.diagnostico()['boot_passos_geometria'],1)
+        self.assertTrue(neon.diagnostico()['boot_zoom_estado_preservado'])
+        self.assertEqual((camera.zoom,camera.foco_y),(0.0,0.0))
+
     def test_falha_boot_nativa_nao_impede_fallback(self):
         neon.registrar_falha_boot('ImportError')
         self.assertEqual(neon.diagnostico()['status'],
