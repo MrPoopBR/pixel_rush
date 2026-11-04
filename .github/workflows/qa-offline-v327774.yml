@@ -80,7 +80,7 @@ jobs:
       - name: Atlas Cidade globais, duas instancias, hidden RGB e frieza weak
         run: python tests/test_qa_city_intern_v327768.py
       - name: Prewarm de skins e pets reais em menu, RGBA transparente e RNG
-        run: python tests/test_qa_pet_preload_v327769.py
+        run: python tests/test_qa_pet_preload_v327774.py
       - name: Regressao Android tutorial SysFont sem fc-list / desktop preservado
         run: python tests/test_qa_tutorial_android_font_v327770.py
       - name: Gate de camera QA e backend conservador
