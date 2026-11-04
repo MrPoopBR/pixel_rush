@@ -291,7 +291,7 @@ class GLES2DirectPresenterQA:
                 'egl_vsync_aplicado':self.swap_interval_aplicado,
                 'frame_interval_p50_ms':p50,
                 'frame_interval_p95_ms':p95,
-                'quadros_intervalo_acima_50ms':jank,,'gl_version':self.version,
+                'quadros_intervalo_acima_50ms':jank,'gl_version':self.version,
                 'video_driver':pygame.display.get_driver(),
                 'swap_method':self.swap_method,'frames':self.frame_count,
                 'gpu_to_cpu_readbacks':self.readbacks,
