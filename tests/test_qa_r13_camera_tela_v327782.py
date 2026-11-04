@@ -113,6 +113,15 @@ class DisplayAndroidQA782(unittest.TestCase):
 
 
 class NativeAndroidQA782(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        pygame.display.set_mode((450,800))
+
+    @classmethod
+    def tearDownClass(cls):
+        pygame.quit()
+
     def test_tenta_soname_e_native_library_dir_sem_path_pessoal(self):
         soname='libpixelrush_camera_crop_v327741.so'
         antiga=neon._NATIVE
