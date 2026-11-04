@@ -213,7 +213,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.81-QA-ANDROID-RC"
+VERSAO = "v3.277.82-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -234,7 +234,11 @@ E_ANDROID = (sys.platform == 'android' or 'ANDROID_ARGUMENT' in os.environ)
 # Inicialização de vídeo otimizada e blindada contra falhas de driver em emuladores
 try:
     if E_ANDROID:
-        tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
+        if os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1':
+            from pixelrush_qa_android_display_v327782 import abrir as _qa_abrir_tela
+            tela = _qa_abrir_tela(LARGURA_VIRTUAL, ALTURA_VIRTUAL)
+        else:
+            tela = pygame.display.set_mode((LARGURA_VIRTUAL, ALTURA_VIRTUAL))
     else:
         info_tela = pygame.display.Info()
         LARGURA_TELA = info_tela.current_w
@@ -13287,7 +13291,12 @@ def main():
 
         largura_atual_tela, altura_atual_tela = tela.get_size()
 
-        if E_ANDROID:
+        if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1':
+            from pixelrush_qa_android_display_v327782 import area_preservada
+            largura_render, altura_render, offset_x, offset_y = area_preservada(
+                (largura_atual_tela,altura_atual_tela),
+                (LARGURA_VIRTUAL,ALTURA_VIRTUAL))
+        elif E_ANDROID:
             largura_render = largura_atual_tela
             altura_render = altura_atual_tela
             offset_x = 0
@@ -13301,7 +13310,7 @@ def main():
             offset_y = (altura_atual_tela - altura_render) // 2
 
         def screen_to_virtual(px, py):
-            if E_ANDROID:
+            if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')!='1':
                 vx = (px / largura_atual_tela) * LARGURA_VIRTUAL
                 vy = (py / altura_atual_tela) * ALTURA_VIRTUAL
                 return int(vx), int(vy)
@@ -13414,7 +13423,10 @@ def main():
                         pass
 
             elif evento.type == pygame.FINGERDOWN:
-                if E_ANDROID:
+                if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1':
+                    from pixelrush_qa_android_display_v327782 import dedo_normalizado
+                    pos_touch = dedo_normalizado(evento.x,evento.y)
+                elif E_ANDROID:
                     pos_touch = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
                 else:
                     px = evento.x * largura_atual_tela
@@ -13451,7 +13463,10 @@ def main():
             elif evento.type == pygame.FINGERMOTION:
                 if controle_dedos.move(getattr(evento, 'finger_id', 0)) and toque_ativo:
                     pos_anterior_touch = touch_current_pos
-                    if E_ANDROID:
+                    if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1':
+                        from pixelrush_qa_android_display_v327782 import dedo_normalizado
+                        touch_current_pos = dedo_normalizado(evento.x,evento.y)
+                    elif E_ANDROID:
                         touch_current_pos = (evento.x * LARGURA_VIRTUAL, evento.y * ALTURA_VIRTUAL)
                     else:
                         px = evento.x * largura_atual_tela
@@ -13490,7 +13505,10 @@ def main():
                     continue
                 toque_ativo = False
                 if touch_start_pos and jogador:
-                    if E_ANDROID:
+                    if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1':
+                        from pixelrush_qa_android_display_v327782 import dedo_normalizado
+                        end_x,end_y = dedo_normalizado(evento.x,evento.y)
+                    elif E_ANDROID:
                         end_x = evento.x * LARGURA_VIRTUAL
                         end_y = evento.y * ALTURA_VIRTUAL
                     else:
@@ -13530,7 +13548,10 @@ def main():
                         if abs(dx) < 30 and abs(dy) < 30:
                             processar_clique_ui((end_x, end_y))
                 elif touch_start_pos and estado != "JOGANDO":
-                    if E_ANDROID:
+                    if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1':
+                        from pixelrush_qa_android_display_v327782 import dedo_normalizado
+                        end_x,end_y = dedo_normalizado(evento.x,evento.y)
+                    elif E_ANDROID:
                         end_x = evento.x * LARGURA_VIRTUAL
                         end_y = evento.y * ALTURA_VIRTUAL
                     else:
@@ -15389,7 +15410,13 @@ def main():
 
         ox, oy = gamefeel.deslocamento() if estado == "JOGANDO" else (0, 0)
 
-        if E_ANDROID:
+        if E_ANDROID and os.environ.get('PIXELRUSH_QA_ANDROID','0')=='1':
+            # SDL SCALED: Surface logica 450x800; fullscreen fisico:
+            # letterbox do quadro inteiro sem esticar pixels nem controles.
+            tela.fill(cor_ceu_tupla)
+            tamanho_final = (largura_render, altura_render)
+            pos_final = (offset_x + ox, offset_y + oy)
+        elif E_ANDROID:
             tamanho_final = (LARGURA_TELA, ALTURA_TELA)
             pos_final = (ox, oy)
         else:
