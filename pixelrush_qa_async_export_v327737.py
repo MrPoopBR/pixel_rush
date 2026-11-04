@@ -27,6 +27,15 @@ def _escrever(pasta, prefixo, relatorio, linhas, preparar_relatorio=None):
     temporario_csv = destino_csv.with_suffix('.csv.tmp')
     with temporario_csv.open('w', encoding='utf8', newline='') as arquivo:
         campos = ['modo','bioma','total_ms','trabalho_ms','cpu_ms','intervalo_ms','rss_mb']
+        if prefixo == 'pixelrush_qa_v327781_r12':
+            # Metricas R12 reais por quadro; sem informacoes pessoais.
+            # Mantem exatamente o formato legado quando nao e QA781.
+            campos += [
+                'mundo_2_5d_ms','world_total_r11_ms','pos_sprites_ms',
+                'pos_alertas_ms','pos_pets_ms','pos_efeitos_portais_ms',
+                'pos_particulas_ms','pos_gamefeel_ms','pos_clima_ms',
+                'swap_cpu_ms',
+            ]
         escritor = csv.DictWriter(arquivo, fieldnames=campos)
         escritor.writeheader()
         escritor.writerows(linhas)
