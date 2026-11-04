@@ -73,6 +73,7 @@ class VignetteQA776(unittest.TestCase):
         a=[];b=[]
         # Warmup evita medir mascara one-shot.
         qa.desenhar_vinheta(new,s)
+        old.blit(s,(0,0))  # aquecimento identico antes de comparar bytes finais
         for _ in range(350):
             start=time.perf_counter_ns();old.blit(s,(0,0));a.append(time.perf_counter_ns()-start)
             start=time.perf_counter_ns();qa.desenhar_vinheta(new,s);b.append(time.perf_counter_ns()-start)
