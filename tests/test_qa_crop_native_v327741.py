@@ -98,7 +98,8 @@ class NativeCameraQA(unittest.TestCase):
 
     def test_cidade_e_neve_reais(self):
         # A cena vem das classes exatas do jogo, sem imitar a arte.
-        from pixelrush_city2_v3124 import CityPilotScene
+        # QA782: cena final v3125, mesma classe instrumentada pela engine QA.
+        from pixelrush_city2_v3125 import CityPilotScene
         from pixelrush_biomes2_v3185 import ModularBiomeScene
         total=0
         try:
