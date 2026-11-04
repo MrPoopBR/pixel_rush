@@ -19,7 +19,7 @@ class PerfilR10773(unittest.TestCase):
                      'pixelrush_qa_replay_pool_v327773.py'):
             path=Path(name) if name.startswith('/') else ROOT/name
             ast.parse(path.read_text('utf8'),filename=str(path))
-        self.assertIn('v3.277.79-QA-ANDROID-RC',ENGINE.read_text('utf8'))
+        self.assertIn('v3.277.80-QA-ANDROID-RC',ENGINE.read_text('utf8'))
 
     def test_todas_as_marcas_saem_na_telemetria(self):
         engine=ENGINE.read_text('utf8')
