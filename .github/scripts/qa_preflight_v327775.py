@@ -164,37 +164,3 @@ def main():
     print(json.dumps(result,indent=2))
 if __name__=='__main__':
     main()
-,spec)
-    assert (ROOT/'QA_TRACKER_32_v327774.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327774.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327760.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327760.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327761.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327761.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327762.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327762.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327763.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327763.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327765.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327765.md').is_file()
-    assert 'pressao_cache=pressionado' in perf
-    assert 'cache_surface_mib' in perf
-    assert 'aquecer_tiles=True' in engine
-    assert 'tiles_adiados_para_menu' in (ROOT/'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
-    assert 'instalar_geometry_retire_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert '_QA_SAFE_CLOUD_CACHE' in (ROOT/'pixelrush_qa_scene_v327733.py').read_text('utf8')
-    assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
-    assert '_PARTICLE_SEEDS' in (ROOT/'pixelrush_qa_city_weather_v327749.py').read_text('utf8')
-    result={'schema':'pixelrush.qa.preflight.v327775','status':'AST_E_PINS_APROVADOS',
-            'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
-            'android_homologado':False,'gpu_hardware':False}
-    Path('qa-preflight-v327775.json').write_text(json.dumps(result,indent=2),encoding='utf8')
-    print(json.dumps(result,indent=2))
-if __name__=='__main__':
-    main()
