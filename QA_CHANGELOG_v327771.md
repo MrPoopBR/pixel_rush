@@ -12,3 +12,8 @@
 ### Gate adicional de paridade na mesma v3.277.71
 
 Incluído vetor determinístico 37x53 em RGB opaco e SRCALPHA com canais RGB ocultos sob alfa zero, escalado para 43x61 por backend. Reprova qualquer diferença byte RGBA antes da seleção/benchmark. Padrões RGB+RGBA de estresse detectaram divergência SSE2/GENERIC em pygame-ce 2.5.8 Linux; este caso não deve ativar backend alternativo. Não altera visual nem física.
+
+
+### Gate adicional da cadeia PROD guiada
+
+Novo ensaio importa a classe final real `pixelrush_tutorial_guia_prod_v327724.TutorialCorrida`, percorre as cinco letras com HUD renderizado e confirma retorno de conclusão. Verifica se camadas de apresentação locais podem falhar onde o teste da classe-base passou; não simula drivers nem prova o crash observado no MEmu.

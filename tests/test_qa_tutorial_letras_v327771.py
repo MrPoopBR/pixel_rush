@@ -48,6 +48,30 @@ class Letras771(unittest.TestCase):
         self.assertEqual(ganho,50)
         self.assertFalse(t.ativo)
         self.assertTrue(t.corrida_continua)
+    def test_cadeia_prod_completa_hud_e_cinco_letras(self):
+        # Guiada -> PROD -> localizada -> Cidade -> classe original.
+        from pixelrush_tutorial_guia_prod_v327724 import TutorialCorrida as TutorialReal
+        jogador=Jogador()
+        palavra=PalavraDaPartida();palavra.iniciar()
+        t=TutorialReal(jogador,largura=450,altura=800)
+        t.etapa_indice=5
+        todos=pygame.sprite.Group();letras=pygame.sprite.Group()
+        tela=pygame.Surface((450,800),pygame.SRCALPHA)
+        ganho=0;final=False
+        for frame in range(1,320):
+            g,final=t.atualizar(jogador,Fundo(),todos,letras,palavra,
+                                pygame.sprite.Group(),None,None,.7,frame)
+            ganho+=g
+            if frame%8==0 and t.ativo:
+                t.desenhar(tela)
+                palavra.desenhar_hud(tela)
+            if final:break
+        self.assertTrue(final)
+        self.assertEqual(palavra.progresso,5)
+        self.assertEqual(t.contagem_coletas,5)
+        self.assertEqual(ganho,50)
+        self.assertFalse(t.ativo)
+        self.assertTrue(t.corrida_continua)
     def test_roteiro_original_sem_mudancas(self):
         s=(BASE/'pixelrush_tutorial_corrida_v3274.py').read_text('utf8')
         self.assertIn('self.contagem_coletas+=1;ganho+=bonus',s)
