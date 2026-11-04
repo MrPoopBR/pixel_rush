@@ -17,3 +17,7 @@ Base: `qa/r11-passes-v3.277.76` em v3.277.77-QA; nova branch isolada `qa/fechame
 6. VersionCode Android de teste: `327778`; nenhum APK compilado.
 
 **Status nesta entrega:** alterações de menu reais, documentação atualizada. As dez frentes exigem implementação/medição específica adicional, portanto o placar de 22/32 offline não é maquiado.
+
+## Avanco de desempenho QA778
+- #10 Passes/cópias: cadência de composição do fundo 2.5D passa de 5 para 8 quadros, com fallback 5 e regressao RGBA em fundo estatico. 37,5% menos passes de reconstrução em ciclo de 80 frames. Nao autoriza encerrar #10: tempo por passe e jank A54 ainda nao medidos com o novo binario.
+- Sem novas dependencias nativas, APK ou alteracao de workflow AAB.
