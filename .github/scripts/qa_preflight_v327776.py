@@ -94,7 +94,7 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.77-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.78-QA-ANDROID-RC"' in engine
     assert 'qa_replay_captura' in engine and 'qa_fundo_cache_chao' in engine
     assert 'instalar_replay_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
     assert "_qa_precarga_visuais.passo(estado)" in engine
@@ -138,8 +138,8 @@ def main():
     spec=(ROOT/'buildozer.spec').read_text('utf8')
     assert re.search(r'(?m)^version = 3\.277\.77$',spec)
     assert re.search(r'(?m)^android\.numeric_version = 327777$',spec)
-    assert (ROOT/'QA_TRACKER_32_v327777.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327777.md').is_file()
+    assert (ROOT/'QA_TRACKER_32_v327778.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327778.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327776.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327776.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327774.md').is_file()
