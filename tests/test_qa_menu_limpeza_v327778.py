@@ -105,6 +105,29 @@ class TestMenuQA778(unittest.TestCase):
         inicio = CODE.split('            if estado == "INICIO":\n                t_anim', 1)[1].split('            elif estado == "CANTINHO_PETS":', 1)[0]
         self.assertIn("bg_parallax.draw_chao(display_surface)", inicio)
 
+    def test_cache_mundo_8_quadros_vs_5_e_paridade_rgba_estatica(self):
+        from pixelrush_qa_ultraleve_v327730 import CacheFundoUltraQA
+        self.assertIn("periodo_fundo_qa = 5 if os.environ.get('PIXELRUSH_QA_FUNDO_PERIODO') == '5' else 8", CODE)
+        base = pygame.Surface((450, 800)).convert()
+        base.fill((62, 84, 112))
+        pygame.draw.rect(base, (130, 136, 142), (0, 730, 450, 70))
+        esperado = pygame.image.tobytes(base, "RGBA")
+        contagens = []
+        for periodo in (5, 8):
+            cache = CacheFundoUltraQA(periodo=periodo)
+            destino = pygame.Surface((450, 800)).convert()
+            redesenhos = 0
+            for frame in range(80):
+                if not cache.reusar(destino, ("cidade", "limpo"), True):
+                    destino.blit(base, (0, 0))
+                    cache.guardar(destino, ("cidade", "limpo"), True)
+                    redesenhos += 1
+                if frame in (0, 7, 39, 79):
+                    self.assertEqual(pygame.image.tobytes(destino, "RGBA"), esperado)
+            contagens.append(redesenhos)
+        # Reduz reconstrucoes em 37.5%; nenhum ganho de FPS fisico inferido.
+        self.assertEqual(contagens, [16, 10])
+
 
 if __name__ == "__main__":
     unittest.main()
