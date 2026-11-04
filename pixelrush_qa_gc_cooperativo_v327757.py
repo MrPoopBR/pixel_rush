@@ -20,7 +20,7 @@ _STATS={'coletas_0':0,'coletas_1':0,'coletas_2':0,'frames':0,
 
 def diagnostico():
     return dict(_STATS,ativo=_ATIVO,
-                gc_auto_ativo=gc.isenabled(),fase_coleta=1,
+                gc_auto_ativo=gc.isenabled(),fase_coleta=2,
                 homologia_android=False)
 
 def instalar():
