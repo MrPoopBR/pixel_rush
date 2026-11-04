@@ -10895,7 +10895,10 @@ def main():
         # QA778: amortizar o passe 2.5D no Android, sem tocar na simulacao.
         # 8 quadros: menos reconstrucoes pesadas; a textura de fundo pode
         # avancar em passos temporais maiores. Rollback: PIXELRUSH_QA_FUNDO_PERIODO=5.
-        periodo_fundo_qa = 5 if os.environ.get('PIXELRUSH_QA_FUNDO_PERIODO') == '5' else 8
+        # QA780: o ganho 8:1 foi apenas de numero de passes, nao comprovou
+        # paridade TEMPORAL nos frames dinamicos da corrida. Restaurar
+        # o periodo visual 5:1 como padrao; 8:1 segue isolado por opt-in.
+        periodo_fundo_qa = 8 if os.environ.get('PIXELRUSH_QA_FUNDO_PERIODO') == '8' else 5
         cache_fundo_mobile = CacheFundoUltraQA(periodo=periodo_fundo_qa)
         cache_menus_qa = FundoMenusUltraQA(periodo=5)
     else:
