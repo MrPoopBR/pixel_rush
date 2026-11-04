@@ -82,8 +82,9 @@ class TemporalRGBA780(unittest.TestCase):
     def test_fundo_2d_cache_5_temporal_referencial(self):
         from pixelrush_qa_ultraleve_v327730 import CacheFundoUltraQA
         cache=CacheFundoUltraQA(periodo=5)
-        fundo=pygame.Surface((450,800),pygame.SRCALPHA,32)
-        alvo=pygame.Surface((450,800),pygame.SRCALPHA,32)
+        # O cache real armazena Surface RGB display, nunca SRCALPHA.
+        fundo=pygame.Surface((450,800)).convert()
+        alvo=pygame.Surface((450,800)).convert()
         fundos_redesenhados=0
         for frame in range(80):
             # O fundo do jogo tem animacoes; paridade so pode ser reivindicada
@@ -91,15 +92,15 @@ class TemporalRGBA780(unittest.TestCase):
             # Mudanca de clima/bioma deve sempre invalidar a chave.
             etapa=frame//23
             base=(etapa*43)%256
-            fundo.fill((base,51+etapa,91,255))
-            pygame.draw.rect(fundo,(245,12,63,0),(18,22,10,14))
-            alvo.fill((0,0,0,0))
+            fundo.fill((base,51+etapa,91))
+            pygame.draw.rect(fundo,(245,12,63),(18,22,10,14))
+            alvo.fill((0,0,0))
             if not cache.reusar(alvo,("cidade",etapa),True):
                 alvo.blit(fundo,(0,0))
                 cache.guardar(alvo,("cidade",etapa),True)
                 fundos_redesenhados+=1
-            ref=pygame.Surface((450,800),pygame.SRCALPHA,32)
-            ref.fill((0,0,0,0))
+            ref=pygame.Surface((450,800)).convert()
+            ref.fill((0,0,0))
             ref.blit(fundo,(0,0))
             self.assertEqual(rgba(alvo),rgba(ref),(frame,etapa))
             # Uma camada animada deve ser aplicada DEPOIS de guardar o fundo.
