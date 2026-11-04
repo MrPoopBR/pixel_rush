@@ -10,6 +10,11 @@ from functools import wraps
 
 _INSTALADO=False
 _ORIGINAIS=[]
+_STATS={'world_dest_bpp':None,'world_cena_bpp':None,'world_cena_srcalpha':None}
+
+def diagnostico():
+    return dict(_STATS,instalado=_INSTALADO)
+
 
 def instalado():
     return _INSTALADO
@@ -20,9 +25,15 @@ def _aplicar(classe,metodo,nome):
     local=metodo in classe.__dict__
     @wraps(original)
     def medir(*a,**k):
+        if nome=='r11_world_total' and len(a)>=2:
+            _STATS['world_dest_bpp']=a[1].get_bitsize()
         sub_inicio(nome)
         try:
-            return original(*a,**k)
+            result=original(*a,**k)
+            if nome=='r11_world_cena' and result is not None:
+                _STATS['world_cena_bpp']=result.get_bitsize()
+                _STATS['world_cena_srcalpha']=bool(result.get_flags() & 65536)
+            return result
         finally:
             sub_fim()
     setattr(classe,metodo,medir)
