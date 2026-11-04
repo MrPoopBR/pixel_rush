@@ -22,3 +22,10 @@ Base comprovada: v3.277.74-QA, CI #41873834682 (84/84 pygame-ce). Hardware ainda
 - Mundo 2.5D: **88,631ms p50 por execução** no R11 anterior, ainda não autorizado eliminar efeitos nem mudar cadência 5:1. Há 13 marcadores no ramo 2.5D, sem substituição especulativa.
 - GameFeel vinheta: otimização local RGB32 com gate RGBA, rollback automático em destinos SRCALPHA e teste SDL dummy. Apenas ganho de microbenchmark, não FPS real.
 - **Placar permanece 22/32 concluídas offline, 10/32 parciais. Nenhuma das 10 novas frentes declarada homologada no A54 sem R12 comparativo.**
+
+
+## Fechamento da fase de código R11 v3.277.76
+- **Pós-sprites:** vinheta otimizada em RGB16/24/32 opaco, com gate de alpha zero e fallback; testes pygame-ce aprovados (não comprova FPS Galaxy A54).
+- **2.5D Cidade:** blit em bbox com ganho comprovado exclusivamente em RGB16, com rollback flag; RGB24/RGB32/SRCALPHA preservam caminho original. 13 medições do caminho de composição real adicionais.
+- **Gate CI:** 134/134 offline e GLES Mesa 720 + 288 + 6 aprovados; ainda sem pacote Android v776 e sem relatório de FPS R12 no A54.
+- **Mantenha 22/32 concluídas offline e 10/32 parciais.** Estes dois avanços não encerram as dez frentes parciais enquanto faltarem dados de FPS/p95, GPU/NEON e memória do A54.
