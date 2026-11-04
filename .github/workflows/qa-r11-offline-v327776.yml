@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pixelrush-qa-a54-v327776-offline
+  group: pixelrush-qa-v327782-r12-a54-offline
   cancel-in-progress: true
 
 jobs:
