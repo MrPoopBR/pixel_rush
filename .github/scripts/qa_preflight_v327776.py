@@ -16,6 +16,10 @@ PROTECTED={
 }
 MODULES=(
     'pixelrush_qa_r11_vinheta_v327776.py',
+    'pixelrush_qa_r11_world_bounds_v327776.py',
+    'tests/test_qa_r11_world_bounds_v327776.py',
+    'tests/test_qa_r11_world_bands_v327776.py',
+    'pixelrush_world_v3130.py',
     'pixelrush_qa_r11_passes_v327776.py',
     'pixelrush_gamefeel_v3129.py',
     'tests/test_qa_r11_vinheta_v327776.py',
