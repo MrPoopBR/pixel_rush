@@ -38,3 +38,6 @@ O ponto de partida QA779 falhou no CI offline #41910343167 pelo PIN antigo do br
 - **Mesa GLES2/GLES3 + PBO**: Actions #41914146128 (passou), incluindo 720 quadros sintéticos GLES, cenas reais e ring PBO; adicionado novo gate de bootstrap `pixelrush_qa_gpu_preflight_v327780.py` para impedir ativação insegura no driver Android antes da corrida.
 - **GPU auto-preflight**: a exigência de 10 comparações RGBA e ganho mínimo local é intencionalmente mais estrita que a habilitação experimental QA779; em reprovação, preserva SDL. A medição de câmera/zoom **não** permite inferir FPS do frame integral.
 - **Nenhum APK nem AAB foi criado**; o que resta é medição e homologação em hardware A54, que não deve ser inferida dos jobs Linux.
+
+## Fechamento adicional do gate #12 (código QA, não hardware)
+A ponte GLES e o seletor de backend não se contradizem mais no perfil QA: o mesmo `CapacidadeVideo` recebe a evidência de bootstrap e recusa qualquer caminho com pixels divergentes, custo sem ganho, falha no GLES ou execução fora do Android QA. A rota selecionada é explicitamente `gles_qa_experimental`. **Isso encerra o bloqueio lógico de integração, mas não encerra a homologação #12 no Galaxy A54**. Sem APK QA780 e dados de FPS/input reais, o estado #12 continua parcial.
