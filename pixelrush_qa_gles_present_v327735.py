@@ -284,7 +284,7 @@ class GLES2DirectPresenterQA:
         intervalos=sorted(self.frame_intervals_ns)
         p50=(round(intervalos[len(intervalos)//2]/1e6,3)
              if intervalos else None)
-        p95=(round(intervalos[min(len(intervalos)-1,int(.95*(len(intervalos)-1)))]/1e6,3)
+        p95=(round(intervalos[min(len(intervalos)-1,round(.95*(len(intervalos)-1)))]/1e6,3)
              if intervalos else None)
         jank=sum(1 for n in intervalos if n>50_000_000)
         return {'renderer':self.renderer,
