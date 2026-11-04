@@ -49,8 +49,12 @@ class _Ponte:
     def set_mode(self, size, flags=0, depth=0, display=0, vsync=0):
         import pygame
         requested=tuple(size)
-        # Nao rouba a janela SDL alheia ao jogo nem fullscreen desktop.
-        if requested!=_SIZE or (flags & pygame.OPENGL):
+        # QA782/R12: o perfil A54 caiu em criacao_ModuleNotFoundError.
+        # A ponte reconstruia uma janela 450x800 SEM FULLSCREEN e deixou
+        # o jogo minúsculo no canto superior esquerdo. Nao converter
+        # fullscreen/SCALED em janela GPU experimental sem prova no Mali:
+        # SDL preserva a Surface logica e amplia na tela fisica.
+        if requested!=_SIZE or (flags & (pygame.OPENGL|pygame.FULLSCREEN|pygame.SCALED)):
             self.modo='nativo'
             self.staging=None
             self.presenter=None
