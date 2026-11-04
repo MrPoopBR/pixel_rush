@@ -12,3 +12,11 @@ Branch `qa/homologacao-32-v3.277.80` a partir de `qa/fechar-32-runtime-v3.277.79
 ## Status
 - Não atribuir `32/32 homologadas` sem execução real e gates completos. As 22 frentes historicamente concluídas offline continuam separadas das 10 dependentes da integração/hardware Android.
 - CI offline/Mesa reexecutado ao enviar mudanças para a branch; resultados concretos devem ser reportados sem antecipação.
+
+## GPU / EGL / PBO — segunda etapa QA780
+6. Adicionado `pixelrush_qa_gpu_preflight_v327780.py`: antes do primeiro frame de uma **execução Android QA**, a ponte GPU verifica 10 combinações de RGB/RGBA em framebuffer RGBA8, incluindo RGB oculto com alfa zero e recortes de zoom. A comparação é byte a byte com a câmera pygame-ce. O código mede o tempo da rota CPU e do upload+shader+sincronização de GPU sobre quadros diferentes; rejeita o backend se não houver ao menos 15% e 0,15 ms de ganho de microbenchmark, se houver falha de driver ou divergência RGBA, voltando ao SDL. Esse gate local **não é** aprovação final de FPS do A54.
+7. Diagnóstico do presenter distingue agora `integrado_ao_jogo`, `equivalencia_visual_aprovada` e `homologado_fps_android`. Flags só passam a verdadeiras depois do teste local. Nenhum readback é feito no loop de corrida.
+8. CI Mesa GLES recebe `tests/test_qa_gpu_preflight_v327780.py` e publica `qa-gpu-preflight-v327780.json` com casos e custo de CPU/GPU; CI offline publica `qa-temporal-rgba-v327780.json`.
+9. Suite offline e Mesa no commit `8ea6f8b0` passaram: offline [#41914146215](https://github.com/MrPoopBR/pixel_rush/actions/runs/41914146215); GPU/Mesa [#41914146128](https://github.com/MrPoopBR/pixel_rush/actions/runs/41914146128). Estas execuções cobrem os arquivos anteriores à inclusão dos JSONs publicados.
+
+**Homologação Galaxy A54 continua pendente**: não há APK QA780 nem R12 com GPU Mali, telemetria de FPS/jank e saves pós-instalação. Não aprovar 32/32 com base apenas nos testes em PC.
