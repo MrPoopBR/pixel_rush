@@ -46,7 +46,7 @@ def _seguro(efeito):
     return valido
 
 def desenhar_vinheta(destino,efeito):
-    """Substituicao somente na Surface RGB32 usada pelo render principal.
+    """Substituicao somente nas Surfaces RGB16/24/32 usada pelo render principal.
 
     O alpha0 de uma fonte SRCALPHA pode modificar RGB oculto de DESTINO
     SRCALPHA, portanto essa combinacao permanece no caminho original.
@@ -62,7 +62,7 @@ def _desenhar_validado(destino,efeito):
     if (os.environ.get('PIXELRUSH_QA_R11_VINHETA','1')!='1' or
             destino.get_flags() & pygame.SRCALPHA or
             destino.get_colorkey() is not None or
-            destino.get_bitsize()!=32 or destino.get_size()!=(W,H) or
+            destino.get_bitsize() not in (16,24,32) or destino.get_size()!=(W,H) or
             efeito.get_size()!=(W,H) or
             not (efeito.get_flags() & pygame.SRCALPHA) or
             efeito.get_colorkey() is not None or
