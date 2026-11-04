@@ -117,5 +117,6 @@ jobs:
             qa-gles-exact-v327736.json
             qa-gles-real-scenes-v327741.json
             qa-gles-pbo-v327742.json
+            qa-gpu-preflight-v327780.json
           if-no-files-found: warn
           retention-days: 14
