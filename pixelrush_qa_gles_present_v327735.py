@@ -7,6 +7,7 @@ substitui a camera pygame-ce original.
 """
 import ctypes as C
 import ctypes.util
+# Usar o mesmo alias C em todo o caminho EGL/GLES; 'ctypes' nao foi importado.
 import time
 import pygame
 
@@ -65,8 +66,8 @@ class GLES2DirectPresenterQA:
                 pygame.GL_CONTEXT_PROFILE_MASK)!=pygame.GL_CONTEXT_PROFILE_ES:
             raise GLES2Unavailable('SDL nao abriu contexto OpenGL ES')
         lib=None
-        for name in ('libGLESv2.so',ctypes.util.find_library('GLESv2'),
-                     None,ctypes.util.find_library('GL')):
+        for name in ('libGLESv2.so',C.util.find_library('GLESv2'),
+                     None,C.util.find_library('GL')):
             try:
                 candidate=C.CDLL(name)
                 if getattr(candidate,'glGetString',None):
@@ -87,7 +88,7 @@ class GLES2DirectPresenterQA:
 
     def _configure_swap(self):
         try:
-            egl=C.CDLL(ctypes.util.find_library('EGL') or 'libEGL.so')
+            egl=C.CDLL(C.util.find_library('EGL') or 'libEGL.so')
             egl.eglGetCurrentDisplay.restype=C.c_void_p
             egl.eglGetCurrentSurface.restype=C.c_void_p
             egl.eglGetCurrentSurface.argtypes=[C.c_int]
