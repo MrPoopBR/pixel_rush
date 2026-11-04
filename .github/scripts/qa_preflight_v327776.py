@@ -91,6 +91,10 @@ MODULES=(
     'pixelrush_qa_backend_gate_v327747.py',
     'tests/test_qa_backend_gate_v327747.py',
     'tests/test_qa_gpu_preflight_v327780.py',
+    'pixelrush_qa_r12_v327781.py',
+    'pixelrush_qa_android_v327728.py',
+    'pixelrush_qa_async_export_v327737.py',
+    'tests/test_qa_r12_telemetria_v327781.py',
 )
 def blob(path):
     b=(ROOT/path).read_bytes()
@@ -103,9 +107,19 @@ def main():
         ast.parse((ROOT/path).read_text('utf8'),filename=path)
         ast_ok[path]=True
     engine=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-    assert 'VERSAO = "v3.277.80-QA-ANDROID-RC"' in engine
+    assert 'VERSAO = "v3.277.81-QA-ANDROID-RC"' in engine
     assert 'qa_replay_captura' in engine and 'qa_fundo_cache_chao' in engine
     assert 'instalar_replay_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
+    telemetria=(ROOT/'pixelrush_qa_android_v327728.py').read_text('utf8')
+    exportador=(ROOT/'pixelrush_qa_async_export_v327737.py').read_text('utf8')
+    assert "pixelrush_qa_v327781_r12" in telemetria
+    assert "'r12_runtime'" in telemetria
+    assert "mundo_2_5d_ms" in telemetria
+    assert "pos_sprites_ms" in telemetria
+    assert "swap_cpu_ms" in telemetria
+    assert "pixelrush_qa_v327781_r12" in exportador
+    assert (ROOT/'tests/test_qa_r12_telemetria_v327781.py').is_file()
+    assert "homologacao_32_a54" in (ROOT/'pixelrush_qa_r12_v327781.py').read_text('utf8')
     assert "_qa_precarga_visuais.passo(estado)" in engine
     assert "instalar_render_qa()" in (ROOT/'main.py').read_text('utf8')
     perf=(ROOT/'pixelrush_qa_performance_integrated_v327742.py').read_text('utf8')
@@ -147,10 +161,10 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.80$',spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327780$',spec)
-    assert (ROOT/'QA_TRACKER_32_v327780.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327780.md').is_file()
+    assert re.search(r'(?m)^version = 3\.277\.81$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327781$',spec)
+    assert (ROOT/'QA_TRACKER_32_v327781.md').is_file()
+    assert (ROOT/'QA_CHANGELOG_v327781.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327776.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327776.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327774.md').is_file()
@@ -182,10 +196,10 @@ def main():
     # Auditoria QA775: sem mudancas nos gates CPU/GPU, saves, main ou DEV.
     assert "PIXELRUSH_QA_CITY_RECYCLE_SCALE','1'" in (ROOT/'pixelrush_city2_v3118.py').read_text('utf8')
     assert "PIXELRUSH_QA_GLES_BRIDGE','0'" in (ROOT/'pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
-    result={'schema':'pixelrush.qa.preflight.v327780','status':'AST_E_PINS_APROVADOS',
+    result={'schema':'pixelrush.qa.preflight.v327781','status':'AST_E_PINS_APROVADOS',
             'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
             'android_homologado':False,'gpu_hardware':False}
-    Path('qa-preflight-v327780.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+    Path('qa-preflight-v327781.json').write_text(json.dumps(result,indent=2),encoding='utf8')
     print(json.dumps(result,indent=2))
 if __name__=='__main__':
     main()
