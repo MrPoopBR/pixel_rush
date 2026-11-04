@@ -1,0 +1,109 @@
+name: PIXEL RUSH QA v3.277.75 - Mesa GLES2 GLES3 PBO e 720 RGBA (sem Android)
+
+on:
+  push:
+    branches:
+      - qa/a54-fechamento-32-v3.277.75
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-a54-gles-v327775
+  cancel-in-progress: true
+
+jobs:
+  gpu-a54-offline:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/a54-fechamento-32-v3.277.75'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - name: Checkout isolado, sem tocar na producao
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python 3.13 pygame-ce
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Mesa software GPU GLES2 GLES3
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libegl1 libgl1-mesa-dri libgles2 libgl1
+          python3 -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python3 -m compileall -q pixelrush_qa_gles_exact_v327736.py tests/test_qa_gles_exact_v327736.py
+          python3 -m compileall -q pixelrush_qa_gles_present_v327735.py pixelrush_qa_gles_pbo_v327742.py tests/test_qa_gles_real_v327741.py tests/test_qa_gles_pbo_v327742.py
+          ! grep -q 'pixelrush_qa_gles_pbo_v327742' main.py
+          ! grep -q 'pixelrush_qa_gles_pbo_v327742' pixelrush_qa_render_v327729.py
+
+      - name: Verificar GLES2 GLES3 720 cenarios RGBA pixel-exatos Mesa
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+          PIXELRUSH_QA_GLES_PBO: '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1024x1280x24" python3 tests/test_qa_gles_exact_v327736.py
+          python3 - <<'PY'
+          import json
+          d=json.load(open('qa-gles-exact-v327736.json',encoding='utf8'))
+          assert d['total_casos']==720 and d['igualdade_total']
+          assert d['integracao_gpu_aprovada'] is False
+          print('Mesa 720 pixel-exatos; GPU real A54 nao testada')
+          PY
+
+      - name: Testar shaders com imagens reais Cidade/Neve (288)
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+          PIXELRUSH_QA_GLES_PBO: '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1024x1280x24" python3 tests/test_qa_gles_real_v327741.py
+          python3 - <<'PY'
+          import json
+          d=json.load(open('qa-gles-real-scenes-v327741.json',encoding='utf8'))
+          assert d['casos']>=144
+          assert all(x['pixels_exatos'] for x in d['resultados'])
+          assert d['autorizacao_android'] is False
+          PY
+
+      - name: Testar PBO GLES3 triplo RGBA de frames com/sem alteracoes
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+          PIXELRUSH_QA_GLES_PBO: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1024x1280x24" python3 tests/test_qa_gles_pbo_v327742.py
+          python3 - <<'PY'
+          import json
+          d=json.load(open('qa-gles-pbo-v327742.json',encoding='utf8'))
+          assert d['cenarios_pixel_exatos']==6
+          assert d['pbo']['frames_upload']==3
+          assert d['pbo']['frames_idênticos_pulados']>=3
+          assert not d['gpu_em_jogo'] and not d['gpu_android_medido']
+          PY
+
+      - name: Publicar demonstracao sem hardware Android
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-a54-v327775-gles-offline
+          path: |
+            qa-gles-exact-v327736.json
+            qa-gles-real-scenes-v327741.json
+            qa-gles-pbo-v327742.json
+          if-no-files-found: warn
+          retention-days: 14
