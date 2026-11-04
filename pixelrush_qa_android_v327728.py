@@ -159,6 +159,12 @@ class QATelemetria:
     """Mede todos os frames; so escreve no disco de tempos em tempos ou ao sair."""
     def __init__(self, versao, edicao, caminho=None, relogio=None, cpu_relogio=None):
         self.versao, self.edicao = str(versao), str(edicao)
+        # QA781: mesmo coletor de quadros real, com arquivos R12 exclusivos.
+        # Legado e DEV continuam com nomes e schema anteriores.
+        self.r12 = ('3.277.81' in self.versao and
+                    os.environ.get('PIXELRUSH_QA_ANDROID') == '1')
+        self.prefixo = ('pixelrush_qa_v327781_r12' if self.r12
+                        else 'pixelrush_qa_v327747')
         self.pasta = Path(caminho) if caminho is not None else _destino()
         self.relogio = relogio or time.perf_counter_ns
         self.cpu_relogio = cpu_relogio or time.process_time_ns
@@ -276,6 +282,21 @@ class QATelemetria:
                  'trabalho_ms': round(trabalho, 3), 'cpu_ms': round(cpu, 3),
                  'intervalo_ms': round(intervalo, 3) if intervalo is not None else None,
                  'rss_mb': self.rss_mb}
+        if self.r12:
+            # R12 CSV por quadro, para localizar 5o frame e pos-sprites sem
+            # guardar imagem, movimento do personagem ou dados de save.
+            linha.update({
+                'mundo_2_5d_ms': round(fases.get('mundo_2_5d',0.),3),
+                'world_total_r11_ms': round(fases.get('r11_world_total',0.),3),
+                'pos_sprites_ms': round(fases.get('qa_render_apos_sprites',0.),3),
+                'pos_alertas_ms': round(fases.get('r11_post_alertas',0.),3),
+                'pos_pets_ms': round(fases.get('r11_post_pets',0.),3),
+                'pos_efeitos_portais_ms': round(fases.get('r11_post_efeitos_portais',0.),3),
+                'pos_particulas_ms': round(fases.get('r11_post_particulas',0.),3),
+                'pos_gamefeel_ms': round(fases.get('r11_post_frente_gamefeel',0.),3),
+                'pos_clima_ms': round(fases.get('r11_post_clima_transicoes',0.),3),
+                'swap_cpu_ms': round(fases.get('apresentacao_swap',0.),3),
+            })
         self.ultimos.append(linha)
         if trabalho >= 33.333:
             evento = dict(linha, fases_ms={k: round(v, 3) for k, v in fases.items()})
@@ -307,7 +328,7 @@ class QATelemetria:
                     'travamentos_trabalho': dict(self.picos[chave]),
                 }
         por_modo_bioma = _resumir_grupos_qa(snapshot) if resumir else snapshot
-        return {
+        resultado = {
             'schema': 'pixelrush.qa.android.v1', 'versao': self.versao, 'edicao': self.edicao,
             'quadros_observados': self.contagem, 'grupos': por_modo_bioma,
             'rss_atual_mb': self.rss_mb, 'rss_pico_observado_mb': self.rss_pico_mb,
@@ -333,6 +354,15 @@ class QATelemetria:
             'exportacoes_realizadas': self.gravacoes, 'erros_exportacao': self.erros_escrita,
             'ultimo_erro_exportacao': self.ultima_falha,
         }
+        if self.r12:
+            from pixelrush_qa_r12_v327781 import coletar as coletar_r12
+            resultado['schema'] = 'pixelrush.qa.android.r12.v327781'
+            resultado['r12_runtime'] = coletar_r12()
+            resultado['r12_arquivo_csv'] = self.prefixo.replace(
+                'pixelrush_qa_v','pixelrush_qa_frames_v')+'.csv'
+            resultado['r12_arquivo_json'] = self.prefixo+'.json'
+            resultado['r12_hardware_homologado_a54'] = False
+        return resultado
 
     def _enviar_snapshot_periodico(self, grupos, linhas):
         try:
@@ -343,7 +373,7 @@ class QATelemetria:
             if gravador._pendente is not None and not gravador._pendente.done():
                 return False
             relatorio = self.relatorio(resumir=False, snapshot=grupos)
-            gravador.enviar(self.pasta, 'pixelrush_qa_v327747',
+            gravador.enviar(self.pasta, self.prefixo,
                             relatorio, linhas, esperar=False,
                             preparar_relatorio=_preparar_exportacao_qa,
                             linhas_prontas=True)
@@ -381,7 +411,7 @@ class QATelemetria:
             relatorio = self.relatorio(resumir=False)
             linhas = tuple(dict(x) for x in self.ultimos)
             aceito = gravador.enviar(
-                self.pasta, 'pixelrush_qa_v327747', relatorio, linhas,
+                self.pasta, self.prefixo, relatorio, linhas,
                 esperar=esperar, preparar_relatorio=_preparar_exportacao_qa)
             self.gravacoes = gravador.concluidas
             self.erros_escrita = gravador.falhas
