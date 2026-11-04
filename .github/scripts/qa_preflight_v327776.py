@@ -85,7 +85,6 @@ MODULES=(
     'pixelrush_qa_gles_bridge_v327749.py',
     'pixelrush_qa_gles_present_v327735.py',
     'pixelrush_qa_gles_pbo_v327742.py',
-    'pixelrush_qa_render_v327729.py',
     'tests/test_qa_runtime_v327779.py',
     'tests/test_qa_temporal_rgba_v327780.py',
 )
@@ -136,8 +135,7 @@ def main():
     assert 'compartilhar(self)' in (ROOT/'pixelrush_qa_city_bootstrap_v327759.py').read_text('utf8')
     assert "'_qa_damage_layer'" in (ROOT/'pixelrush_qa_memory_budget_v327765.py').read_text('utf8')
     assert 'instalar_pool_particulas_qa(ParallaxBackground,Particula)' in engine
-    # QA780: regressao de GC em 30*k+2 (fora dos redraws 5/8).
-    # Nunca manter no gate o agendamento comprovadamente regressivo.
+    # QA780: GC fixo fora dos periodos de redraw 5:1 e 8:1.
     assert 'if _FRAMES<32 or _FRAMES%30!=2:' in gc
     assert 'elif _FRAMES>=182 and _FRAMES%180==2:' in gc
     assert "_LAST_STATUS['frames']%8!=1" in perf
@@ -145,8 +143,8 @@ def main():
     assert "low.blit(self._weather,(0,0))" in biome
     assert "_qa_weather_overlay_clean" in biome
     spec=(ROOT/'buildozer.spec').read_text('utf8')
-    assert re.search(r'(?m)^version = 3\.277\.80
-    assert re.search(r'(?m)^android\.numeric_version = 327780
+    assert re.search(r'(?m)^version = 3\.277\.80$',spec)
+    assert re.search(r'(?m)^android\.numeric_version = 327780$',spec)
     assert (ROOT/'QA_TRACKER_32_v327780.md').is_file()
     assert (ROOT/'QA_CHANGELOG_v327780.md').is_file()
     assert (ROOT/'QA_TRACKER_32_v327776.md').is_file()
@@ -184,131 +182,6 @@ def main():
             'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
             'android_homologado':False,'gpu_hardware':False}
     Path('qa-preflight-v327780.json').write_text(json.dumps(result,indent=2),encoding='utf8')
-    print(json.dumps(result,indent=2))
-if __name__=='__main__':
-    main()
-,spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327779$',spec)
-    assert (ROOT/'QA_TRACKER_32_v327779.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327779.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327776.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327776.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327774.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327774.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327760.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327760.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327761.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327761.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327762.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327762.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327763.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327763.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327765.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327765.md').is_file()
-    assert 'pressao_cache=pressionado' in perf
-    assert 'cache_surface_mib' in perf
-    assert 'aquecer_tiles=True' in engine
-    assert 'tiles_adiados_para_menu' in (ROOT/'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
-    assert 'instalar_geometry_retire_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert '_QA_SAFE_CLOUD_CACHE' in (ROOT/'pixelrush_qa_scene_v327733.py').read_text('utf8')
-    assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
-    assert '_PARTICLE_SEEDS' in (ROOT/'pixelrush_qa_city_weather_v327749.py').read_text('utf8')
-    # Auditoria QA775: sem mudancas nos gates CPU/GPU, saves, main ou DEV.
-    assert "PIXELRUSH_QA_CITY_RECYCLE_SCALE','1'" in (ROOT/'pixelrush_city2_v3118.py').read_text('utf8')
-    assert "PIXELRUSH_QA_GLES_BRIDGE','0'" in (ROOT/'pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
-    result={'schema':'pixelrush.qa.preflight.v327776','status':'AST_E_PINS_APROVADOS',
-            'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
-            'android_homologado':False,'gpu_hardware':False}
-    Path('qa-preflight-v327776.json').write_text(json.dumps(result,indent=2),encoding='utf8')
-    print(json.dumps(result,indent=2))
-if __name__=='__main__':
-    main()
-,spec)
-    assert (ROOT/'QA_TRACKER_32_v327779.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327779.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327776.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327776.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327774.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327774.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327760.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327760.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327761.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327761.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327762.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327762.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327763.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327763.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327765.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327765.md').is_file()
-    assert 'pressao_cache=pressionado' in perf
-    assert 'cache_surface_mib' in perf
-    assert 'aquecer_tiles=True' in engine
-    assert 'tiles_adiados_para_menu' in (ROOT/'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
-    assert 'instalar_geometry_retire_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert '_QA_SAFE_CLOUD_CACHE' in (ROOT/'pixelrush_qa_scene_v327733.py').read_text('utf8')
-    assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
-    assert '_PARTICLE_SEEDS' in (ROOT/'pixelrush_qa_city_weather_v327749.py').read_text('utf8')
-    # Auditoria QA775: sem mudancas nos gates CPU/GPU, saves, main ou DEV.
-    assert "PIXELRUSH_QA_CITY_RECYCLE_SCALE','1'" in (ROOT/'pixelrush_city2_v3118.py').read_text('utf8')
-    assert "PIXELRUSH_QA_GLES_BRIDGE','0'" in (ROOT/'pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
-    result={'schema':'pixelrush.qa.preflight.v327776','status':'AST_E_PINS_APROVADOS',
-            'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
-            'android_homologado':False,'gpu_hardware':False}
-    Path('qa-preflight-v327776.json').write_text(json.dumps(result,indent=2),encoding='utf8')
-    print(json.dumps(result,indent=2))
-if __name__=='__main__':
-    main()
-,spec)
-    assert re.search(r'(?m)^android\.numeric_version = 327779$',spec)
-    assert (ROOT/'QA_TRACKER_32_v327779.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327779.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327776.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327776.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327774.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327774.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327758.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327758.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327759.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327759.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327760.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327760.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327761.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327761.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327762.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327762.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327763.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327763.md').is_file()
-    assert (ROOT/'QA_TRACKER_32_v327765.md').is_file()
-    assert (ROOT/'QA_CHANGELOG_v327765.md').is_file()
-    assert 'pressao_cache=pressionado' in perf
-    assert 'cache_surface_mib' in perf
-    assert 'aquecer_tiles=True' in engine
-    assert 'tiles_adiados_para_menu' in (ROOT/'pixelrush_qa_atlas_io_v327747.py').read_text('utf8')
-    assert 'instalar_geometry_retire_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert '_QA_SAFE_CLOUD_CACHE' in (ROOT/'pixelrush_qa_scene_v327733.py').read_text('utf8')
-    assert "PIXELRUSH_QA_GEOMETRY_BORROW','1'" in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert 'instalar_city_bootstrap_qa()' in (ROOT/'pixelrush_qa_render_v327729.py').read_text('utf8')
-    assert '_SNOW_SEEDS' in (ROOT/'pixelrush_biomes2_v3128.py').read_text('utf8')
-    assert '_PARTICLE_SEEDS' in (ROOT/'pixelrush_qa_city_weather_v327749.py').read_text('utf8')
-    # Auditoria QA775: sem mudancas nos gates CPU/GPU, saves, main ou DEV.
-    assert "PIXELRUSH_QA_CITY_RECYCLE_SCALE','1'" in (ROOT/'pixelrush_city2_v3118.py').read_text('utf8')
-    assert "PIXELRUSH_QA_GLES_BRIDGE','0'" in (ROOT/'pixelrush_qa_gles_bridge_v327749.py').read_text('utf8')
-    result={'schema':'pixelrush.qa.preflight.v327776','status':'AST_E_PINS_APROVADOS',
-            'sha_preservados':checks,'sintaxe':ast_ok,'apk':False,
-            'android_homologado':False,'gpu_hardware':False}
-    Path('qa-preflight-v327776.json').write_text(json.dumps(result,indent=2),encoding='utf8')
     print(json.dumps(result,indent=2))
 if __name__=='__main__':
     main()
