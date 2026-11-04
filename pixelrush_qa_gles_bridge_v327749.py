@@ -23,7 +23,7 @@ _STATUS={'instalado':False,'gpu_ativo':False,'falhas_gpu':0,
          'readback_gpu_cpu':False,'zoom_gpu_ativado':False,
          'shader_pixel_exato_solicitado':False,
          'contexto_gles3_solicitado':False,
-         'homologado_android':False}
+         'homologado_android':False,'preflight_gpu':None}
 _SIZE=(450,800)
 
 
@@ -103,6 +103,21 @@ class _Ponte:
                 pygame.Surface((2,2),depth=32).convert()
             except (pygame.error,ValueError):
                 raise RuntimeError('Contexto GLES sem suporte a Surface.convert')
+            # QA780: proibido apresentar quadros de jogo no backend GPU
+            # sem a prova no dispositivo REAL, fora do loop. O preflight
+            # compara 10 quadros RGBA completos em FBO dedicado, mede custo
+            # com upload efetivo e remove o FBO antes da corrida.
+            # Mesa/Xvfb roda em testes próprios; não aprova Mali por tabela.
+            if ('ANDROID_ARGUMENT' in os.environ or os.name=='android'):
+                from pixelrush_qa_gpu_preflight_v327780 import (
+                    verificar as _qa_verificar_gpu,
+                    diagnostico as _qa_gpu_relatorio)
+                if not _qa_verificar_gpu(self.presenter,exigir_ganho=True):
+                    _STATUS['preflight_gpu']=_qa_gpu_relatorio()
+                    raise RuntimeError('GPU_preflight_sem_paridade_ou_ganho')
+                _STATUS['preflight_gpu']=_qa_gpu_relatorio()
+                self.presenter._qa_integrado=True
+                self.presenter._qa_equivalencia_visual=True
             self.staging=pygame.Surface(requested,depth=32)
             self.cpu_window=None
             self.modo='gles'
