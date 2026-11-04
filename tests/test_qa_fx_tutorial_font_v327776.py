@@ -73,7 +73,7 @@ class BannerFont772(unittest.TestCase):
         codigo=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
         self.assertIn('desenhar_mensagem_tutorial as _prod_mensagem_tutorial',codigo)
         self.assertIn('_prod_mensagem_tutorial(',codigo)
-        self.assertIn('v3.277.81-QA-ANDROID-RC',codigo)
+        self.assertIn('v3.277.82-QA-ANDROID-RC',codigo)
 
 if __name__=='__main__':
     unittest.main(verbosity=2)
