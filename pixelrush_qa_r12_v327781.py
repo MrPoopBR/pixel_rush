@@ -50,7 +50,7 @@ def coletar():
     gc = modulos["gc_cooperativo"]
     perf = modulos["memoria_e_pacing"]
     presenter = perf.get("gpu_presenter") or {}
-    pbo = presenter.get("qa_pbo") or {}
+    pbo = presenter.get("qa_pbo_stats") or {}
     return {
         "schema": "pixelrush.qa.r12.runtime.v327781",
         "plataforma": sys.platform,
