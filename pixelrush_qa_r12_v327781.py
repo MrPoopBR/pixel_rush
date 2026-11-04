@@ -12,6 +12,7 @@ import sys
 
 
 _MODULES = {
+    "display_fullscreen": "pixelrush_qa_android_display_v327782",
     "gpu_bridge": "pixelrush_qa_gles_bridge_v327749",
     "gpu_preflight": "pixelrush_qa_gpu_preflight_v327780",
     "camera_neon": "pixelrush_qa_camera_native_auto_v327742",
@@ -49,6 +50,7 @@ def coletar():
     scroll = modulos["scroll_incremental"]
     gc = modulos["gc_cooperativo"]
     perf = modulos["memoria_e_pacing"]
+    display = modulos["display_fullscreen"]
     presenter = perf.get("gpu_presenter") or {}
     pbo = presenter.get("qa_pbo_stats") or {}
     return {
@@ -61,6 +63,9 @@ def coletar():
         "sem_coleta_pessoal": True,
         "modulos": modulos,
         "execucao_observada": {
+            "display_modo": display.get("modo"),
+            "display_surface_size": display.get("surface_size"),
+            "display_window_size": display.get("window_size"),
             "gles_frames": int(bridge.get("frames_gles") or 0),
             "gles_fallback_frames": int(bridge.get("frames_fallback") or 0),
             "gles_falhas": int(bridge.get("falhas_gpu") or 0),
