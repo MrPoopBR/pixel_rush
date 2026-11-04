@@ -26,6 +26,10 @@ _QA_ALPHA_BOUNDS=os.environ.get('PIXELRUSH_QA_CITY_ALPHA_BOUNDS','1')=='1'
 # os bytes SDL, formato, alpha e cor-chave forem identicos.
 # Hash BLAKE2b apenas agrupa candidatos; igualdade crua obrigatoria.
 _QA_DEDUP_TECH_SCALED=os.environ.get('PIXELRUSH_QA_CITY_DEDUP_TECH_SCALED','1')=='1'
+# QA774: reciclar apenas buffers técnicos de scale que perderam sua vaga LRU,
+# sem referências externas, mantendo formato SDL, bytes e capacidade originais.
+# Rollback: PIXELRUSH_QA_CITY_RECYCLE_SCALE=0.
+_QA_RECYCLE_TECH_SCALE=os.environ.get('PIXELRUSH_QA_CITY_RECYCLE_SCALE','0')=='1'
 # QA756: atlas técnicos de cor opaca 100% uniforme viram um fill SDL
 # diretamente no destino, sem alocar/ampliar/blitar Surface 900x500.
 # Validação integral dos bytes somente no bootstrap; zero scan no quadro 5.
@@ -54,6 +58,13 @@ class CityPilotScene(PreviousCity):
         self._qa_cloud_use_cache = os.environ.get('PIXELRUSH_QA_CLOUD_CACHE','0')=='1'
         self._scaled = OrderedDict()
         self._scaled_limit = 14
+        # WeakSet nao mantem texturas vivas. Somente buffers criados pelo
+        # smooth nearest-neighbor do proprio cache podem ser reciclados.
+        import weakref
+        self._qa_scaled_owned = weakref.WeakSet()
+        self._qa_scaled_reused = 0
+        self._qa_scaled_allocated = 0
+        self._qa_scaled_rejected = 0
         self.rand = random.Random(31180)
         self.lib = SpriteLibrary()
         self.layers = self._build_layers()
@@ -352,7 +363,43 @@ class CityPilotScene(PreviousCity):
         tex=getattr(variant,kind)
         # somente texturas realmente desenhadas chegam à resolução 900x500.
         if tex.get_size()!=(SCENE_W,SCENE_H):
-            tex=pygame.transform.scale(tex,(SCENE_W,SCENE_H))
+            destino=None
+            if _QA_RECYCLE_TECH_SCALE and kind!='image':
+                # LRU cheia: o proximo item seria expulso DEPOIS do scale.
+                # Antecipar a eviccao permite reutilizar os mesmos 900x500
+                # bytes, mas somente se ninguem mais referencia a Surface.
+                # Nao reciclar tex 1:1, atlas compartilhado, imagem RLE ou
+                # superficies em uso por outro subsistema/instancia.
+                if len(self._scaled)>=self._scaled_limit:
+                    _, antiga=self._scaled.popitem(last=False)
+                    import sys
+                    rle=pygame.RLEACCEL|getattr(pygame,'RLEACCELOK',0)
+                    if (antiga in self._qa_scaled_owned and
+                            sys.getrefcount(antiga)==2 and
+                            antiga.get_size()==(SCENE_W,SCENE_H) and
+                            antiga.get_bitsize()==tex.get_bitsize() and
+                            antiga.get_masks()==tex.get_masks() and
+                            bool(antiga.get_flags()&pygame.SRCALPHA)==
+                            bool(tex.get_flags()&pygame.SRCALPHA) and
+                            not (antiga.get_flags()&rle or tex.get_flags()&rle) and
+                            antiga.get_alpha()==tex.get_alpha() and
+                            antiga.get_colorkey()==tex.get_colorkey()):
+                        destino=antiga
+                    else:
+                        self._qa_scaled_rejected+=1
+            if destino is not None:
+                try:
+                    tex=pygame.transform.scale(tex,(SCENE_W,SCENE_H),destino)
+                except (pygame.error,ValueError,TypeError):
+                    destino=None
+                    self._qa_scaled_rejected+=1
+                else:
+                    self._qa_scaled_reused+=1
+            if destino is None:
+                tex=pygame.transform.scale(tex,(SCENE_W,SCENE_H))
+                if _QA_RECYCLE_TECH_SCALE and kind!='image':
+                    self._qa_scaled_owned.add(tex)
+                    self._qa_scaled_allocated+=1
         # Atlas estatico: acelera o blit, mas nao os buffers dinamicos.
         if kind == 'image':
             acelerar_textura_estatica(tex)
