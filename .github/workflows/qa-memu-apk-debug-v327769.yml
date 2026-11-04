@@ -139,7 +139,7 @@ jobs:
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" > memu-apk-badging-v327770.txt
           grep -q "versionCode='327770'" memu-apk-badging-v327770.txt
-          grep -q "versionName='3.277.69'" memu-apk-badging-v327770.txt
+          grep -q "versionName='3.277.70'" memu-apk-badging-v327770.txt
           grep -q "native-code: 'arm64-v8a'" memu-apk-badging-v327770.txt
           sha256sum "$APK" > memu-apk-sha256-v327770.txt
 
