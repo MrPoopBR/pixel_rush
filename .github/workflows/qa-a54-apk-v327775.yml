@@ -1,0 +1,170 @@
+name: PIXEL RUSH v3.277.75-QA — APK debug Galaxy A54 ARM64 isolado
+
+on:
+  push:
+    branches:
+      - qa/a54-fechamento-32-v3.277.75
+    paths:
+      - .github/workflows/qa-a54-apk-v327775.yml
+      - pixelrush_tutorial_corrida_v3277.py
+      - pixelrush_producao_fx_v32771.py
+      - pixelrush_fontes_prod_v32771.py
+      - pixelrush_qa_camera_v327733.py
+      - buildozer.spec
+      - PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-a54-apk-v327775
+  cancel-in-progress: true
+
+jobs:
+  qa-arm64-a54-debug:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/a54-fechamento-32-v3.277.75'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    env:
+      PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: '0'
+      MAKEFLAGS: '-j4'
+      CMAKE_BUILD_PARALLEL_LEVEL: '4'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+    steps:
+      - name: Checkout exclusivo da branch QA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Integridade, versao exata e gates nativos de inicializacao
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/qa_preflight_v327775.py
+          grep -q '^version = 3\.277\.75$' buildozer.spec
+          grep -q '^android.numeric_version = 327775$' buildozer.spec
+          grep -q '^android.archs = arm64-v8a$' buildozer.spec
+          grep -q '^android.minapi = 26$' buildozer.spec
+          python3 .github/scripts/test_android_stdlib_bootstrap.py
+          python3 .github/scripts/test_android_p4a_patches.py
+          python3 .github/scripts/test_android_stdlib_dt_needed.py
+          if [ -n "$(find . -maxdepth 1 -name '*.aab' -print -quit)" ]; then
+            echo 'AAB inesperado no checkout QA' >&2
+            exit 1
+          fi
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Python 3.14 apenas para Buildozer
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Liberar espaco para build Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: Instalar dependencias de compilacao
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git zip unzip curl wget ca-certificates build-essential binutils patchelf \
+            autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev \
+            libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev \
+            libltdl-dev gettext autopoint ccache
+
+      - name: Instalar Buildozer e ferramentas p4a
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip wheel setuptools
+          python -m pip install 'buildozer==1.6.0' 'Cython==0.29.34' legacy-cgi
+          buildozer --version
+          java -version
+
+      - name: Preparar ELF ARM64 C NEON com alinhamento de 16 KiB
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDKROOT"
+          NDK="$SDKROOT/ndk/28.2.13676358"
+          CC="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang"
+          if [ ! -x "$CC" ]; then
+            SDKMANAGER="$(command -v sdkmanager || true)"
+            if [ -z "$SDKMANAGER" ]; then SDKMANAGER="$SDKROOT/cmdline-tools/latest/bin/sdkmanager"; fi
+            test -x "$SDKMANAGER"
+            yes | "$SDKMANAGER" --sdk_root="$SDKROOT" "ndk;28.2.13676358" || test -x "$CC"
+          fi
+          test -x "$CC"
+          "$CC" -O3 -std=c11 -fPIC -shared -Wall -Wextra \
+            -Wl,-soname,libpixelrush_camera_crop_v327741.so \
+            -Wl,-z,max-page-size=16384 \
+            qa_native/camera_crop_native_v327741.c \
+            -o qa_native/libpixelrush_camera_crop_v327741.so
+          readelf -h qa_native/libpixelrush_camera_crop_v327741.so | grep -q 'AArch64'
+          readelf -lW qa_native/libpixelrush_camera_crop_v327741.so | awk '/ LOAD / {if ($NF != "0x4000") exit 1; n++} END {if (n==0) exit 1}'
+          sha256sum qa_native/libpixelrush_camera_crop_v327741.so
+
+      - name: Compilar exclusivamente APK DEBUG da v3.277.75
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/qa/a54-fechamento-32-v3.277.75'
+          unset P4A_RELEASE_KEYSTORE P4A_RELEASE_KEYALIAS \
+            P4A_RELEASE_KEYSTORE_PASSWD P4A_RELEASE_KEYALIAS_PASSWD || true
+          buildozer -v android debug 2>&1 | tee build-a54-v327775.log
+          test -n "$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          if find bin -maxdepth 1 -type f -name '*.aab' | grep -q .; then
+            echo 'Build QA nao pode produzir AAB' >&2
+            exit 1
+          fi
+
+      - name: Auditar APK ARM64 Python pygame NumPy ZIP ELF e 16 KiB
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
+          unzip -Z1 "$APK" | grep -q '^lib/arm64-v8a/libpixelrush_camera_crop_v327741.so$'
+          python3 .github/scripts/android_debug_audit.py apk --apk "$APK" --report a54-apk-audit-v327775.json
+          AAPT="$(command -v aapt || find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/android-sdk}}/build-tools" -name aapt -type f | sort -V | tail -1)"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APK" > a54-apk-badging-v327775.txt
+          grep -q "versionCode='327775'" a54-apk-badging-v327775.txt
+          grep -q "versionName='3.277.75'" a54-apk-badging-v327775.txt
+          grep -q "native-code: 'arm64-v8a'" a54-apk-badging-v327775.txt
+          sha256sum "$APK" > a54-apk-sha256-v327775.txt
+
+      - name: Guardar relatorios QA e logs sem secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-v327775-a54-diagnosticos
+          path: |
+            qa-preflight-v327775.json
+            a54-apk-audit-v327775.json
+            a54-apk-badging-v327775.txt
+            a54-apk-sha256-v327775.txt
+            build-a54-v327775.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Entregar somente APK DEBUG nao homologado para Galaxy A54
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-v327775-qa-arm64-apk-debug-a54
+          path: bin/*.apk
+          if-no-files-found: ignore
+          retention-days: 14
