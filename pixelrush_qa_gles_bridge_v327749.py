@@ -25,7 +25,8 @@ _STATUS={'instalado':False,'gpu_ativo':False,'falhas_gpu':0,
          'contexto_gles3_solicitado':False,
          'homologado_android':False,'preflight_gpu':None,
          'selecionador_gpu':None,'falha_modulo':None,
-         'falha_detalhe':None,'fullscreen_experimental':False}
+         'falha_detalhe':None,'fullscreen_experimental':False,
+         'preflight_fisico':None,'twopass_gles3_ativo':False}
 _SIZE=(450,800)
 
 
@@ -33,6 +34,7 @@ class _Ponte:
     def __init__(self):
         self.staging=None
         self.presenter=None
+        self.two_pass=None
         self.cpu_window=None
         self.size=None
         self._requested_flags=0
@@ -41,6 +43,10 @@ class _Ponte:
         self.foco_y=0.0
 
     def _reabrir_sdl(self):
+        if self.two_pass is not None:
+            self.two_pass.close()
+            self.two_pass=None
+        _STATUS['twopass_gles3_ativo']=False
         self.presenter=None
         # Preserva a referencia do jogo a staging: o que muda eh somente
         # a superficie SDL final de apresentacao.
@@ -148,6 +154,17 @@ class _Ponte:
                     raise RuntimeError('Seletor_GPU_QA_rejeitou_backend')
                 self.presenter._qa_integrado=True
                 self.presenter._qa_equivalencia_visual=True
+            if fullscreen_qa:
+                # QA784: gate físico RGBA + velocidade no boot e somente opt-in.
+                # Se nao superar pygame-ce: SDL fullscreen permanece padrão.
+                from pixelrush_qa_gles_twopass_v327784 import (
+                    FullscreenTwoPassQA,verificar_boot_fisico)
+                self.two_pass=FullscreenTwoPassQA(self.presenter)
+                gate=verificar_boot_fisico(self.presenter,self.two_pass,True)
+                _STATUS['preflight_fisico']=gate
+                if not gate['selecionado']:
+                    raise RuntimeError('GLES_fullscreen_fisico_sem_paridade_ou_ganho')
+                _STATUS['twopass_gles3_ativo']=True
             self.staging=pygame.Surface(requested,depth=32)
             self.cpu_window=None
             self.modo='gles'
@@ -161,6 +178,10 @@ class _Ponte:
             _STATUS['fallback']='criacao_'+type(exc).__name__
             _STATUS['falha_modulo']=getattr(exc,'name',None)
             _STATUS['falha_detalhe']=(type(exc).__name__+': '+str(exc))[:180]
+            if self.two_pass is not None:
+                self.two_pass.close()
+                self.two_pass=None
+            _STATUS['twopass_gles3_ativo']=False
             self.presenter=None
             self.staging=pygame.Surface(requested)
             try:
@@ -185,8 +206,12 @@ class _Ponte:
                 # O zoom original continua sendo calculado pela camera CPU.
                 # Renderizar na GPU com zoom 0 apenas mostra a imagem final.
                 # Este adaptador NAO afirma acelerar a camera.
-                self.presenter.draw(self.staging,zoom=self.zoom,
-                                    focus_y=self.foco_y)
+                if self.two_pass is not None:
+                    self.two_pass.draw(self.staging,zoom=self.zoom,
+                                       focus_y=self.foco_y)
+                else:
+                    self.presenter.draw(self.staging,zoom=self.zoom,
+                                        focus_y=self.foco_y)
                 current=pygame.display.flip
                 pygame.display.flip=_ORIGINALS['flip']
                 try:
