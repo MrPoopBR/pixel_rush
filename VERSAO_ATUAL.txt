@@ -1,3 +1,5 @@
+PIXEL RUSH v3.277.94-QA-ANDROID-RC — R24: preclear integral dos mapas Neve/Deserto otimizado (160 RGBA idênticos); microfrisos dos sete biomas pré-renderizados sem alterar alfa/colisões; 40 módulos migrados com aliases, CI de pygame-ce/RGBA. Sem APK/AAB, main/DEV/pets/saves/assets protegidos. FPS Android pendente.
+
 PIXEL RUSH v3.277.93-QA-ANDROID-RC — R23 duas frentes: 36 modulos migrados com bytes e imports preservados, benchmark pós-sprites 480 quadros instrumentados e 8 amostras RGBA deterministicas; CI pygame-ce/AST/maratona 7 biomas/2.5D. Sem ganho FPS Android alegado, sem alteracao main/JOGAR/DEV/pets/saves/assets/AAB; sem APK.
 
 PIXEL RUSH v3.277.93-QA-ANDROID-RC — R23 atualização mesma branch: seis novos inimigos exclusivos por bioma, 18 poses pregeradas em cache (< 250 KiB teóricos), spawn a partir de 750 m; Neve conserva Boneco de Neve. Normal modular Neve/Deserto omite fill redundante, condicionado a RGBA 160 amostras e CI bloqueante. Melhoria offline de cada passe NÃO é ganho de FPS do jogo inteiro; Android não homologado. Main, JOGAR, DEV, pets, saves, assets, workflows Android/AAB intactos, sem APK/AAB.

@@ -21,7 +21,7 @@ sys.path.insert(0,str(ROOT))
 os.environ.setdefault("SDL_VIDEODRIVER","dummy")
 os.environ.setdefault("SDL_AUDIODRIVER","dummy")
 p=argparse.ArgumentParser()
-p.add_argument("--candidato",type=int,choices=(0,1,2),required=True)
+p.add_argument("--candidato",type=int,choices=(0,1,2,3),required=True)
 p.add_argument("--output",type=Path,required=True)
 args=p.parse_args()
 import pygame
@@ -52,7 +52,9 @@ def superficie(self,kind="image",foreground_only=False):
             surf,self.travel,self.frame,self.night,self.climate,self.phase,
             foreground_only=foreground_only,map_kind=kind)
     return surf
-Base._city_surface=superficie
+if args.candidato!=3:
+    # Modo 3 exercita o codigo integrado de producao (sem monkeypatch).
+    Base._city_surface=superficie
 from pixelrush_world_prod_v32777 import LivingWorld
 random.seed(20261105)
 BIOMES=("neve","deserto")

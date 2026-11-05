@@ -27,6 +27,7 @@ if os.environ.get('PIXELRUSH_CENARIOS_CLASSICOS') == '1':
     from pixelrush_biomes2_v3127 import ModularBiomeScene, MODULAR_BIOMES
 WIDTH, HEIGHT, TOP, GROUND=450,800,230,730
 DIR=os.path.join(os.path.dirname(__file__),'world_art_v3106')
+_QA_MODULAR_ALL_PRECLEAR=os.environ.get('PIXELRUSH_QA_MODULAR_ALL_PRECLEAR','1')=='1'
 BIOMES=('cidade','neve','deserto','vulcao','floresta','cidade_futurista','ilhas_celestes')
 LAYER_SPEEDS=(.108,.235,.465,.86)
 PROPS={
@@ -192,9 +193,12 @@ class LivingWorld:
         # menor nos seis passes. Biomas modulares e foreground mantem fill.
         # QA793: Neve e Deserto também reescrevem integralmente o
         # destino do mapa normal via scale(low, size, target).
-        # Teste com 160 RGBA bit-idênticos; demais mapas mantêm o fill.
+        # R24: framebuffer modular inteiro e sobrescrito por scale(...,target).
+        # Remove fills dos 6 passes Neve/Deserto, regressao 160 RGBA exatos.
+        # PIXELRUSH_QA_MODULAR_ALL_PRECLEAR=0 restaura fills anteriores.
         if foreground_only or (self.biome!='cidade' and
-                (self.biome not in ('neve','deserto') or kind!='normal')):
+                (self.biome not in ('neve','deserto') or
+                 (kind!='normal' and not _QA_MODULAR_ALL_PRECLEAR))):
             if kind=='normal':
                 surf.fill((128,128,255))
             elif kind=='flow':
