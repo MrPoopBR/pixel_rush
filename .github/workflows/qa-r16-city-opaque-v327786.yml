@@ -44,7 +44,7 @@ jobs:
           grep -q '^android.numeric_version = 327786$' buildozer.spec
           grep -q 'VERSAO = "v3.277.86-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
 
-      - name: Escopo: gameplay, física, main, DEV, saves, pets, recursos e AAB intactos
+      - name: "Escopo: gameplay, física, main, DEV, saves, pets, recursos e AAB intactos"
         shell: bash
         run: |
           set -euo pipefail
@@ -67,7 +67,7 @@ jobs:
           print('Escopo preservado, mudanças apenas QA e versão:',len(changes))
           PY
 
-      - name: Pygame-ce: 260 RGBA por perfil e >4% ganho em mundo completo
+      - name: "Pygame-ce: 260 RGBA por perfil e ganho >4% em mundo completo"
         env:
           SDL_VIDEODRIVER: dummy
           SDL_AUDIODRIVER: dummy
