@@ -1,6 +1,6 @@
 # PIXEL RUSH — jogo 2D em Python / pygame-ce
 
-**Linha de desenvolvimento:** v3.277.94-QA (branch R24 isolada: desempenho, acabamento artístico e migração segura).
+**Linha de desenvolvimento:** v3.277.95-QA (branch R25 isolada: pós-sprites, perfil de Cidade e arte/migração).
 **Base funcional:** v3.277.87-QA. Nao publicar nem compilar AAB a partir desta
 branch sem novos testes de hardware. O Android real usa CPython 3.12, SDL2,
 pygame-ce e Buildozer.
@@ -11,11 +11,13 @@ QA792: classes Moeda, PoolManager e MonitorQualidadeVisual separadas sem mudar s
 
 QA793: tutorial cinematográfico, novos perigos da neve, movimento do pombo/rato, sete biomas, dia/noite de 180s, áudio e controles integrados em QA. Confira `docs/versoes/NOTAS_v3.277.93_QA.md` e `docs/arquitetura/AUDITORIA_R23_v327793.md`. Desempenho Android real ainda não homologado.
 
-R24 migração conservadora: **40 módulos reais** movidos para `src/pixelrush`, com aliases históricos e verificação de conteúdo/identidade. Manifesto em `docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json`. A raiz não fica menor até uma limpeza de imports de Android/CI.
+R24 migração conservadora: **42 módulos reais** movidos para `src/pixelrush`, com aliases históricos e verificação de conteúdo/identidade. Manifesto em `docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json`. A raiz não fica menor até uma limpeza de imports de Android/CI.
 
 **QA793 — desempenho e qualidade extra:** `pixelrush_world_v3130.py` elimina clears repetidos e renderiza FLOW 2.5D direto na Cidade, com 260 RGBA idênticos e sem buffer intermediário; `pixelrush_gamefeel_v3152.py` acompanha jogador com câmera amortecida e sem Surface/frame; fases de aurora/céu aprimoradas; pombo com cadência de asas ligada à velocidade; gráficos completos também na inicialização Android. Testes CI `#42057063672` aprovados em Linux, não homologados no A54.
 
 QA794: A/B RGBA de Neve/Deserto, microfrisos estáticos nos materiais existentes, mais dois módulos QA migrados com aliases. Consulte docs/versoes/NOTAS_v3.277.94_QA.md. Sem APK/AAB nem alegação de FPS Android.
+
+QA795: composição final em framebuffer direto RGB32 seguro, instrumentação detalhada do quinto quadro Cidade, materiais refinados dos sete biomas e 42 módulos reorganizados. Fallback por variáveis QA, changelog em docs/versoes/NOTAS_v3.277.95_QA.md. Sem APK/AAB, main/DEV/saves/pets intactos.
 
 ## Entradas — nao confundir
 

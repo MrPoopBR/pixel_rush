@@ -229,7 +229,7 @@ class QA793(unittest.TestCase):
     def test_biomas_e_codigo_escopo(self):
         engine=(ROOT/"PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py").read_text("utf8")
         ast.parse(engine)
-        self.assertIn('v3.277.94-QA-ANDROID-RC',engine)
+        self.assertIn('v3.277.95-QA-ANDROID-RC',engine)
         self.assertIn('("cidade", "cidade_futurista", "neve", "deserto", "vulcao", "floresta", "ilhas_celestes")',engine)
         self.assertIn('if metros >= 600 and cenario == "cidade_futurista"',engine)
         self.assertIn('inicio_ciclo_frame',engine)
