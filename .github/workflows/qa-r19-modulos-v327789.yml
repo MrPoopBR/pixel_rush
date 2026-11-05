@@ -1,0 +1,205 @@
+name: PIXEL RUSH QA v3.277.89 R19 - organizacao modular RGBA SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r19-mundo-render-qa-organizacao-v3.277.89
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327789-r19-offline
+  cancel-in-progress: true
+
+jobs:
+  r19-modulos:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r19-mundo-render-qa-organizacao-v3.277.89'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout completo da branch isolada
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Preparar pygame-ce 2.5.8 sem SDK Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python -m compileall -q src tests/test_qa_r19_modulos_migrados_v327789.py
+          python -m py_compile main.py JOGAR.py PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py pixelrush_qa_render_v327729.py
+          grep -q '^version = 3.277.89$' buildozer.spec
+          grep -q '^android.numeric_version = 327789$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.89-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+
+      - name: Provar bytes originais de 25 modulos e 74 documentos arquivados
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/auditar_estrutura_v327788.py --check
+          python - <<'PY'
+          import hashlib,json,pathlib,subprocess
+          base='17774a8d9e8b5d9df256ddc4ec1c1effa389ac6a'
+          root=pathlib.Path('.')
+          def old(path):
+              return subprocess.check_output(['git','show',base+':'+path])
+          def gsha(content):
+              return hashlib.sha1(f'blob {len(content)}'.encode()+bytes((0,))+content).hexdigest()
+          m=json.loads((root/'docs/arquitetura/MANIFESTO_MODULOS_v327789.json').read_text())
+          assert len(m['modulos'])==25
+          for item in m['modulos']:
+              source=old(item['antigo'])
+              new=(root/item['novo']).read_bytes()
+              assert source==new and gsha(new)==item['sha'], item['antigo']
+              shim=(root/item['antigo']).read_text()
+              assert 'import_module(' in shim and 'sys.modules[' in shim
+              assert len(shim)<1024, item['antigo']
+          d=json.loads((root/'docs/arquitetura/MANIFESTO_DOCUMENTOS_v327789.json').read_text())
+          assert len(d['arquivos'])==3
+          for item in d['arquivos']:
+              source=old(item['antigo'])
+              new=(root/item['novo']).read_bytes()
+              assert source==new and gsha(new)==item['sha']
+              assert not (root/item['antigo']).exists()
+          m0=json.loads((root/'docs/historico/MANIFESTO_MOVIMENTOS_v327788.json').read_text())
+          assert len(m0['arquivos'])==71
+          assert all((root/item['novo']).is_file() for item in m0['arquivos'])
+          print('QA789 SHA OK: 25 modulos + 3 docs novos + 71 docs QA788')
+          PY
+
+      - name: Protecao contra alteracao de main, saves, pet, DEV, assets e AAB
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess,pathlib
+          base='17774a8d9e8b5d9df256ddc4ec1c1effa389ac6a'
+          root=pathlib.Path('.')
+          names=subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines()
+          core={'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','buildozer.spec',
+                'VERSAO_ATUAL.txt','README.md'}
+          for name in names:
+              assert (name in core or name.startswith((
+                   'src/','docs/','tests/','AUDITORIA_GPU_ANDROID_v3.277.22.md',
+                   'CHECKLIST_ANDROID.md','INTEGRACAO_ANDROID_RC_REVISAO.md',
+                   '.github/workflows/qa-r19-')) or
+                   name.startswith('pixelrush_city2_v') or
+                   name.startswith(('pixelrush_citylife_v','pixelrush_floresta_v',
+                   'pixelrush_rotacao_biomas_v','pixelrush_world_prod_v',
+                   'pixelrush_world_v3150.py','pixelrush_ceu_v',
+                   'pixelrush_atmosfera_v','pixelrush_renderfx_v',
+                   'pixelrush_render_v','pixelrush_luz_materiais_v',
+                   'pixelrush_luz_skins_v','pixelrush_visual_premium_v'))),name
+          for path in ('main.py','JOGAR.py','pixelrush_qa_render_v327729.py',
+                       'pixelrush_city2_v3118.py','pixelrush_city2_v3122.py',
+                       'pixelrush_cenarios_v398.py',
+                       'pixelrush_qa_gles_exact_v327736.py',
+                       'pixelrush_qa_city_tiles_v327749.py',
+                       'QA_CHANGELOG_v327782.md','QA_TRACKER_32_v327782.md'):
+              assert old:=subprocess.check_output(['git','show',base+':'+path])
+              assert old==root.joinpath(path).read_bytes(),path
+          before=subprocess.check_output(['git','show',base+':PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'])
+          after=root.joinpath('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_bytes()
+          assert before.replace(b'VERSAO = "v3.277.88-QA-ANDROID-RC"',
+                                b'VERSAO = "v3.277.89-QA-ANDROID-RC"')==after
+          spec=subprocess.check_output(['git','show',base+':buildozer.spec'])
+          assert spec.replace(b'version = 3.277.88',b'version = 3.277.89').replace(
+              b'android.numeric_version = 327788',b'android.numeric_version = 327789')==root.joinpath('buildozer.spec').read_bytes()
+          assert not any(name.startswith(('assets/','assets_android/','assets_i18n_v3247/',
+              'world_art_v3106/','world_parallax_v3112/','p4a-recipes/')) for name in names)
+          assert not any(name.startswith('.github/workflows/') and not name.startswith(
+              '.github/workflows/qa-r19-') for name in names)
+          print('QA789 escopo aprovado:',len(names),'arquivos. main/DEV/AAB/assets intactos')
+          PY
+
+      - name: Testar 25 aliases, classes, estado QA e rollback
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r19_modulos_migrados_v327789.py
+          python tests/test_qa_r18_estrutura_v327788.py
+
+      - name: Executar e comparar 260 buffers RGBA QA788 contra QA789
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/qa788_original" 17774a8d9e8b5d9df256ddc4ec1c1effa389ac6a
+          export QA788_PATH="$RUNNER_TEMP/qa788_original"
+          export QA789_PATH="$GITHUB_WORKSPACE"
+          python - <<'PY'
+          import json,os,pathlib,subprocess,sys,tempfile,statistics
+          a=pathlib.Path(os.environ['QA788_PATH'])
+          b=pathlib.Path(os.environ['QA789_PATH'])
+          script='qa_a54/benchmark_city_technical_v327787.py'
+          with tempfile.TemporaryDirectory() as tmp:
+              data={}
+              for light in (0,1):
+                  data[light]={}
+                  for label,root in (('original',a),('modular',b)):
+                      dest=pathlib.Path(tmp)/f'{label}_{light}.json'
+                      env=os.environ.copy()
+                      env['PYTHONPATH']=str(root)
+                      subprocess.run([sys.executable,str(root/script),
+                          '--limit','20','--light',str(light),
+                          '--opaque','1','--tech','1','--output',str(dest)],
+                          check=True,cwd=root,env=env,timeout=120,
+                          stdout=subprocess.DEVNULL)
+                      data[light][label]=json.loads(dest.read_text('utf8'))
+                  first,second=data[light]['original'],data[light]['modular']
+                  assert first['quadros_rgba']==second['quadros_rgba']==260
+                  assert first['hashes_rgba']==second['hashes_rgba'],f'RGBA v788/v789 divergiu no modo {light}'
+                  assert first['periodo_redesenho_preservado']==second['periodo_redesenho_preservado']==5
+                  assert first['cache_maximo_observado']==second['cache_maximo_observado']
+                  assert first['opaque_stats']['chunks_hidden']==second['opaque_stats']['chunks_hidden']
+                  for k in ('clip_geo_mat','clip_fxmask'):
+                      assert first['tech_stats'][k]==second['tech_stats'][k],k
+                  old=first['timings']['fifth_total']['p50_ms']
+                  new=second['timings']['fifth_total']['p50_ms']
+                  # Host Linux tem variacao de scheduler; evita regressao grosseira
+                  # sem alegar ganho de performance por mera organizacao.
+                  assert new<old*1.35+0.2,(light,old,new)
+                  print('QA789 PERFIL',light,'RGBA 260/260; 5o quadro',
+                        old,new,'ms; nenhuma diferenca visual')
+          PY
+
+      - name: Regressao QA785 QA786 QA787 e viewport
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r17_city_technical_v327787.py
+          python tests/test_qa_r16_city_opaque_v327786.py
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+
+      - name: Publicar somente documentos e evidencias offline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-v327789-r19-organizacao-offline
+          path: |
+            docs/versoes/NOTAS_v3.277.89_QA.md
+            docs/arquitetura/MANIFESTO_MODULOS_v327789.json
+            docs/arquitetura/MANIFESTO_DOCUMENTOS_v327789.json
+            docs/arquitetura/QA_RAIZ_PROTEGIDA_v327789.md
+          if-no-files-found: warn
+          retention-days: 14
