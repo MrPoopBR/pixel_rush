@@ -5756,7 +5756,7 @@ class ParallaxBackground:
         self.clima_tipo = "limpo"
         self._usa_bioma_vivo = True
         self._mundo_cenario = 0.0
-        self.world = LivingWorld(self.cenario, lightweight=bool(E_ANDROID and self.cenario in ('cidade','neve','deserto','floresta','vulcao','cidade_futurista','ilhas_celestes')))
+        self.world = LivingWorld(self.cenario, lightweight=False)  # QA793: único perfil gráfico completo, inclusive no Android
         self._reiniciar_particulas_ambiente()
 
     def set_cenario(self, cenario):
@@ -5775,7 +5775,7 @@ class ParallaxBackground:
         self._desloc_arte_fundo = 0.0
         self._mundo_cenario = 0.0
         self.world.switch(cenario)
-        self.world.lightweight = bool(E_ANDROID and cenario in ('cidade','neve','deserto','floresta','vulcao','cidade_futurista','ilhas_celestes'))
+        self.world.lightweight = False  # Qualidade completa desde a troca do bioma
         self._reiniciar_particulas_ambiente()
 
     def tem_arte_externa(self):
