@@ -36,7 +36,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends xvfb libegl1 libgl1-mesa-dri libgles2 libgl1
           python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
           cc -O3 -shared -fPIC -std=c11 qa_native/camera_crop_native_v327741.c -o /tmp/libpixelrush_camera_crop_v327741.so
-          python -m py_compile pixelrush_qa_gles_present_v327735.py pixelrush_qa_gles_bridge_v327749.py pixelrush_qa_gpu_preflight_v327780.py pixelrush_qa_gles_pbo_v327742.py pixelrush_qa_camera_native_auto_v327742.py pixelrush_qa_incremental_scene_v327750.py tests/test_qa_r13_four_backends_v327783.py
+          python -m py_compile pixelrush_qa_gles_present_v327735.py pixelrush_qa_gles_bridge_v327749.py pixelrush_qa_gpu_preflight_v327780.py pixelrush_qa_gles_pbo_v327742.py pixelrush_qa_camera_native_auto_v327742.py pixelrush_qa_incremental_scene_v327750.py tests/test_qa_r13_four_backends_v327783.py tests/test_qa_r13_fullscreen_guard_v327783.py
           grep -q '^version = 3.277.83$' buildozer.spec
           grep -q '^android.numeric_version = 327783$' buildozer.spec
           grep -q 'VERSAO = "v3.277.83-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
@@ -77,6 +77,7 @@ jobs:
           PIXELRUSH_QA_GLES_PBO=0 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_gles_exact_v327776.py
           PIXELRUSH_QA_GLES_PBO=1 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_gles_pbo_v327742.py
           PIXELRUSH_QA_GLES_PBO=1 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_gpu_preflight_v327780.py
+          PIXELRUSH_QA_GLES_PBO=1 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_r13_fullscreen_guard_v327783.py
           python - <<'PY'
           import json
           e=json.load(open('qa-gles-exact-v327736.json',encoding='utf8'))
