@@ -1,0 +1,90 @@
+{
+  "schema": "pixelrush.qa.r20.v327790",
+  "origem": "c968515568f02375565fe132ba35c1987bd88df2",
+  "modulos_ativos": [
+    {
+      "anterior": "pixelrush_hud_v3131.py",
+      "canonico": "src/pixelrush/ui/hud/legacy_v3131.py",
+      "git_blob": "f1131508c642f05fff115c288419a6ded8c70b77"
+    },
+    {
+      "anterior": "pixelrush_hud_v3133.py",
+      "canonico": "src/pixelrush/ui/hud/legacy_v3133.py",
+      "git_blob": "77f801112069103bb3c168b852753d8e969e77d3"
+    },
+    {
+      "anterior": "pixelrush_tutorial_textos_prod_v32773.py",
+      "canonico": "src/pixelrush/ui/tutorial/texts_v32773.py",
+      "git_blob": "2dab30676bed1d405b7916b9bc1ddfa8fb287e3f"
+    },
+    {
+      "anterior": "pixelrush_tutorial_i18n_v3277.py",
+      "canonico": "src/pixelrush/ui/tutorial/i18n_v3277.py",
+      "git_blob": "820685cc542ef0c3ac28eb8ae593e933ae5c4387"
+    },
+    {
+      "anterior": "pixelrush_tutorial_corrida_v3275.py",
+      "canonico": "src/pixelrush/ui/tutorial/lesson_v3275.py",
+      "git_blob": "65faccedbaf7e80969d6c9129bf80de27b67626d"
+    },
+    {
+      "anterior": "pixelrush_controles_v3171.py",
+      "canonico": "src/pixelrush/systems/controls_v3171.py",
+      "git_blob": "58c8db5a6cbd3e1dddbd5dc4c4b44ffd615649ca"
+    },
+    {
+      "anterior": "pixelrush_desafios_percurso_v3212.py",
+      "canonico": "src/pixelrush/systems/challenges_v3212.py",
+      "git_blob": "907bf4ee2e2bc59d178bf47c9372213a31967d01"
+    },
+    {
+      "anterior": "pixelrush_skins_v3188.py",
+      "canonico": "src/pixelrush/entities/player/skins_v3188.py",
+      "git_blob": "7be9185026441c5374b23e568dfa80fd628de1c1"
+    }
+  ],
+  "prototipos_arquivados": [
+    {
+      "anterior": "prototipo_tutorial_v3264.py",
+      "arquivo": "archive/prototipos_tutorial/prototipo_tutorial_v3264.py",
+      "git_blob": "ed1d2ec7c935f30f64e6400e910953db0b348c89"
+    },
+    {
+      "anterior": "pixelrush_apresentacao_v3264.py",
+      "arquivo": "archive/prototipos_tutorial/pixelrush_apresentacao_v3264.py",
+      "git_blob": "3ec1c4d8c4bb498f06695b90b9d4859f1cf34625"
+    },
+    {
+      "anterior": "prototipo_tutorial_v3270.py",
+      "arquivo": "archive/prototipos_tutorial/prototipo_tutorial_v3270.py",
+      "git_blob": "38b599379fcd2ae72929d703009f620352c245a2"
+    },
+    {
+      "anterior": "pixelrush_apresentacao_v3270.py",
+      "arquivo": "archive/prototipos_tutorial/pixelrush_apresentacao_v3270.py",
+      "git_blob": "dce6457754abcf82858d45e27e1686337ff85378"
+    },
+    {
+      "anterior": "prototipo_tutorial_v3271.py",
+      "arquivo": "archive/prototipos_tutorial/prototipo_tutorial_v3271.py",
+      "git_blob": "6f6f7ca71217c2cfaf8a0aff1f5176dde4c9764e"
+    },
+    {
+      "anterior": "pixelrush_apresentacao_v3271.py",
+      "arquivo": "archive/prototipos_tutorial/pixelrush_apresentacao_v3271.py",
+      "git_blob": "df3c85a43e56d224ab2b627bb9d949dc96610a48"
+    },
+    {
+      "anterior": "prototipo_tutorial_v3272.py",
+      "arquivo": "archive/prototipos_tutorial/prototipo_tutorial_v3272.py",
+      "git_blob": "3976316a7cd33511f52d4525d1d5d8f9680cae11"
+    },
+    {
+      "anterior": "pixelrush_apresentacao_v3272.py",
+      "arquivo": "archive/prototipos_tutorial/pixelrush_apresentacao_v3272.py",
+      "git_blob": "00664bf78015354e9a14a3cc1c7b5227b21c76ce"
+    }
+  ],
+  "arquivos_pinados": "QA offline preflights de SHA permanecem intactos",
+  "rootReductions": 8
+}
