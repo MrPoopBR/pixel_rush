@@ -56,3 +56,9 @@ Módulos legados existem por imports indiretos e verificações SHA de preflight
 
 ## Lacunas e limites
 Não houve troca por outro renderizador 2.5D, reimplementação cinematográfica de todas as câmeras nem polimento completo de cada sprite. Mudanças de física/intensidade e estética na corrida são intencionais por solicitação, portanto RGBA antigo de **toda a tela** não deve ser igual à QA792. Os gates usam estabilidade deterministicamente local e preservação de caminhos/arquivos não solicitados. Apenas o Galaxy A54 pode comprovar FPS, bateria, calor e gestos Android reais.
+
+## Evidências de CI R23
+- <https://github.com/MrPoopBR/pixel_rush/actions/runs/42052127948> — **SUCCESS** em Python 3.13 + pygame-ce 2.5.8, head `eeb2a98fb0cbc2e97875d05a1cb23437dc8113b9`.
+- Motor completo importado com SDL dummy, mantendo `main()` sem execução e sem ler/gravar saves de partida; teste de AST/sintaxe, módulos canônicos e compatibilidade.
+- **8 testes dinâmicos** de tutorial/biomas (inclui swipe-down em dois tempos no mesmo dedo, 300 ticks da introdução, limpeza de partículas de morte, progressão das quatro lições extras, ciclo de 10.800 ticks, RGBA reproduzível e três alturas de bolas de neve) e **2 testes** de 21 migrações; regressões QA792/790/789 executadas em worktree histórico.
+- Benchmark Cidade 2.5D: 260 buffers RGBA produzidos, intervalo periódico de desenho de cinco quadros preservado. **Não há** ganho de FPS comprovado contra hardware Android; não confundir teste com homologação.

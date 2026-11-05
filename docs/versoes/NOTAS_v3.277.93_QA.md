@@ -19,7 +19,7 @@
 - Reescrita de alto desempenho do mundo 2.5D preservando qualidade visual; benchmarks R23 não substituem análise no A54.
 - Migração em massa de todos os módulos antigos e exclusão definitiva dos arquivos inúteis: caminho de imports e preflights ainda pinam muitos.
 - Refinamento final de toda a arte, animações de corrida e câmera cinematográfica, cenários em todos os biomas e novos adversários exclusivos para cada um; nesta versão há melhorias pontuais, não revisão artística integral.
-- Tutorial com todas as dez etapas aprovado *em hardware*; a fase de swipe-down em duas etapas continua ancorada no sistema legado que salta automaticamente e solicita a descida.
+- Tutorial em dez etapas ainda **não homologado em hardware**; a fase de swipe-down agora contém duas pausas reais: pulo longo comandado, seguida de descida no ar no mesmo contato. O teste sintético de input FINGERDOWN → FINGERMOTION passou, mas não substitui verificação de gestos em Android.
 - Testes de justiça/alcance dos baús, letras, densidade de perigos e controles multifinger em Android real. Sem alegar zero mortes e zero bugs sem validação.
 
 ## Proteções de escopo e evidência
@@ -28,3 +28,9 @@
 ## Migração adicional integrada e auditável (R23)
 Foram migrados **21 módulos históricos** adicionais, com conteúdo byte-idêntico ao commit QA792 e aliases `sys.modules` nos 21 caminhos originais. A raiz não perdeu arquivos físicos porque imports Android, CI e módulos históricos ainda usam esses nomes. O manifesto completo está em `docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json`, com teste de identidade/importação. Inclui áudio, corredores, moedas, cenas, cinema, sombras, geometria, pista, i18n, sequências e física de áudio. NÃO mover `pixelrush_inimigos_v3221.py`, `pixelrush_profiler_v3204.py` ou `pixelrush_avisos_raros_i18n_v3247.py` indiscriminadamente: usam `__file__` para recursos e telemetria.
 
+
+## Evidências de CI R23
+- <https://github.com/MrPoopBR/pixel_rush/actions/runs/42052127948> — **SUCCESS** em Python 3.13 + pygame-ce 2.5.8, head `eeb2a98fb0cbc2e97875d05a1cb23437dc8113b9`.
+- Motor completo importado com SDL dummy, mantendo `main()` sem execução e sem ler/gravar saves de partida; teste de AST/sintaxe, módulos canônicos e compatibilidade.
+- **8 testes dinâmicos** de tutorial/biomas (inclui swipe-down em dois tempos no mesmo dedo, 300 ticks da introdução, limpeza de partículas de morte, progressão das quatro lições extras, ciclo de 10.800 ticks, RGBA reproduzível e três alturas de bolas de neve) e **2 testes** de 21 migrações; regressões QA792/790/789 executadas em worktree histórico.
+- Benchmark Cidade 2.5D: 260 buffers RGBA produzidos, intervalo periódico de desenho de cinco quadros preservado. **Não há** ganho de FPS comprovado contra hardware Android; não confundir teste com homologação.
