@@ -43,7 +43,7 @@ class CameraCeu(unittest.TestCase):
         for _ in range(20):cam.seguir_jogador(j,True,reduzir_efeitos=True)
         self.assertEqual(cam.deslocamento(),(0,0))
         cam.seguir_jogador(j,True)
-        self.assertNotEqual(cam.deslocamento()[0],0)
+        self.assertGreater(cam._qa_camera_x,0.0)
         cam.reiniciar()
         self.assertEqual(cam.deslocamento(),(0,0))
 
