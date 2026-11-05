@@ -8,6 +8,9 @@ from array import array
 import math
 import random
 import pygame
+import os
+# R24: opt-out de reutilizacao de quadros RGB32 do replay.
+_QA_R24_REPLAY_RECYCLE=os.environ.get('PIXELRUSH_QA_R24_REPLAY_RECYCLE','1')=='1'
 
 BIOMES = ('cidade', 'neve', 'deserto', 'vulcao', 'floresta',
           'cidade_futurista', 'ilhas_celestes')
@@ -30,6 +33,7 @@ class ReplayCinematografico:
         self.indice = 0
         self.ticks_exibicao = 0
         self.ultima_amostra = -999
+        self._r24_reutilizacoes = 0
         self._fonte = None
 
     def limpar(self):
@@ -39,12 +43,36 @@ class ReplayCinematografico:
         self.indice = 0
         self.ticks_exibicao = 0
         self.ultima_amostra = -999
+        self._r24_reutilizacoes = 0
 
     def capturar(self, superficie, tick):
         if self.congelado or tick - self.ultima_amostra < self.INTERVALO_TICKS:
             return
         self.ultima_amostra = int(tick)
         # Não inclui canvas do Game Over. Captura a cena virtual já composta.
+        # Depois de 72 amostras, a mais antiga sera descartada.
+        # Reciclar a Surface RGB opaca: mesmos pixels e ordem do deque,
+        # sem malloc/free de mais um buffer 225x400 a cada 5 ticks.
+        if (_QA_R24_REPLAY_RECYCLE and len(self.buffer)==self.MAX_AMOSTRAS
+                and not (superficie.get_flags() & pygame.SRCALPHA)
+                and superficie.get_colorkey() is None
+                and superficie.get_alpha() in (None,255)):
+            antigo=self.buffer[0]
+            if (antigo.get_size()==self.TAMANHO
+                    and antigo.get_bitsize()==superficie.get_bitsize()
+                    and antigo.get_masks()==superficie.get_masks()
+                    and not (antigo.get_flags()&pygame.SRCALPHA)
+                    and antigo.get_colorkey() is None
+                    and antigo.get_alpha() in (None,255)):
+                try:
+                    pygame.transform.scale(superficie,self.TAMANHO,antigo)
+                except (pygame.error,ValueError,TypeError):
+                    pass  # fallback abaixo preserva caminho historico
+                else:
+                    self.buffer.popleft()
+                    self.buffer.append(antigo)
+                    self._r24_reutilizacoes+=1
+                    return
         self.buffer.append(pygame.transform.scale(superficie, self.TAMANHO))
 
     def iniciar(self):
