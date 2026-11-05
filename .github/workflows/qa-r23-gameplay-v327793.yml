@@ -111,7 +111,8 @@ jobs:
                    "pixelrush_world_v3130.py",
                    "pixelrush_gamefeel_v3152.py",
                    "qa_a54/benchmark_modular_preclear_v327793.py",
-                   "qa_a54/benchmark_world_marathon_v327793.py"})
+                   "qa_a54/benchmark_world_marathon_v327793.py",
+                   "qa_a54/benchmark_fabrik_batch_v327793.py"})
           illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
           assert not illegal,illegal
           forbidden=("main.py","JOGAR.py","requirements.txt",".gitignore")
@@ -216,6 +217,29 @@ jobs:
           assert d["quality"]=="completo" and len(d["biomes"])==7
           print("R23 7 biomas: 140 quadros, 280 RGBA, memória e tempos por passe")
           PY
+      - name: Laboratorio A/B deformacao FABRIK de props, 180 RGBA
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_fabrik_batch_v327793.py --candidato 0 --output qa_a54/qa793_fabrik_baseline.json
+          python qa_a54/benchmark_fabrik_batch_v327793.py --candidato 1 --output qa_a54/qa793_fabrik_candidate.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path("qa_a54/qa793_fabrik_baseline.json").read_text("utf8"))
+          b=json.loads(Path("qa_a54/qa793_fabrik_candidate.json").read_text("utf8"))
+          same=a["hashes_rgba"]==b["hashes_rgba"]
+          print("QA793 FABRIK RGBA",sum(len(v) for v in a["hashes_rgba"].values()),
+                "idênticos" if same else "DIVERGENTES")
+          for biome in a["biomes"]:
+              x=a["timings"][biome]["p50_ms"]
+              y=b["timings"][biome]["p50_ms"]
+              print(biome,"p50 baseline",x,"candidate",y,
+                    "delta %",round(100*(y/x-1),2) if x else "n/a")
+          Path("qa_a54/qa793_fabrik_diagnostico.json").write_text(
+              json.dumps({"rgba_iguais":same,"apto_para_integrar":same and all(
+                  b["timings"][biome]["p50_ms"]<a["timings"][biome]["p50_ms"]
+                  for biome in a["biomes"])},indent=2),encoding="utf8")
+          PY
       - name: Arquivar laudo sem APK
         uses: actions/upload-artifact@v4
         if: always()
@@ -233,4 +257,7 @@ jobs:
             qa_a54/qa793_modular_candidate.json
             qa_a54/qa793_modular_diagnostico.json
             qa_a54/qa793_seven_biomes.json
+            qa_a54/qa793_fabrik_baseline.json
+            qa_a54/qa793_fabrik_candidate.json
+            qa_a54/qa793_fabrik_diagnostico.json
           retention-days: 14
