@@ -72,3 +72,9 @@ Foram migrados **21 módulos históricos** adicionais, com conteúdo byte-idênt
 - tests/test_qa_r23_zoom_direto_v327793.py: novo gate de 500 quadros RGBA idênticos ao legado + 4 fallbacks e 3 casos sem zoom; adicionado ao CI R23 sem compilar Android.
 - Benchmark local pygame-ce 2.5.8 Python 3.13 SDL dummy: 500 RGBA idênticos; p50 do zoom original 0,4234 ms, novo 0,1848 ms, cerca de 56,3% de queda apenas nessa operação isolada. Não é ganho de FPS total nem medição no A54. CI remoto ainda deve ser verificado.
 - Não declarar eliminação dos 64,7 ms pós-sprites nem homologação de hardware sem relatório real.
+
+
+## R23 — LAB trem técnico oculto (candidato DESATIVADO por padrão)
+- Auditoria encontra desenho do trem de fundo também nos mapas NORMAL/FLOW do quinto quadro, mesmo quando a camada near totalmente opaca já foi verificada pelo QA786. Protótipo isolado: `PIXELRUSH_QA_SKIP_HIDDEN_TRAIN=1`, estritamente condicionado ao marcador de validação por atlas/identidade/formato do QA786. Os mapas image, material, geometry, fxmask e física permanecem intactos.
+- Três benchmarks independentes com a Cidade real e 260 RGBA, controle vs candidato e fallback QA786 desabilitado; exigência de igualdade de hashes e prova de redução de chamadas do trem. O protótipo só será habilitado após verificar o CI e ganho real no tempo isolado; sem alegar FPS Android.
+- Nenhum APK/AAB compilado, nenhuma edição de main/DEV/pets/saves/assets/workflows Android.

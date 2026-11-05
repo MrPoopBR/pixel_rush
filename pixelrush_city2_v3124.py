@@ -3,6 +3,8 @@ from pixelrush_city2_v3123 import CityPilotScene as CidadeAnterior
 from pixelrush_city2_v3115 import DEFAULT_NORMAL, NEUTRAL_FLOW
 import os
 import pygame
+# QA R23: candidato fechado ate completar A/B RGBA e desempenho.
+_QA_SKIP_HIDDEN_TRAIN=os.environ.get('PIXELRUSH_QA_SKIP_HIDDEN_TRAIN','0')=='1'
 # Configurada no boot QA; nenhum getenv no quinto quadro.
 _QA_DIRECT_NIGHT_MULT=os.environ.get('PIXELRUSH_QA_DIRECT_NIGHT_MULT','1')=='1'
 # QA754: near_tiles e consumido somente por image/fxmask (luzes); em
@@ -62,7 +64,11 @@ class CityPilotScene(CidadeAnterior):
                 for x,variant,flip in visible:
                     self._render_chunk(target,variant,flip,int(x),frame,night,climate,phase,map_kind)
                 if layer.name=='mid' and not foreground_only:
-                    self._draw_train(target,travel,frame,night,map_kind)
+                    # Skip somente se QA786 confirmou near opaco sobre todos
+                    # os pixels dos mapas NORMAL/FLOW no render atual.
+                    if not (_QA_SKIP_HIDDEN_TRAIN and map_kind in ('normal','flow')
+                            and getattr(self,'_qa_opaque_maps_pass',None)==map_kind):
+                        self._draw_train(target,travel,frame,night,map_kind)
                     if map_kind=='image':
                         self.life.draw_bridge_life(target,travel,night,frame,quality)
                         self.life.draw_suspended_cables(target,travel,frame,quality)

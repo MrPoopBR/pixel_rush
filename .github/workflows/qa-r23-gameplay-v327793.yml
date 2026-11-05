@@ -115,7 +115,9 @@ jobs:
                    "qa_a54/benchmark_world_marathon_v327793.py",
                    "qa_a54/benchmark_fabrik_batch_v327793.py",
                    "qa_a54/benchmark_postsprites_v327793.py",
-                   "pixelrush_profissional_v3108.py"})
+                   "pixelrush_profissional_v3108.py",
+                   "pixelrush_city2_v3124.py",
+                   "qa_a54/benchmark_hidden_train_v327793.py"})
           illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
           assert not illegal,illegal
           forbidden=("main.py","JOGAR.py","requirements.txt",".gitignore")
@@ -208,6 +210,28 @@ jobs:
               json.dumps({"rgba_iguais":same,"quantidade":len(a["rgba_hashes"])},
                          indent=2),encoding="utf8")
           PY
+      - name: LAB R23 trem opaco NORMAL/FLOW com hashes RGBA
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_hidden_train_v327793.py --limit 20 --light 0 --opaque 1 --tech 1 --skip-train 0 --output qa_a54/qa793_train_base.json
+          python qa_a54/benchmark_hidden_train_v327793.py --limit 20 --light 0 --opaque 1 --tech 1 --skip-train 1 --output qa_a54/qa793_train_candidate.json
+          python qa_a54/benchmark_hidden_train_v327793.py --limit 20 --light 0 --opaque 0 --tech 1 --skip-train 1 --output qa_a54/qa793_train_no_audit.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('qa_a54')
+          a=json.loads((root/'qa793_train_base.json').read_text())
+          b=json.loads((root/'qa793_train_candidate.json').read_text())
+          c=json.loads((root/'qa793_train_no_audit.json').read_text())
+          assert a['hashes_rgba']==b['hashes_rgba'] and a['quadros_rgba']==b['quadros_rgba']==260
+          assert a['train_calls'].get('normal',0)>0 and a['train_calls'].get('flow',0)>0
+          assert b['train_calls'].get('normal',0)==b['train_calls'].get('flow',0)==0
+          assert c['train_calls'].get('normal',0)>0 and c['train_calls'].get('flow',0)>0
+          for name in ('normal','flow','fifth_total'):
+              x=a['timings'][name]['p50_ms'];y=b['timings'][name]['p50_ms']
+              print('QA793 train',name,'p50 old/new',x,y,'delta %',round(100*(y/x-1),2) if x else 'N/A')
+          print('QA793 260 hashes RGBA iguais e fallback sem QA786 confirmado')
+          PY
       - name: Maratona R23 de 140 quadros em 7 biomas, sem reduzir graficos
         run: |
           set -euo pipefail
@@ -280,4 +304,7 @@ jobs:
             qa_a54/qa793_fabrik_candidate.json
             qa_a54/qa793_fabrik_diagnostico.json
             qa_a54/qa793_postsprites.json
+            qa_a54/qa793_train_base.json
+            qa_a54/qa793_train_candidate.json
+            qa_a54/qa793_train_no_audit.json
           retention-days: 14
