@@ -1,0 +1,129 @@
+name: PIXEL RUSH QA v3.277.91 R21 - classes e auditoria SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r21-auditoria-classes-motor-v3.277.91
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327791-classes-offline
+  cancel-in-progress: true
+
+jobs:
+  qa-r21-classes:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r21-auditoria-classes-motor-v3.277.91'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout com historico QA790
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python e pygame-ce
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Instalar dependencias e compilar sintaxe
+        run: |
+          set -euo pipefail
+          python -m pip install pygame-ce==2.5.8 numpy==2.3.0
+          python -m compileall -q src tests/test_qa_r21_classes_v327791.py
+          python -m py_compile PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py main.py JOGAR.py
+          grep -q '^version = 3.277.91$' buildozer.spec
+          grep -q '^android.numeric_version = 327791$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.91-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+      - name: Testes de classes, motor AST, RNG e RGBA pygame
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r21_classes_v327791.py
+          python tests/test_qa_r20_motor_modulos_v327790.py
+          python tests/test_qa_r19_modulos_migrados_v327789.py
+          python tests/test_qa_r18_estrutura_v327788.py
+          python tools/auditar_estrutura_v327788.py --check
+      - name: Guard de escopo QA790 e dependencias Android
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          base="854f3906d31f15f4d4fe09d8212535ad835fa654"
+          changed=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          expected={
+              "PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py","buildozer.spec",
+              "VERSAO_ATUAL.txt","README.md",
+              "src/pixelrush/ui/i18n_fonts.py","src/pixelrush/entities/particles.py",
+              "docs/arquitetura/INVENTARIO_R21_v327791.md",
+              "docs/arquitetura/MANIFESTO_CLASSES_MOTOR_v327791.json",
+              "docs/versoes/NOTAS_v3.277.91_QA.md",
+              "tests/test_qa_r21_classes_v327791.py",
+              ".github/workflows/qa-r21-classes-v327791.yml",
+          }
+          assert changed==expected,(changed-expected,expected-changed)
+          def old(p):return subprocess.check_output(["git","show",base+":"+p])
+          for p in ("main.py","JOGAR.py",".gitignore","requirements.txt"):
+              assert old(p)==open(p,"rb").read(),p
+          for p in ("buildozer.spec",):
+              b=old(p).replace(b"version = 3.277.90",b"version = 3.277.91")
+              b=b.replace(b"android.numeric_version = 327790",b"android.numeric_version = 327791")
+              assert b==open(p,"rb").read(),p
+          print("QA791: escopo isolado, entradas Android e receita de build preservados")
+          PY
+      - name: RGBA Cidade QA790 vs QA791, normal e leve
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/qa790_base" 854f3906d31f15f4d4fe09d8212535ad835fa654
+          export QA790_PATH="$RUNNER_TEMP/qa790_base"
+          export QA791_PATH="$GITHUB_WORKSPACE"
+          python - <<'PY'
+          import json,os,pathlib,subprocess,sys,tempfile
+          a=pathlib.Path(os.environ["QA790_PATH"]); b=pathlib.Path(os.environ["QA791_PATH"])
+          script="qa_a54/benchmark_city_technical_v327787.py"
+          with tempfile.TemporaryDirectory() as tmp:
+              for light in (0,1):
+                  outputs={}
+                  for label,root in (("qa790",a),("qa791",b)):
+                      out=pathlib.Path(tmp)/f"{light}_{label}.json"
+                      env=os.environ.copy();env["PYTHONPATH"]=str(root)
+                      subprocess.run([sys.executable,str(root/script),
+                          "--limit","20","--light",str(light),"--opaque","1","--tech","1",
+                          "--output",str(out)],check=True,cwd=root,env=env,timeout=120,
+                          stdout=subprocess.DEVNULL)
+                      outputs[label]=json.loads(out.read_text("utf8"))
+                  x,y=outputs["qa790"],outputs["qa791"]
+                  assert x["quadros_rgba"]==y["quadros_rgba"]==260
+                  assert x["hashes_rgba"]==y["hashes_rgba"]
+                  assert x["periodo_redesenho_preservado"]==y["periodo_redesenho_preservado"]==5
+                  print(f"QA791 perfil {light}: 260 buffers RGBA iguais; quinto quadro valido.")
+          PY
+      - name: Regressao Cidade/viewport
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r17_city_technical_v327787.py
+          python tests/test_qa_r16_city_opaque_v327786.py
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+      - name: Guardar evidencias sem APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-v327791-r21-auditoria-offline
+          path: |
+            docs/versoes/NOTAS_v3.277.91_QA.md
+            docs/arquitetura/INVENTARIO_R21_v327791.md
+            docs/arquitetura/MANIFESTO_CLASSES_MOTOR_v327791.json
+          retention-days: 14

@@ -213,7 +213,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.90-QA-ANDROID-RC"
+VERSAO = "v3.277.91-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -2354,53 +2354,7 @@ _FONTES_ORIGINAIS_I18N = (fonte, fonte_pequena, fonte_missoes, fonte_grande, fon
 _IDIOMA_ATUAL_I18N = "pt_BR"
 
 
-class _FonteHindiComFallback:
-    """Mescla trechos Devanagari e latinos para preservar nomes/números sem fontes enormes."""
-    __slots__ = ("deva", "latina")
-
-    def __init__(self, deva, latina):
-        self.deva, self.latina = deva, latina
-
-    def _partes(self, texto):
-        if not texto:
-            return []
-        grupos = []
-        atual = ""
-        indice = None
-        for caractere in texto:
-            deva = '\u0900' <= caractere <= '\u097f'
-            if atual and deva != indice:
-                grupos.append((atual, indice))
-                atual = ""
-            atual += caractere
-            indice = deva
-        grupos.append((atual, indice))
-        return grupos
-
-    def size(self, texto):
-        partes = self._partes(str(texto))
-        larguras = [ (self.deva if d else self.latina).size(t) for t, d in partes ]
-        return (sum(w for w, h in larguras), max((h for w, h in larguras), default=self.latina.get_height()))
-
-    def render(self, texto, antialias, cor):
-        import pygame
-        partes = [(self.deva if d else self.latina).render(t, antialias, cor)
-                  for t, d in self._partes(str(texto))]
-        largura = sum(s.get_width() for s in partes)
-        altura = max((s.get_height() for s in partes), default=self.latina.get_height())
-        superficie = pygame.Surface((max(1, largura), max(1, altura)), pygame.SRCALPHA)
-        x = 0
-        for segmento in partes:
-            superficie.blit(segmento, (x, max(0, (altura-segmento.get_height()) // 2)))
-            x += segmento.get_width()
-        return superficie
-
-    def get_height(self):
-        return max(self.deva.get_height(), self.latina.get_height())
-
-    def get_linesize(self):
-        return max(self.deva.get_linesize(), self.latina.get_linesize())
-
+from src.pixelrush.ui.i18n_fonts import _FonteHindiComFallback
 
 def aplicar_fontes_localizadas(dados):
     """Executado na inicialização e na alteração de idioma, nunca no loop."""
@@ -2429,31 +2383,7 @@ def aplicar_fontes_localizadas(dados):
 # Somente fontes existentes, nenhum objeto criado no loop após cache inicial.
 _PROXY_FONTES_SECUNDARIAS = {}
 
-class _FontePainelLocalizado:
-    __slots__ = ('original', 'idioma')
-
-    def __init__(self, original, idioma):
-        self.original = original
-        self.idioma = idioma
-
-    def _traduzir(self, texto):
-        return _i18n247.localizar_literal(str(texto), self.idioma)
-
-    def size(self, texto):
-        return self.original.size(self._traduzir(texto))
-
-    def render(self, texto, antialias, cor, *args, **kwargs):
-        txt = self._traduzir(texto)
-        imagem = self.original.render(txt, antialias, cor, *args, **kwargs)
-        # Evita cortes nos painéis de 450px sem recriar fontes.
-        if imagem.get_width() > 402:
-            import pygame
-            imagem = pygame.transform.smoothscale(imagem, (402, imagem.get_height()))
-        return imagem
-
-    def __getattr__(self, nome):
-        return getattr(self.original, nome)
-
+from src.pixelrush.ui.i18n_fonts import _FontePainelLocalizado
 
 def _fonte_painel_localizado(original):
     if _IDIOMA_ATUAL_I18N in ('pt_BR', 'en_US'):
@@ -5694,58 +5624,7 @@ CHAVE_TRANSPARENCIA_SPRITES = (255, 0, 255)
 CHAVE_TRANSPARENCIA_SPRITES = (255, 0, 255)
 
 # --- SISTEMA DE OBJECT POOLING ---
-class Particula(Sprite):
-    """Particula reaproveitavel; alpha global evita preencher RGBA a cada frame."""
-    def __init__(self, x=0, y=0, cor=(255, 255, 255), vx=None, vy=None, vida=25, tamanho=5):
-        super().__init__()
-        self.pool_manager = None
-        self._pool_livre = False
-        self._imagens_por_tamanho = {}
-        self.image = None
-        self.reset(x, y, cor, vx, vy, vida, tamanho)
-
-    def kill(self):
-        super().kill()
-        manager = self.pool_manager
-        if manager is not None and not self._pool_livre:
-            self.ativo = False
-            self._pool_livre = True
-            manager.particulas_disponiveis.append(self)
-
-    def reset(self, x, y, cor, vx=None, vy=None, vida=25, tamanho=5):
-        self.cor = tuple(cor[:3])
-        self.vida_max = max(1, int(vida))
-        self.vida = int(vida)
-        self.tamanho = int(tamanho)
-        self.vx = vx if vx is not None else random.uniform(-4, 4)
-        self.vy = vy if vy is not None else random.uniform(-4, 4)
-
-        chave = (self.tamanho, self.tamanho)
-        imagem = self._imagens_por_tamanho.get(chave)
-        if imagem is None:
-            try:
-                imagem = pygame.Surface(chave).convert()
-            except Exception:
-                imagem = pygame.Surface(chave)
-            self._imagens_por_tamanho[chave] = imagem
-        imagem.fill(self.cor)
-        imagem.set_alpha(255)
-        self.image = imagem
-        self.rect = self.image.get_rect(center=(x, y))
-        self.ativo = True
-
-    def update(self, *args):
-        if not self.ativo:
-            return
-        self.rect.x += self.vx
-        self.rect.y += self.vy
-        self.vida -= 1
-        if self.vida <= 0:
-            self.ativo = False
-            self.kill()
-        else:
-            self.image.set_alpha(max(0, min(255, int((self.vida / self.vida_max) * 255))))
-
+from src.pixelrush.entities.particles import Particula
 
 class Moeda(Sprite):
     # Variantes leves para evitar repeticao visual sem custo por frame.

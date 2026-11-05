@@ -1,0 +1,40 @@
+{
+  "schema": "pixelrush.qa.r21.stateful_classes.v327791",
+  "base_branch": "qa/r20-organizacao-qa-motor-v3.277.90",
+  "base_commit": "854f3906d31f15f4d4fe09d8212535ad835fa654",
+  "classes": [
+    {
+      "name": "_FonteHindiComFallback",
+      "dest": "src/pixelrush/ui/i18n_fonts.py",
+      "ast_equivalence": "required",
+      "method_body_modified": false
+    },
+    {
+      "name": "_FontePainelLocalizado",
+      "dest": "src/pixelrush/ui/i18n_fonts.py",
+      "ast_equivalence": "required",
+      "method_body_modified": false
+    },
+    {
+      "name": "Particula",
+      "dest": "src/pixelrush/entities/particles.py",
+      "ast_equivalence": "required",
+      "method_body_modified": false
+    }
+  ],
+  "preserved": [
+    "Jogador",
+    "PoolManager",
+    "Moeda",
+    "obstaculos",
+    "tutorial",
+    "pets",
+    "saves",
+    "main.py",
+    "JOGAR.py",
+    "DEV",
+    "workflows Android/AAB"
+  ],
+  "android_hardware": "nao homologado",
+  "apk_compilado": false
+}
