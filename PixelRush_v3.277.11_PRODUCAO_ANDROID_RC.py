@@ -28,6 +28,7 @@ from contextlib import nullcontext
 from pygame.sprite import Sprite
 from pixelrush_inimigos_v3221 import AMEACAS, POR_BIOMA, AmeacaBioma, escorpiao_frame, cor_aviso_ameaca
 from pixelrush_hidrante_cidade_v3276 import HidranteCidade
+from src.pixelrush.entities.enemies.biome_specials_v327793 import InimigoEspecialBioma, ESPECIAIS_BIOMA
 from pixelrush_variantes_v3238 import ObstaculoMovel, escolher as escolher_movel
 from pixelrush_reflexos_v3223 import DiretorReflexos, criar_reflexo
 from pixelrush_aereo_v3224 import LaserJetpackAvancado, corredor_avancado, faixa_moeda_jetpack
@@ -9018,7 +9019,11 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
     if metros >= 600 and cenario == "cidade_futurista":
         add("pulador", 0.7)
     if cenario == "cidade":
-        add("hidrante_cidade", 0.55)  # v3.276: obstáculo novo exclusivo da Cidade
+        add("hidrante_cidade", 0.55)
+    # Uma espécie de solo própria para cada bioma a partir de 750 m.
+    # A entrada respeita o mesmo intervalo/culling/colisão dos outros perigos.
+    if metros >= 750 and cenario in ESPECIAIS_BIOMA:
+        add("especial_bioma", 0.45 + min(0.40, max(0, metros - 750) / 12000.0))  # v3.276: obstáculo novo exclusivo da Cidade
     if cenario == "deserto":
         add("escorpiao", 1.4)
     elif cenario == "neve":
@@ -9060,6 +9065,10 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
     elif tipo_obs == "boneco_neve" and cenario == "neve":
         from src.pixelrush.entities.enemies.snowman_v327793 import BonecoNeve
         obs = BonecoNeve(x_inicial + 160,todos_sprites,obstaculos)
+        todos_sprites.add(obs)
+        obstaculos.add(obs)
+    elif tipo_obs == "especial_bioma" and cenario in ESPECIAIS_BIOMA:
+        obs = InimigoEspecialBioma(x_inicial, cenario)
         todos_sprites.add(obs)
         obstaculos.add(obs)
     elif tipo_obs == "hidrante_cidade" and cenario == "cidade":
