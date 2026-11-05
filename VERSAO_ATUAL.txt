@@ -1,3 +1,5 @@
+Pixel Rush v3.277.83-QA-ANDROID-RC — branch isolada qa/r13-quatro-backends-v3.277.83, derivada da QA782. Corrigidos ctypes.util no Android, assinatura de glTexImage2D, viewport GLES fullscreen com fallback, gate C/NEON multigeometria, diagnosticos PBO e fastpath RLE estatico da Cidade. Somente QA, nao compilar APK/AAB. Testes offline e homologacao hardware diferenciados. Preservados fisica, sprites, saves, pets, tutorial, main.py e DEV.
+
 Pixel Rush v3.277.73-QA-ANDROID-RC — branch qa/r10-performance-v3.277.73 baseada na v3.277.72. Perfis R10, replay com reuso de Surface RGBA original, fallback e benchmarks. APK/AAB não compilados. Preservados física, saves, arte, pets, main e DEV; 22/32 concluídas offline, 10 parciais.
 
 Pixel Rush v3.277.72-QA-ANDROID-RC — correção exclusiva do crash fc-list no banner final da sexta lição do tutorial Android, R9 v3.277.71. Mantém físicas, arte, saves, pets, main, DEV e AAB. 22/32 offline; 10 parciais; homologação Android pendente.
