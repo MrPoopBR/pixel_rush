@@ -155,6 +155,25 @@ jobs:
                     "change %",round(100*(v/a-1),2) if a else "n/a")
           print("QA793 260 RGBA EXATOS; proposta ainda não integrada")
           PY
+      - name: Experimento 2 normal e flow direto no target sem superfície intermediária
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_city_preclear_v327793.py --candidato 1 --direto 0 --output qa_a54/qa793_direct_baseline.json
+          python qa_a54/benchmark_city_preclear_v327793.py --candidato 1 --direto 1 --output qa_a54/qa793_direct_candidate.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path("qa_a54/qa793_direct_baseline.json").read_text())
+          b=json.loads(Path("qa_a54/qa793_direct_candidate.json").read_text())
+          same=a["hashes_rgba"]==b["hashes_rgba"]
+          print("QA793 LAB2 RGBA:",sum(x!=y for x,y in zip(a["hashes_rgba"],b["hashes_rgba"])),
+                "divergencias de 260; candidato", "APTO" if same else "REPROVADO")
+          for name in ("normal","flow"):
+              before=a["per_pass"][name]["p50_ms"]
+              after=b["per_pass"][name]["p50_ms"]
+              print(name,"p50 controle",before,"candidato",after,"percentual",round(100*(after/before-1),2))
+          # Candidato não integrado: discrepância é diagnóstico, não aprovação.
+          PY
       - name: Arquivar laudo sem APK
         uses: actions/upload-artifact@v4
         if: always()
@@ -166,4 +185,6 @@ jobs:
             docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json
             qa_a54/qa793_preclear_baseline.json
             qa_a54/qa793_preclear_candidate.json
+            qa_a54/qa793_direct_baseline.json
+            qa_a54/qa793_direct_candidate.json
           retention-days: 14
