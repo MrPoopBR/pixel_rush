@@ -64,8 +64,8 @@ def desenhar_ceu(surf, cor_base, fase, noite, bioma, estrelas, tempo, nuvens):
     """Gradiente vertical em faixas pixel-art; usa o sol/lua real do jogo."""
     tema = _TONS_BIOMA.get(bioma, _TONS_BIOMA['cidade'])
     ceu = mistura(cor_base, tema, 0.26)
-    alba = max(0., 1. - abs(fase - .15) / .105)
-    tarde = max(0., 1. - abs(fase - .745) / .10)
+    alba = max(0., 1. - min(fase, 1.0-fase) / .095)
+    tarde = max(0., 1. - abs(fase-.47) / .115)
     crepusculo = max(alba, tarde)
     # v3.227.0: componentes constantes no mesmo quadro nao precisam ser
     # recalculados nas 40 faixas. Nenhuma quantizacao ou cache entre quadros.
@@ -95,30 +95,21 @@ def desenhar_ceu(surf, cor_base, fase, noite, bioma, estrelas, tempo, nuvens):
                 pygame.draw.line(surf, c, (x-2, y), (x+2, y))
                 pygame.draw.line(surf, c, (x, y-2), (x, y+2))
 
-    if .10 <= fase <= .81:
-        t = (fase-.10)/.71
-        x = int(-20 + t * (W+40))
-        y = int(242 - 157*math.sin(math.pi*t))
-        lua = False
-    elif fase >= .83 or fase <= .08:
-        t = ((fase-.83) % 1.) / .25
-        x = int(-30 + t*(W+60))
-        y = int(208 - 112*math.sin(math.pi*min(1., t)))
-        lua = True
-    else:
-        x = -100; y = -100; lua = False
-    if -16 < x < W+16 and y > -16:
-        if lua:
-            pygame.draw.circle(surf, mistura(ceu, (158, 184, 234), .54), (x,y), 20)
-            pygame.draw.circle(surf, (244, 244, 222), (x,y), 13)
-            pygame.draw.circle(surf, mistura((26,36,76),ceu,.25), (x+5,y-5), 11)
-        else:
-            halo = mistura(ceu, (255, 201, 107), .45)
-            pygame.draw.circle(surf, halo, (x,y), 28)
-            pygame.draw.circle(surf, (255, 219, 142), (x,y), 17)
-            pygame.draw.circle(surf, (255, 245, 190), (x-3,y-4), 12)
-            for dx,dy in ((-33,0),(33,0),(0,-33),(0,33)):
-                pygame.draw.rect(surf, (248, 210, 135), (x+dx-2,y+dy-2,4,4))
+    # Todos os cenários partilham a mesma órbita astronômica gradual.
+    from src.pixelrush.world.daynight_v327793 import posicao_astro
+    lua = fase >= .52
+    pos = posicao_astro(fase, "lua" if lua else "sol", W)
+    if pos is not None:
+        x, y = pos
+        if -36 < x < W+36:
+            if lua:
+                pygame.draw.circle(surf, mistura(ceu,(166,193,243),.27),(x,y),23)
+                pygame.draw.circle(surf, (234,243,255),(x,y),14)
+                pygame.draw.circle(surf, mistura(ceu,(46,62,102),.22),(x+6,y-4),12)
+            else:
+                pygame.draw.circle(surf, mistura(ceu,(255,205,123),.43),(x,y),30)
+                pygame.draw.circle(surf, (255,223,143),(x,y),18)
+                pygame.draw.circle(surf, (255,246,204),(x-4,y-4),10)
 
     # Mesmas tintas para todas as nuvens do quadro (antes: 6 recomputacoes).
     base = mistura(ceu, (232,242,249) if noite < .3 else (108,127,162), .67)
