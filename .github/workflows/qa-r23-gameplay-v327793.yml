@@ -103,7 +103,8 @@ jobs:
           allowed.update({"PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py",
                    "pixelrush_cenarios_v398.py","pixelrush_inimigos_v3221.py",
                    "pixelrush_letras_v3218.py","buildozer.spec","VERSAO_ATUAL.txt",
-                   "README.md",".github/workflows/qa-r23-gameplay-v327793.yml"})
+                   "README.md",".github/workflows/qa-r23-gameplay-v327793.yml",
+                   "qa_a54/benchmark_city_preclear_v327793.py"})
           illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
           assert not illegal,illegal
           forbidden=("main.py","JOGAR.py","requirements.txt",".gitignore")
