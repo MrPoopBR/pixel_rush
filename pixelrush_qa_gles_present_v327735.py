@@ -6,8 +6,12 @@ Sem equivalencia visual e FPS Android comprovados, esta classe NAO
 substitui a camera pygame-ce original.
 """
 import ctypes as C
-import ctypes.util
-# Usar o mesmo alias C em todo o caminho EGL/GLES; 'ctypes' nao foi importado.
+# Android/p4a pode nao incluir ctypes.util. GLES/EGL possuem SONAME fixo.
+try:
+    from ctypes.util import find_library as _qa_find_library
+except ImportError:
+    def _qa_find_library(_name):
+        return None
 import time
 import os
 from collections import deque
@@ -37,8 +41,11 @@ class GLES2DirectPresenterQA:
     O renderer nao suporta input, HUD ou janela Surface do jogo original.
     Sua integracao e expressamente proibida enquanto gate visual reprovado.
     """
-    def __init__(self,width=450,height=800):
+    def __init__(self,width=450,height=800,*,fullscreen=False):
         self.width,self.height=int(width),int(height)
+        self.qa_fullscreen=bool(fullscreen)
+        self.qa_viewport=(0,0,self.width,self.height)
+        self._qa_fbo_gate=False
         self.frame_count=0
         self.readbacks=0
         self.swap_method=None
@@ -65,14 +72,24 @@ class GLES2DirectPresenterQA:
                                         pygame.GL_CONTEXT_PROFILE_ES)
         pygame.display.gl_set_attribute(pygame.GL_DOUBLEBUFFER,1)
         # Janela OPENGL NOVA, nao compartilha SDL_GetWindowSurface do jogo.
-        pygame.display.set_mode((self.width,self.height),
-                                pygame.OPENGL|pygame.DOUBLEBUF)
+        pygame.display.set_mode(
+            (0,0) if self.qa_fullscreen else (self.width,self.height),
+            pygame.OPENGL|pygame.DOUBLEBUF|
+            (pygame.FULLSCREEN if self.qa_fullscreen else 0))
+        if self.qa_fullscreen:
+            pw,ph=pygame.display.get_window_size()
+            if min(pw,ph)<=0:
+                raise GLES2Unavailable('Janela GLES fullscreen sem tamanho')
+            escala=min(pw/self.width,ph/self.height)
+            rw=max(1,min(pw,int(self.width*escala)))
+            rh=max(1,min(ph,int(self.height*escala)))
+            self.qa_viewport=((pw-rw)//2,(ph-rh)//2,rw,rh)
         if pygame.display.gl_get_attribute(
                 pygame.GL_CONTEXT_PROFILE_MASK)!=pygame.GL_CONTEXT_PROFILE_ES:
             raise GLES2Unavailable('SDL nao abriu contexto OpenGL ES')
         lib=None
-        for name in ('libGLESv2.so',C.util.find_library('GLESv2'),
-                     None,C.util.find_library('GL')):
+        for name in ('libGLESv2.so',_qa_find_library('GLESv2'),
+                     None,_qa_find_library('GL')):
             try:
                 candidate=C.CDLL(name)
                 if getattr(candidate,'glGetString',None):
@@ -93,7 +110,7 @@ class GLES2DirectPresenterQA:
 
     def _configure_swap(self):
         try:
-            egl=C.CDLL(C.util.find_library('EGL') or 'libEGL.so')
+            egl=C.CDLL(_qa_find_library('EGL') or 'libEGL.so')
             egl.eglGetCurrentDisplay.restype=C.c_void_p
             egl.eglGetCurrentSurface.restype=C.c_void_p
             egl.eglGetCurrentSurface.argtypes=[C.c_int]
@@ -164,7 +181,7 @@ class GLES2DirectPresenterQA:
         f('glBindTexture',None,[C.c_uint,C.c_uint])
         f('glTexParameteri',None,[C.c_uint,C.c_uint,C.c_int])
         f('glTexImage2D',None,[C.c_uint,C.c_int,C.c_int,C.c_int,C.c_int,
-                               C.c_uint,C.c_uint,C.c_void_p])
+                               C.c_int,C.c_uint,C.c_uint,C.c_void_p])
         f('glTexSubImage2D',None,
           [C.c_uint,C.c_int,C.c_int,C.c_int,C.c_int,C.c_int,C.c_uint,
            C.c_uint,C.c_void_p])
@@ -207,7 +224,10 @@ class GLES2DirectPresenterQA:
         self._f['glPixelStorei'](0x0CF5,1)
         self._f['glTexImage2D'](0x0DE1,0,0x1908,self.width,self.height,
                                 0,0x1908,0x1401,None)
-        self._f['glViewport'](0,0,self.width,self.height)
+        self._f['glViewport'](*self.qa_viewport)
+        if self.qa_fullscreen:
+            f('glClearColor',None,[C.c_float]*4)
+            f('glClear',None,[C.c_uint])
         self._f['glUseProgram'](p)
         if self._f['glGetError']():
             raise GLES2Unavailable('Erro GL na criacao de textura')
@@ -225,7 +245,6 @@ class GLES2DirectPresenterQA:
         # Evita a segunda copia de 450x800x4 bytes em create_string_buffer.
         # A ordem RGBA e flip vertical sao exatamente os originais.
         data=pygame.image.tobytes(image,'RGBA',True)
-        data_ptr=C.cast(C.c_char_p(data),C.c_void_p)
         t0=time.perf_counter_ns()
         self._f['glBindTexture'](0x0DE1,self.texture)
         # QA v3.277.42: PBO GLES3 opcional. A classe continua somente no
@@ -238,14 +257,16 @@ class GLES2DirectPresenterQA:
                 try:
                     from pixelrush_qa_gles_pbo_v327742 import UploadGLES3PBOQA
                     self._qa_pbo=UploadGLES3PBOQA(self)
-                except (ImportError,RuntimeError,OSError,AttributeError):
+                except (ImportError,RuntimeError,OSError,AttributeError) as exc:
+                    self._qa_pbo_last_error=type(exc).__name__
                     self._qa_pbo_disabled=True
         usado_pbo=False
         if self._qa_pbo is not None:
             try:
                 self._qa_pbo.enviar(data,self.width,self.height)
                 usado_pbo=True
-            except (RuntimeError,ValueError,OSError,AttributeError):
+            except (RuntimeError,ValueError,OSError,AttributeError) as exc:
+                self._qa_pbo_last_error=type(exc).__name__
                 self._qa_pbo_disabled=True
                 try:
                     self._qa_pbo.fechar()
@@ -253,8 +274,16 @@ class GLES2DirectPresenterQA:
                     pass
                 self._qa_pbo=None
         if not usado_pbo:
+            data_ptr=C.cast(C.c_char_p(data),C.c_void_p)
             self._f['glTexSubImage2D'](0x0DE1,0,0,0,self.width,self.height,
                                        0x1908,0x1401,data_ptr)
+        if self.qa_fullscreen:
+            if self._qa_fbo_gate:
+                self._f['glViewport'](0,0,self.width,self.height)
+            else:
+                self._f['glViewport'](*self.qa_viewport)
+                self._f['glClearColor'](0.,0.,0.,1.)
+                self._f['glClear'](0x00004000)
         self._f['glUniform2f'](self.u_expanded,float(w),float(h))
         self._f['glUniform2f'](self.u_crop,float(ex),float(h-self.height-sy))
         self._f['glDrawArrays'](0x0004,0,6)
@@ -303,6 +332,9 @@ class GLES2DirectPresenterQA:
                 'homologado_fps_android':False,
                 'qa_pbo_ativo':pbo is not None,
                 'qa_pbo_desabilitado':getattr(self,'_qa_pbo_disabled',False),
+                'qa_pbo_erro':getattr(self,'_qa_pbo_last_error',None),
+                'fullscreen_qa':self.qa_fullscreen,
+                'viewport_fisico':self.qa_viewport,
                 'qa_pbo_stats':pbo.diagnostico() if pbo else None}
 
     def close(self):
