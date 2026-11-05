@@ -18,8 +18,8 @@ DOC=ROOT/"docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json"
 M=json.loads(DOC.read_text("utf8"))
 
 class TesteMigracoes(unittest.TestCase):
-    def test_40_modulos_mesmos_bytes_e_imports(self):
-        self.assertEqual(len(M["migrated"]),40)
+    def test_42_modulos_mesmos_bytes_e_imports(self):
+        self.assertEqual(len(M["migrated"]),42)
         for entry in M["migrated"]:
             old,new=entry["legacy"],entry["canonical"]
             with self.subTest(old=old):

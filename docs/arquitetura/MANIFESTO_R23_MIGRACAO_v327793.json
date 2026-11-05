@@ -2,7 +2,7 @@
   "schema": "pixelrush.qa.r23.modules.moved.v327793",
   "base_branch": "qa/r22-classes-historicos-v3.277.92",
   "base_commit": "d8f97adf246bc593da3bb049bef2f3a5c31dd698",
-  "version": "3.277.94-QA",
+  "version": "3.277.95-QA",
   "migrated": [
     {
       "legacy": "pixelrush_aereo_v3224.py",
@@ -243,9 +243,21 @@
       "canonical": "src/pixelrush/performance/city/bootstrap_v327759.py",
       "byte_identical": true,
       "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_camera_v327733.py",
+      "canonical": "src/pixelrush/performance/camera/backend_v327733.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_camera_native_auto_v327742.py",
+      "canonical": "src/pixelrush/performance/camera/native_auto_v327742.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
     }
   ],
-  "files_count": 40,
+  "files_count": 42,
   "root_python_files_removed": 0,
   "apk_compiled": false,
   "android_real_verified": false
