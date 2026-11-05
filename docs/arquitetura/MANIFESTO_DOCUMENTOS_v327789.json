@@ -1,0 +1,21 @@
+{
+  "schema": "qa.r19.docs.v327789",
+  "base": "17774a8d9e8b5d9df256ddc4ec1c1effa389ac6a",
+  "arquivos": [
+    {
+      "antigo": "AUDITORIA_GPU_ANDROID_v3.277.22.md",
+      "novo": "docs/historico/qa/auditorias/AUDITORIA_GPU_ANDROID_v3.277.22.md",
+      "sha": "efddb887ecae5fcbd95db39b5915277837c9138b"
+    },
+    {
+      "antigo": "CHECKLIST_ANDROID.md",
+      "novo": "docs/android/CHECKLIST_ANDROID.md",
+      "sha": "ae6d5a08199b7fbd0e6035fefb89155e7ca5d43a"
+    },
+    {
+      "antigo": "INTEGRACAO_ANDROID_RC_REVISAO.md",
+      "novo": "docs/android/INTEGRACAO_ANDROID_RC_REVISAO.md",
+      "sha": "651b6cf76716aa49888df0de8747000ca9ab8cad"
+    }
+  ]
+}
