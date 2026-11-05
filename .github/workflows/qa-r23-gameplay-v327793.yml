@@ -78,6 +78,7 @@ jobs:
           python tests/test_qa_r23_gameplay_tutorial_v327793.py
           python tests/test_qa_r23_camera_sky_v327793.py
           python tests/test_qa_r23_pombo_v327793.py
+          python tests/test_qa_r23_biome_specials_v327793.py
           python tests/test_qa_r23_migracao_modulos_v327793.py
       - name: Executar testes estruturais antigos na base QA792 isolada
         run: |
