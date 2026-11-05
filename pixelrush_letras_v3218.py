@@ -46,7 +46,7 @@ class PalavraDaPartida:
         self.partidas = -1
         self.palavra = PALAVRAS[0]
         self.progresso = 0
-        self.proximo_metro = 240
+        self.proximo_metro = 420
         self.ativo = None
         self.concluida = False
         self._hud_cache = {}
@@ -57,7 +57,7 @@ class PalavraDaPartida:
         self.partidas += 1
         self.palavra = PALAVRAS[self.partidas % len(PALAVRAS)]
         self.progresso = 0
-        self.proximo_metro = 240
+        self.proximo_metro = 420
         self.ativo = None
         self.concluida = False
 
@@ -69,14 +69,14 @@ class PalavraDaPartida:
             if self.ativo.alive():
                 return False
             self.ativo = None
-            self.proximo_metro = max(self.proximo_metro, int(metros) + 120)
+            self.proximo_metro = max(self.proximo_metro, int(metros) + 215)
         if int(metros) < self.proximo_metro:
             return False
         x = int(largura) + 78
         # Rotas acessiveis por pulo curto ou pela corrida; nunca exigir jetpack.
         for y in (int(altura)-163, int(altura)-203, int(altura)-143):
             area = pygame.Rect(x-22, y-26, 44, 52)
-            if any(area.inflate(112, 65).colliderect(p.rect) for grupo in
+            if any(area.inflate(78, 52).colliderect(p.rect) for grupo in
                    (obstaculos, perigos, buracos) for p in grupo):
                 continue
             if any(area.colliderect(m.rect) for m in moedas):
@@ -95,7 +95,7 @@ class PalavraDaPartida:
         letra.kill()
         self.ativo = None
         self.progresso += 1
-        self.proximo_metro = int(metros) + 175
+        self.proximo_metro = int(metros) + 310
         if self.progresso == len(self.palavra):
             self.concluida = True
             return (True, True, BONUS_PALAVRA)

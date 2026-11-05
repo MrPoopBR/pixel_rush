@@ -67,3 +67,23 @@ class AmeacaBioma(_Anterior):
         super().update(velocidade_jogo)
         if self.codigo in ATIVOS:
             self.image=_POR_IDENTIDADE[id(self.image)]
+        # Movimento próprio em C1/C2/N1. A arte é pré-calculada, sem novas
+        # superfícies e sem RNG extra durante o quadro.
+        if self.codigo == 'C1':
+            self.rect.x = round(self._x + 14 * __import__('math').sin(self.ticks * .095 + self._giro))
+            self.rect.y = self._base_y + int(abs(__import__('math').sin(self.ticks*.15))*2)
+        elif self.codigo == 'C2':
+            import math
+            self.rect.x = round(self._x + 10*math.sin(self.ticks*.12+self._giro))
+            self.rect.y = round(self._base_y + 8*math.sin(self.ticks*.19) +
+                                6*math.sin(self.ticks*.05+self._giro))
+            # Escolhe poses já carregadas; batidas mais vivas sem duplicar atlases.
+            fases = _QUADROS.get('C2')
+            if fases:
+                fase = (self.ticks//5)%len(fases)
+                poses = fases[fase]
+                self.image = poses[(self.ticks//3)%len(poses)]
+        elif self.codigo == 'N1':
+            import math
+            self.rect.x = round(self._x + 7*math.sin(self.ticks*.078+self._giro))
+            self.rect.y = self._base_y + round(abs(math.sin(self.ticks*.11))*2)
