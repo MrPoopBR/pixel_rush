@@ -1,3 +1,5 @@
+PIXEL RUSH v3.277.96-QA-ANDROID-RC — R26: laboratório 2.5D Cidade, acabamento prebaked dos sete biomas, 48 módulos QA reorganizados, testes pygame-ce/RGBA. Sem APK/AAB. Nenhum teste Android de FPS.
+
 PIXEL RUSH v3.277.95-QA-ANDROID-RC — R25: escala direta SDL RGB32 pós-sprites com fallback pixel-exato; 2.5D Cidade perfilado por render/chunk/sprite/scale; 7 biomas com microacabamento prebaked e menor RAM na carga; 42 módulos com aliases (41 sem mudanças e 1 otimizado com SHA fixo). Sem APK/AAB ou medição nova A54. Preservados main/JOGAR/DEV/pets/saves/física/assets/receitas Android.
 
 PIXEL RUSH v3.277.94-QA-ANDROID-RC — R24: preclear integral dos mapas Neve/Deserto otimizado (160 RGBA idênticos); microfrisos dos sete biomas pré-renderizados sem alterar alfa/colisões; 40 módulos migrados com aliases, CI de pygame-ce/RGBA. Sem APK/AAB, main/DEV/pets/saves/assets protegidos. FPS Android pendente.
