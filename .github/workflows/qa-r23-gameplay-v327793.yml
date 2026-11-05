@@ -53,6 +53,25 @@ jobs:
           grep -q '^version = 3.277.93$' buildozer.spec
           grep -q '^android.numeric_version = 327793$' buildozer.spec
           grep -q 'VERSAO = "v3.277.93-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+      - name: Importar motor real com pygame-ce sem executar main ou escrever saves
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,runpy
+          os.environ.setdefault("SDL_VIDEODRIVER","dummy")
+          os.environ.setdefault("SDL_AUDIODRIVER","dummy")
+          import pygame
+          pygame.init()
+          pygame.display.set_mode((450,800))
+          g=runpy.run_path("PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py",
+                           run_name="pixelrush_qa793_import")
+          assert g["VERSAO"]=="v3.277.93-QA-ANDROID-RC"
+          assert callable(g["main"])
+          assert all(name in g for name in
+                     ("AmeacaBioma","BauSecreto","ParallaxBackground",
+                      "gerar_padrao","Moeda","PoolManager"))
+          print("QA793 import real: motor carregado, entrada main nao executada")
+          PY
       - name: Tutorial completo, efeitos, 3 minutos, inimigos reais e RGBA
         run: |
           set -euo pipefail
