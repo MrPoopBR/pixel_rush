@@ -113,6 +113,7 @@ jobs:
                    "qa_a54/benchmark_modular_preclear_v327793.py",
                    "qa_a54/benchmark_world_marathon_v327793.py",
                    "qa_a54/benchmark_fabrik_batch_v327793.py",
+                   "qa_a54/benchmark_postsprites_v327793.py",
                    "pixelrush_profissional_v3108.py"})
           illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
           assert not illegal,illegal
@@ -242,6 +243,21 @@ jobs:
                   b["timings"][biome]["p50_ms"]<a["timings"][biome]["p50_ms"]
                   for biome in a["biomes"])},indent=2),encoding="utf8")
           PY
+      - name: Perfil real dos efeitos pós-sprites sem tocar física nem assets
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_postsprites_v327793.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("qa_a54/qa793_postsprites.json").read_text("utf8"))
+          assert r["quadros_por_passagem"]==240
+          assert r["amostras_rgba_comparadas"]==8
+          assert len(r["tempos_primeira"])==len(r["tempos_repeticao"])==12
+          assert all(v["n"]>=4 for v in r["tempos_primeira"].values())
+          print("QA793 pós-sprites determinístico:",
+                {k:v.get("p95_ms") for k,v in r["tempos_repeticao"].items()})
+          PY
       - name: Arquivar laudo sem APK
         uses: actions/upload-artifact@v4
         if: always()
@@ -262,4 +278,5 @@ jobs:
             qa_a54/qa793_fabrik_baseline.json
             qa_a54/qa793_fabrik_candidate.json
             qa_a54/qa793_fabrik_diagnostico.json
+            qa_a54/qa793_postsprites.json
           retention-days: 14
