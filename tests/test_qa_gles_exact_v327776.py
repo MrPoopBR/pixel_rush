@@ -225,7 +225,7 @@ class ShaderPixelExactQA(unittest.TestCase):
         assert 'GLES2DirectPresenterQA' not in (ROOT/'main.py').read_text('utf8')
         assert 'pixelrush_qa_gles_exact_v327736' not in (ROOT/'main.py').read_text('utf8')
         code=(ROOT/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-        self.assertIn('VERSAO = "v3.277.85-QA-ANDROID-RC"',code)
+        self.assertIn('VERSAO = "v3.277.86-QA-ANDROID-RC"',code)
         self.assertIn('MAX_PASSOS_POR_FRAME = 8 if E_ANDROID else 15',code)
         self.assertIn('FPS_RENDER = 30 if E_ANDROID else 60',code)
         self.assertIn('PIXELRUSH_DEV_BUILD = False',code)
