@@ -13460,6 +13460,9 @@ def main():
                      or getattr(tutorial_corrida, '_extra_popup', False))
                 and cache_tutorial_congelado is not None):
             display_surface.blit(cache_tutorial_congelado, (0, 0))
+            # A tela congelada guarda a cena estática; a instrução do gesto
+            # precisa ser redesenhada para não acumular pixels na superfície.
+            tutorial_corrida.desenhar(display_surface)
         elif estado in ("PAUSA", "GAMEOVER") and chave_tela_estatica in cache_telas_estaticas:
             display_surface.blit(cache_telas_estaticas[chave_tela_estatica], (0, 0))
         else:
@@ -15183,11 +15186,9 @@ def main():
         else:
             paisagem_sonora.atualizar(cenario_atual, estado, dados['vol_sfx'], clima.tipo)
 
-        if (estado == 'JOGANDO' and tutorial_corrida and tutorial_corrida.ativo
-                and cache_tutorial_congelado is not None):
-            tutorial_corrida.desenhar_fx_congelado(display_surface, pygame.time.get_ticks())
-        # Captura somente o primeiro frame congelado; gestos e progresso
-        # invalidam o cache instantaneamente e redesenham o mundo real.
+        # Congelar o mundo uma vez, antes do indicador animado, para eliminar
+        # rastros de pixels entre as pulsações do dedo. A superfície de base
+        # não é regenerada durante a espera pelo gesto.
         if (estado == "JOGANDO" and tutorial_corrida and tutorial_corrida.ativo
                 and (getattr(tutorial_corrida, "_pausa_comando", False)
                      or getattr(tutorial_corrida, '_extra_popup', False))):
@@ -15195,6 +15196,9 @@ def main():
                 cache_tutorial_congelado = display_surface.copy()
         else:
             cache_tutorial_congelado = None
+        if (estado == 'JOGANDO' and tutorial_corrida and tutorial_corrida.ativo
+                and cache_tutorial_congelado is not None):
+            tutorial_corrida.desenhar_fx_congelado(display_surface, pygame.time.get_ticks())
         _pro_marcar("posprocessamento")
         _pro_sub_inicio('camera_gamefeel')
         tela_gamefeel = (display_surface if dados.get('acess_reduzir_efeitos', False)
