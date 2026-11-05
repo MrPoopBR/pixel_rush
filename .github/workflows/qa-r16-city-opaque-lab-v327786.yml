@@ -1,0 +1,84 @@
+name: PIXEL RUSH QA R16 LAB - overdraw opaco Cidade RGBA e CPU SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r16-city-opaque-overdraw-experimento
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-r16-city-opaque-benchmark
+  cancel-in-progress: true
+
+jobs:
+  lab-city-opaque:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r16-city-opaque-overdraw-experimento'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Pygame-ce 2.5.8 sem Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python -m py_compile pixelrush_qa_city_opaque_overdraw_v327786.py \
+            qa_a54/benchmark_city_opaque_v327786.py \
+            tests/test_qa_r16_city_opaque_v327786.py
+          test -f pixelrush_qa_city_scaled_budget_v327785.py
+
+      - name: Comparar a fonte QA785 e impedir alteracoes no jogo
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          base='3574963d8e127ab106a39b5dec426aaefe175ebf'
+          changed=subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines()
+          allowed={'pixelrush_qa_city_opaque_overdraw_v327786.py',
+                   'qa_a54/benchmark_city_opaque_v327786.py',
+                   'tests/test_qa_r16_city_opaque_v327786.py',
+                   '.github/workflows/qa-r16-city-opaque-lab-v327786.yml'}
+          assert set(changed)<=allowed,changed
+          assert subprocess.check_output(['git','show',base+':main.py'])==open('main.py','rb').read()
+          assert subprocess.check_output(['git','show',base+':pixelrush_qa_render_v327729.py'])==open('pixelrush_qa_render_v327729.py','rb').read()
+          print('LAB: jogo original QA785 intocado, sem ativacao automaticamente')
+          PY
+
+      - name: Testar hashes RGBA 260 por perfil e ganho do quinto quadro
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r16_city_opaque_v327786.py
+
+      - name: Testar RGBA/performance da otimização QA785 preexistente
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+
+      - name: Evidências de benchmark - nenhum APK ou AAB
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-r16-lab-cidade
+          path: |
+            pixelrush_qa_city_opaque_overdraw_v327786.py
+            tests/test_qa_r16_city_opaque_v327786.py
+          retention-days: 10
