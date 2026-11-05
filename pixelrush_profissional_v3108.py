@@ -74,6 +74,16 @@ class ArticulacaoFABRIK:
         # R23: tira a tira, exatamente na mesma ordem, mas com uma
         # unica chamada SDL em C. 180 amostras RGBA Floresta/Neve idênticas.
         # Conserva o mesmo buffer reutilizado; nao muda cinemática ou pose.
+        # Em rigs pequenos, o lote pode custar mais do que os blits
+        # originais (lab Neve). Limitar a grandes copas de arvore:
+        # Floresta 435px, ganho observado em duas execuções independentes.
+        # As demais alturas mantem literalmente a sequencia SDL anterior.
+        if height < 420:
+            for y in range(0, height, strip):
+                dx = int(round(self.offset_at(y / max(1, height - 1))))
+                result.blit(image, (pad + dx, y),
+                            pygame.Rect(0, y, width, min(strip, height - y)))
+            return result, pad
         denom = max(1, height - 1)
         operacoes = []
         for y in range(0, height, strip):
