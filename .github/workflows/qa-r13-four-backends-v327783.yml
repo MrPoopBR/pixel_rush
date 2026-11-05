@@ -1,0 +1,110 @@
+name: PIXEL RUSH QA v3.277.83 R13 - quatro backends, RGBA e benchmark (SEM APK)
+
+on:
+  push:
+    branches:
+      - qa/r13-quatro-backends-v3.277.83
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327783-r13-offline
+  cancel-in-progress: true
+
+jobs:
+  offline-r13:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r13-quatro-backends-v3.277.83'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python 3.13 e compilador C de testes (nao Android)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Preparar pygame-ce/Mesa com suporte a GLES3
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libegl1 libgl1-mesa-dri libgles2 libgl1
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          cc -O3 -shared -fPIC -std=c11 qa_native/camera_crop_native_v327741.c -o /tmp/libpixelrush_camera_crop_v327741.so
+          python -m py_compile pixelrush_qa_gles_present_v327735.py pixelrush_qa_gles_bridge_v327749.py pixelrush_qa_gpu_preflight_v327780.py pixelrush_qa_gles_pbo_v327742.py pixelrush_qa_camera_native_auto_v327742.py pixelrush_qa_incremental_scene_v327750.py tests/test_qa_r13_four_backends_v327783.py
+          grep -q '^version = 3.277.83$' buildozer.spec
+          grep -q '^android.numeric_version = 327783$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.83-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+          git diff --name-only 3c95581b60005953e6c6224221742b82a1453c99 HEAD | grep -E '^(main.py|JOGAR.py|assets/|p4a-recipes/|pixelrush_saves_)' && exit 1 || true
+
+      - name: Testar quatro backends e regressao viewport R12 SDL
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r13_four_backends_v327783.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+          python tests/test_qa_r12_camera_preflight_v327782.py
+          python tests/test_qa_gles_bridge_v327749.py
+
+      - name: Testar biblioteca C/NEON 32bpp com RGBA de Cidade/Neve
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+          PIXELRUSH_QA_NATIVE_CAMERA_LIB: /tmp/libpixelrush_camera_crop_v327741.so
+        shell: bash
+        run: |
+          set -euo pipefail
+          python qa_a54/run_bootstrap_v327775.py tests/test_qa_crop_native_v327741.py
+
+      - name: GLES2/Mesa RGBA pixel-exato, PBO GLES3 e preflight
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          PIXELRUSH_QA_GLES_PBO=0 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_gles_exact_v327776.py
+          PIXELRUSH_QA_GLES_PBO=1 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_gles_pbo_v327742.py
+          PIXELRUSH_QA_GLES_PBO=1 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_gpu_preflight_v327780.py
+          python - <<'PY'
+          import json
+          e=json.load(open('qa-gles-exact-v327736.json',encoding='utf8'))
+          p=json.load(open('qa-gles-pbo-v327742.json',encoding='utf8'))
+          assert e['total_casos']==720 and e['igualdade_total']
+          assert p['cenarios_pixel_exatos']==6
+          assert p['pbo']['frames_upload']==3
+          assert p['pbo']['frames_idênticos_pulados']>=3
+          assert not p['gpu_android_medido']
+          PY
+
+      - name: Separar instantaneo do codigo QA para testes locais (nao binario Android)
+        if: always()
+        shell: bash
+        run: |
+          tar czf qa783-source-snapshot.tar.gz --exclude='.git' --exclude='assets' \
+            --exclude='assets_android' --exclude='qa783-source-snapshot.tar.gz' \
+            --exclude='*.json' --exclude='__pycache__' . || true
+
+      - name: Publicar relatorios e fonte QA - sem APK/AAB
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-v327783-r13-offline-e-fonte
+          path: |
+            qa-gles-exact-v327736.json
+            qa-gles-pbo-v327742.json
+            qa-gpu-preflight-v327780.json
+            qa783-source-snapshot.tar.gz
+          if-no-files-found: warn
+          retention-days: 14
