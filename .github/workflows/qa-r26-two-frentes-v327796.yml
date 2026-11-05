@@ -401,6 +401,8 @@ jobs:
           set -euo pipefail
           python qa_a54/benchmark_city_skip_layers_v327796.py --limit 20 --light 0 --opaque 1 --tech 1 --skip-train 1 --skip-layers 0 --output qa_a54/qa796_layers_base.json
           python qa_a54/benchmark_city_skip_layers_v327796.py --limit 20 --light 0 --opaque 1 --tech 1 --skip-train 1 --skip-layers 1 --output qa_a54/qa796_layers_candidate.json
+          python qa_a54/benchmark_city_skip_layers_v327796.py --limit 20 --light 0 --opaque 1 --tech 1 --skip-train 1 --skip-layers 0 --output qa_a54/qa796_layers_base_repeat.json
+          python qa_a54/benchmark_city_skip_layers_v327796.py --limit 20 --light 0 --opaque 1 --tech 1 --skip-train 1 --skip-layers 1 --output qa_a54/qa796_layers_candidate_repeat.json
           python qa_a54/benchmark_city_skip_layers_v327796.py --limit 20 --light 0 --opaque 0 --tech 1 --skip-train 1 --skip-layers 0 --output qa_a54/qa796_layers_fallback_base.json
           python qa_a54/benchmark_city_skip_layers_v327796.py --limit 20 --light 0 --opaque 0 --tech 1 --skip-train 1 --skip-layers 1 --output qa_a54/qa796_layers_fallback_candidate.json
           python - <<'PY'
@@ -411,6 +413,10 @@ jobs:
           assert len(a["hashes_rgba"])==len(b["hashes_rgba"])==len(c["hashes_rgba"])==len(d["hashes_rgba"])==260
           assert a["hashes_rgba"]==b["hashes_rgba"],"QA796 alterou RGBA com QA786 ativo"
           assert c["hashes_rgba"]==d["hashes_rgba"],"QA796 fallback sem QA786 divergiu"
+          aa,bb=map(get,("base_repeat","candidate_repeat"))
+          assert len(aa["hashes_rgba"])==len(bb["hashes_rgba"])==260
+          assert aa["hashes_rgba"]==bb["hashes_rgba"],"QA796 repeticao RGBA divergiu"
+          assert aa["layer_calls"]["near"]==bb["layer_calls"]["near"]
           assert a["layer_calls"]["near"]==b["layer_calls"]["near"]
           for layer in ("far","mid"):
               assert a["layer_calls"][layer]>b["layer_calls"][layer],(layer,a["layer_calls"],b["layer_calls"])
@@ -421,7 +427,12 @@ jobs:
               x=a["timings"][kind]["p50_ms"];y=b["timings"][kind]["p50_ms"]
               print("QA796 LAYERS",kind,"p50 base",x,"candidate",y,
                     "delta %",round((y/x-1)*100,2) if x else 0)
-          print("QA796 260 hashes RGBA iguais; opt-out QA786 preserva a enumeracao")
+          p50_a=(a["timings"]["fifth_total"]["p50_ms"]+aa["timings"]["fifth_total"]["p50_ms"])/2
+          p50_b=(b["timings"]["fifth_total"]["p50_ms"]+bb["timings"]["fifth_total"]["p50_ms"])/2
+          print("QA796 duplo benchmark p50 quinto base/candidato",round(p50_a,4),round(p50_b,4),
+                "delta %",round(100*(p50_b/p50_a-1),2))
+          assert p50_b<p50_a, "candidato sem ganho no quinto quadro, reverter flag"
+          print("QA796 520 hashes RGBA iguais em duas rodadas A/B, fallback QA786 preservado")
           PY
       - name: Arquivar laudo sem APK
         uses: actions/upload-artifact@v4
@@ -455,6 +466,8 @@ jobs:
             qa_a54/qa796_layers_candidate.json
             qa_a54/qa796_layers_fallback_base.json
             qa_a54/qa796_layers_fallback_candidate.json
+            qa_a54/qa796_layers_base_repeat.json
+            qa_a54/qa796_layers_candidate_repeat.json
             qa_a54/qa793_seven_biomes.json
             qa_a54/qa793_fabrik_baseline.json
             qa_a54/qa793_fabrik_candidate.json
