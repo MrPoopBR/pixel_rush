@@ -71,9 +71,16 @@ class ArticulacaoFABRIK:
             result = target
             # Todos os pixels fora das tiras precisam continuar transparentes.
             result.fill((0, 0, 0, 0))
+        # R23: tira a tira, exatamente na mesma ordem, mas com uma
+        # unica chamada SDL em C. 180 amostras RGBA Floresta/Neve idênticas.
+        # Conserva o mesmo buffer reutilizado; nao muda cinemática ou pose.
+        denom = max(1, height - 1)
+        operacoes = []
         for y in range(0, height, strip):
-            dx = int(round(self.offset_at(y / max(1, height - 1))))
-            result.blit(image, (pad + dx, y), pygame.Rect(0, y, width, min(strip, height - y)))
+            dx = int(round(self.offset_at(y / denom)))
+            operacoes.append((image, (pad + dx, y), (0, y, width, min(strip, height - y))))
+        if operacoes:
+            result.blits(operacoes, doreturn=False)
         return result, pad
 
 

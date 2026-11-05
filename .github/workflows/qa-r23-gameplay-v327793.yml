@@ -112,7 +112,8 @@ jobs:
                    "pixelrush_gamefeel_v3152.py",
                    "qa_a54/benchmark_modular_preclear_v327793.py",
                    "qa_a54/benchmark_world_marathon_v327793.py",
-                   "qa_a54/benchmark_fabrik_batch_v327793.py"})
+                   "qa_a54/benchmark_fabrik_batch_v327793.py",
+                   "pixelrush_profissional_v3108.py"})
           illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
           assert not illegal,illegal
           forbidden=("main.py","JOGAR.py","requirements.txt",".gitignore")
@@ -228,6 +229,7 @@ jobs:
           a=json.loads(Path("qa_a54/qa793_fabrik_baseline.json").read_text("utf8"))
           b=json.loads(Path("qa_a54/qa793_fabrik_candidate.json").read_text("utf8"))
           same=a["hashes_rgba"]==b["hashes_rgba"]
+          assert same, "FABRIK batch alterou pixels RGBA: otimização bloqueada"
           print("QA793 FABRIK RGBA",sum(len(v) for v in a["hashes_rgba"].values()),
                 "idênticos" if same else "DIVERGENTES")
           for biome in a["biomes"]:

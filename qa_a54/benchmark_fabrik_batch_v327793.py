@@ -25,8 +25,10 @@ import pygame
 pygame.init()
 pygame.display.set_mode((450,800))
 from pixelrush_profissional_v3108 import ArticulacaoFABRIK
-if args.candidato:
-    def deform_batch(self,image,strip=4,target=None):
+# A produção já usa o lote; controle restaura a implementação anterior
+# APENAS neste processo de benchmark. A física/prod não é modificada.
+if not args.candidato:
+    def deform_antigo(self,image,strip=4,target=None):
         width,height=image.get_size()
         pad=26
         tamanho=(width+2*pad,height)
@@ -35,15 +37,12 @@ if args.candidato:
         else:
             result=target
             result.fill((0,0,0,0))
-        denom=max(1,height-1)
-        operations=[]
         for y in range(0,height,strip):
-            dx=int(round(self.offset_at(y/denom)))
-            operations.append((image,(pad+dx,y),(0,y,width,min(strip,height-y))))
-        if operations:
-            result.blits(operations,doreturn=False)
+            dx=int(round(self.offset_at(y/max(1,height-1))))
+            result.blit(image,(pad+dx,y),
+                        pygame.Rect(0,y,width,min(strip,height-y)))
         return result,pad
-    ArticulacaoFABRIK.deform=deform_batch
+    ArticulacaoFABRIK.deform=deform_antigo
 from pixelrush_world_prod_v32777 import LivingWorld
 biomes=("floresta","neve")
 climates={"floresta":"vento_folhas","neve":"nevasca"}
