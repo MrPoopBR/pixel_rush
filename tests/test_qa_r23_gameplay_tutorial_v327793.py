@@ -94,6 +94,37 @@ def novo_tutorial():
         palavra="PIXEL",progresso=0,ativo=None)
 
 class QA793(unittest.TestCase):
+    def test_swipe_down_em_duas_etapas_mesmo_dedo(self):
+        t,j,f,todos,letras,palavra=novo_tutorial()
+        t._intro_restante=0
+        t.etapa_indice=3
+        t._preparar(todos,letras,palavra)
+        self.assertEqual(t.etapa,"swipe_down")
+        self.assertEqual(len(t.objetos),2)
+        t.objetos[0].rect.left=j.rect.right+118
+        t.atualizar(j,f,todos,letras,palavra,pygame.sprite.Group(),None,None,0.,1)
+        self.assertTrue(t._pausa_comando)
+        self.assertEqual(t._swipe_etapa,0)
+        # Não permite executar o segundo comando antes do pulo longo.
+        t.processar_evento(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_DOWN))
+        self.assertEqual(t._swipe_etapa,0)
+        t.processar_evento(pygame.event.Event(pygame.FINGERDOWN,x=.5,y=.40,finger_id=2))
+        self.assertEqual(t._swipe_etapa,1)
+        self.assertTrue(j.saltos>=1)
+        self.assertFalse(t._pausa_comando)
+        # Forçar proximidade do segundo pombo mantendo o MESMO dedo na tela.
+        t.objetos[1].rect.left=j.rect.right+154
+        t.atualizar(j,f,todos,letras,palavra,pygame.sprite.Group(),None,None,0.,2)
+        self.assertEqual(t._swipe_etapa,2)
+        self.assertTrue(t._pausa_comando)
+        self.assertFalse(t.swipe_feito)
+        t.processar_evento(pygame.event.Event(pygame.FINGERMOTION,
+                                            x=.5,y=.58,finger_id=2))
+        self.assertEqual(t._swipe_etapa,3)
+        self.assertTrue(t.swipe_feito)
+        self.assertTrue(j.descida_rapida)
+        self.assertFalse(t._pausa_comando)
+
     def test_intro_exatos_300_ticks_e_save_nao_antecipado(self):
         t,j,f,todos,letras,palavra=novo_tutorial()
         particulas=pygame.sprite.Group()
