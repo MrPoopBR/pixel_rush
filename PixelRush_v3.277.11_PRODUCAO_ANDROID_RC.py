@@ -300,12 +300,7 @@ COR_DIA = [135, 206, 235]
 COR_NOITE = [18, 24, 50]
 
 
-def _suavizar_intervalo(inicio, fim, valor):
-    """Smoothstep barato para transicoes graduais do ciclo dia/noite."""
-    if fim <= inicio:
-        return 1.0 if valor >= fim else 0.0
-    x = max(0.0, min(1.0, (valor - inicio) / float(fim - inicio)))
-    return x * x * (3.0 - 2.0 * x)
+from src.pixelrush.world.day_night_math import _suavizar_intervalo
 
 
 def calcular_ciclo_ceu(metros):
@@ -360,15 +355,10 @@ def nome_cenario(cenario):
     return {"cidade": "CIDADE", "deserto": "DESERTO", "neve": "CIDADE NEVADA", "vulcao": "VULCÃO", "cidade_futurista": "CIDADE FUTURISTA", "floresta": "FLORESTA DENSA", "ilhas_celestes": "ILHAS CELESTES"}.get(cenario, "CIDADE")
 
 
-def saturar_cor(cor, fator=1.1):
-    media = sum(cor) / 3.0
-    return tuple(max(0, min(255, int(media + (c - media) * fator))) for c in cor)
+from src.pixelrush.rendering.color_helpers import saturar_cor
 
 
-def misturar_cores(cor_a, cor_b, proporcao):
-    """Mistura duas cores RGB sem superfícies alpha (compatível com SDL/Android)."""
-    t = max(0.0, min(1.0, float(proporcao)))
-    return tuple(max(0, min(255, int(cor_a[i] + (cor_b[i] - cor_a[i]) * t))) for i in range(3))
+from src.pixelrush.rendering.color_helpers import misturar_cores
 
 
 class SistemaClima:
@@ -2194,33 +2184,7 @@ def _quadros_skin(nome):
     return atual
 
 
-def _estado_skin_jogador(jogador, frame_contador):
-    if jogador.morrendo:
-        tempo_total = 70 if jogador.morte_por_buraco else 60
-        return 'MORRER', min(5, max(0, tempo_total - jogador.tempo_morte) // 10)
-    if jogador.descida_rapida and not jogador.no_chao:
-        return 'SWIPE_DOWN', (frame_contador // 3) % 4
-    if jogador.jetpack_fase is not None:
-        if jogador.jetpack_fase == 'subindo':
-            return 'SUBINDO', min(3, max(0, int((jogador.jetpack_subida_duracao - jogador.jetpack_transicao_timer) / 12)))
-        if jogador.jetpack_fase == 'descendo':
-            return 'CAINDO', min(3, max(0, int((jogador.jetpack_descida_duracao - jogador.jetpack_transicao_timer) / 12)))
-        return 'PULAR', 1
-    if not jogador.no_chao:
-        duracao = getattr(jogador, 'anim_pulo_frames', 0)
-        vy = float(getattr(jogador, 'velocidade_y', 0.0))
-        if duracao <= 4 and vy < -6.0:
-            return 'IMPULSO', min(2, duracao // 2)
-        if vy < -2.4:
-            return 'SUBINDO', min(3, max(0, int(abs(vy + 2.4) * 0.45)))
-        if vy <= 2.0:
-            return 'PULAR', 1
-        return 'CAINDO', min(3, max(0, int((vy - 2.0) * 0.35)))
-    if jogador.agachado:
-        return 'AGACHAR', (frame_contador // 2) % 6
-    if getattr(jogador, 'anim_pouso_ticks', 0) > 0:
-        return 'POUSO', min(2, max(0, 3 - jogador.anim_pouso_ticks))
-    return 'CORRER', (frame_contador // 2) % 10
+from src.pixelrush.entities.player.animation_state import _estado_skin_jogador
 
 
 from functools import lru_cache as _qa_lru_skins_enquadradas
@@ -2290,12 +2254,7 @@ def powerup_desbloqueado(dados_jogo, tipo):
         return False
 
 
-def jogador_invencivel_por_velocidade(jogador, febre_timer=0, febre_metros=0.0):
-    """Febre e Turbo protegem contra terreno, buracos, lasers e inimigos."""
-    return bool(jogador and not jogador.morrendo and (
-        febre_timer > 0 or febre_metros > 0 or
-        jogador.tempo_turbo > 0 or jogador.tempo_turbo_fantasma > 0
-    ))
+from src.pixelrush.entities.player.animation_state import jogador_invencivel_por_velocidade
 
 
 def destruir_perigos_no_caminho(jogador, obstaculos, perigos_especiais, vel_jogo=0.0, sdf=False):
@@ -2731,12 +2690,7 @@ def texto_ajustado_hud(texto, fonte_obj, largura_max):
     return resultado
 
 
-def raridade_de_skin(ident):
-    if ident in ('COSMICA', 'PLATINA', 'CHAMA'):
-        return 'Lendário'
-    if ident in ('ROXO', 'ROBO', 'DOURADO'):
-        return 'Épico'
-    return 'Raro' if ident in ('VERDE', 'ROSA') else 'Comum'
+from src.pixelrush.entities.player.skin_rules import raridade_de_skin
 
 
 def desenhar_moldura_raridade(superficie, rect, raridade, frame, destaque=False, leve=False):
@@ -3734,9 +3688,7 @@ SKINS_EVOLUCAO = {
     1: {"xp": 0, "aura": 0},
 }
 
-def nivel_visual_skin(dados):
-    # Sistema de evolução visual/estilos alternativos removido.
-    return 1
+from src.pixelrush.entities.player.skin_rules import nivel_visual_skin
 
 # Eventos sazonais locais, definidos pelo mês; sem rede ou relógios em segundo plano.
 EVENTOS_SAZONAIS = {
@@ -3901,10 +3853,7 @@ DESAFIOS_SEMANAIS = [
 ]
 
 
-def chave_periodo_semanal(hoje=None):
-    hoje = hoje or date.today()
-    iso = hoje.isocalendar()
-    return f"{iso.year}-W{iso.week:02d}"
+from src.pixelrush.systems.challenge_helpers import chave_periodo_semanal
 
 
 def preparar_desafios(dados, hoje=None):
@@ -8786,10 +8735,7 @@ def obstaculo_encosta_jogador(hitbox_jogador, obs):
                for area in obter_hitboxes_obstaculo(obs))
 
 
-def hitbox_disparo_laser(laser):
-    # O brilho vermelho da borda não deve matar sem contato com o feixe central.
-    return pygame.Rect(laser.rect.left, laser.rect.top + 5,
-                       laser.rect.width, max(1, laser.rect.height - 10))
+from src.pixelrush.entities.enemies.laser_collision import hitbox_disparo_laser
 
 
 
@@ -9050,25 +8996,7 @@ class PortalBonus(Sprite):
 
 
 # --- SISTEMA DE MISSÕES ---
-def gerar_missoes_rodada():
-    """Gera 3 missões variadas; alvos equilibrados para corridas curtas e longas."""
-    banco_missoes = [
-        {"tipo": "MOEDAS", "key": "missao_moedas", "alvo": random.randint(90, 220), "atual": 0, "recompensa": 100, "concluida": False},
-        {"tipo": "DISTANCIA", "key": "missao_distancia", "alvo": random.randint(700, 1600), "atual": 0, "recompensa": 180, "concluida": False},
-        {"tipo": "QUEBRAR", "key": "missao_quebrar", "alvo": random.randint(8, 18), "atual": 0, "recompensa": 130, "concluida": False},
-        {"tipo": "PULOS", "key": "missao_pulos", "alvo": random.randint(25, 70), "atual": 0, "recompensa": 90, "concluida": False},
-        {"tipo": "POWERUPS", "key": "missao_powerups", "alvo": random.randint(3, 8), "atual": 0, "recompensa": 120, "concluida": False},
-        {"tipo": "SLOW", "key": "missao_slow", "alvo": random.randint(2, 5), "atual": 0, "recompensa": 80, "concluida": False},
-        {"tipo": "COMBO", "key": "missao_combo", "alvo": random.choice((12, 18, 25)), "atual": 0, "recompensa": 140, "concluida": False},
-        {"tipo": "BAUS", "key": "missao_baus", "alvo": random.choice((1, 2, 3)), "atual": 0, "recompensa": 150, "concluida": False},
-        {"tipo": "FEBRE", "key": "missao_febre", "alvo": 1, "atual": 0, "recompensa": 160, "concluida": False},
-        {"tipo": "QUASE", "key": "missao_quase", "alvo": random.randint(3, 8), "atual": 0, "recompensa": 120, "concluida": False},
-    ]
-    # Não sortear missão que depende de power-up ainda bloqueado ou evento
-    # suspenso na edição de produção; somente objetivos possíveis para todos.
-    banco_missoes = [m for m in banco_missoes
-                     if m['tipo'] not in ('QUEBRAR', 'POWERUPS', 'SLOW')]
-    return random.sample(banco_missoes, 3)
+from src.pixelrush.systems.challenge_helpers import gerar_missoes_rodada
 
 
 from pixelrush_moedas_v3245 import PADROES_GEOMETRICOS_3245 as PADROES_GEOMETRICOS_3216, variar_formato

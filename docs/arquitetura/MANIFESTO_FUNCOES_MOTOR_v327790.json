@@ -1,0 +1,61 @@
+{
+  "schema": "pixelrush.qa.r20.engine_functions.v327790",
+  "base": "v3.277.89-QA",
+  "funcionalidade": "extração AST-identica, sem novo loop e sem wrappers por quadro",
+  "funcoes": [
+    {
+      "nome": "_estado_skin_jogador",
+      "destino": "src/pixelrush/entities/player/animation_state.py",
+      "linhas": 27
+    },
+    {
+      "nome": "jogador_invencivel_por_velocidade",
+      "destino": "src/pixelrush/entities/player/animation_state.py",
+      "linhas": 6
+    },
+    {
+      "nome": "raridade_de_skin",
+      "destino": "src/pixelrush/entities/player/skin_rules.py",
+      "linhas": 6
+    },
+    {
+      "nome": "nivel_visual_skin",
+      "destino": "src/pixelrush/entities/player/skin_rules.py",
+      "linhas": 3
+    },
+    {
+      "nome": "hitbox_disparo_laser",
+      "destino": "src/pixelrush/entities/enemies/laser_collision.py",
+      "linhas": 4
+    },
+    {
+      "nome": "chave_periodo_semanal",
+      "destino": "src/pixelrush/systems/challenge_helpers.py",
+      "linhas": 4
+    },
+    {
+      "nome": "gerar_missoes_rodada",
+      "destino": "src/pixelrush/systems/challenge_helpers.py",
+      "linhas": 19
+    },
+    {
+      "nome": "_suavizar_intervalo",
+      "destino": "src/pixelrush/world/day_night_math.py",
+      "linhas": 6
+    },
+    {
+      "nome": "saturar_cor",
+      "destino": "src/pixelrush/rendering/color_helpers.py",
+      "linhas": 3
+    },
+    {
+      "nome": "misturar_cores",
+      "destino": "src/pixelrush/rendering/color_helpers.py",
+      "linhas": 4
+    }
+  ],
+  "limites": [
+    "Jogador Sprite, obstáculos, física, tutorial obrigatório e loop permanecem no motor",
+    "funcoes extraidas nao usam globais mutaveis do motor; import random e pygame via mesmos modulos"
+  ]
+}
