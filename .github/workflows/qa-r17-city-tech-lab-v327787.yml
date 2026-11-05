@@ -1,0 +1,82 @@
+name: PIXEL RUSH QA R17 laboratorio mapas tecnicos RGBA sem APK
+
+on:
+  push:
+    branches:
+      - qa/r17-city-techmaps-lab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-r17-city-tech-lab
+  cancel-in-progress: true
+
+jobs:
+  lab:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r17-city-techmaps-lab'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Instalar pygame-ce 2.5.8 sem SDK Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python -m py_compile pixelrush_qa_city_technical_cover_v327787.py qa_a54/benchmark_city_technical_v327787.py tests/test_qa_r17_city_technical_v327787.py
+
+      - name: Comprovar que integracao QA786 e main nao mudaram
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          base='dcce704639e2b42bfade76d93b5766cda325cc9b'
+          changes=set(subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines())
+          allowed={'pixelrush_qa_city_technical_cover_v327787.py',
+                   'qa_a54/benchmark_city_technical_v327787.py',
+                   'tests/test_qa_r17_city_technical_v327787.py',
+                   '.github/workflows/qa-r17-city-tech-lab-v327787.yml'}
+          assert changes<=allowed,changes-allowed
+          print('LAB isolado, QA786 preservada')
+          PY
+
+      - name: Testar quarto e quinto quadros RGBA, rollback e CPU do mundo completo
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r17_city_technical_v327787.py
+
+      - name: Revalidar QA785 e QA786 anteriormente aprovadas
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r16_city_opaque_v327786.py
+
+      - name: Publicar somente codigo e testes do laboratorio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-r17-lab-city-technical-no-android
+          path: |
+            pixelrush_qa_city_technical_cover_v327787.py
+            tests/test_qa_r17_city_technical_v327787.py
+          if-no-files-found: warn
+          retention-days: 10
