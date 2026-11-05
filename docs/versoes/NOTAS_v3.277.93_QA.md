@@ -78,3 +78,10 @@ Foram migrados **21 módulos históricos** adicionais, com conteúdo byte-idênt
 - Auditoria encontra desenho do trem de fundo também nos mapas NORMAL/FLOW do quinto quadro, mesmo quando a camada near totalmente opaca já foi verificada pelo QA786. Protótipo isolado: `PIXELRUSH_QA_SKIP_HIDDEN_TRAIN=1`, estritamente condicionado ao marcador de validação por atlas/identidade/formato do QA786. Os mapas image, material, geometry, fxmask e física permanecem intactos.
 - Três benchmarks independentes com a Cidade real e 260 RGBA, controle vs candidato e fallback QA786 desabilitado; exigência de igualdade de hashes e prova de redução de chamadas do trem. O protótipo só será habilitado após verificar o CI e ganho real no tempo isolado; sem alegar FPS Android.
 - Nenhum APK/AAB compilado, nenhuma edição de main/DEV/pets/saves/assets/workflows Android.
+
+
+## R23 — melhoria integrada após A/B e organização segura
+- Ativado por padrão o culling do trem técnico oculto na Cidade apenas para NORMAL/FLOW com QA786 provando near totalmente opaco. Rollback com PIXELRUSH_QA_SKIP_HIDDEN_TRAIN=0. CI #42071189621 comprovou 260 hashes RGBA idênticos; 52 chamadas de trem omitidas em 130 quadros, FLOW p50 -6,3%, quinto quadro p50 -0,42% em Linux; sem extrapolar FPS Android.
+- Polimento artístico da Cidade: juntas e brilho estáticos discretos no concreto (imagem e material), prebaked no atlas near, sem alocação por quadro nem alteração de colisões. Canais normal/geometry/flow/fxmask byte-idênticos aos do gerador anterior em teste isolado.
+- Migrados mais dois módulos QA de import seguro, sem uso de __file__: composição Cidade RGB16 e vinheta. Seus conteúdos canônicos são idênticos à QA792, wrappers sys.modules ficam na raiz, manifesto passa para 38 módulos e CI confere integridade.
+- Preservados main.py, JOGAR.py, DEV, pets, saves, assets, física e workflows APK/AAB. Nenhum APK/AAB compilado; versão mantida v3.277.93-QA. Polimento integral e testes Android continuam pendentes.

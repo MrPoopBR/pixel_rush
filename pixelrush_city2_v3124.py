@@ -4,7 +4,7 @@ from pixelrush_city2_v3115 import DEFAULT_NORMAL, NEUTRAL_FLOW
 import os
 import pygame
 # QA R23: candidato fechado ate completar A/B RGBA e desempenho.
-_QA_SKIP_HIDDEN_TRAIN=os.environ.get('PIXELRUSH_QA_SKIP_HIDDEN_TRAIN','0')=='1'
+_QA_SKIP_HIDDEN_TRAIN=os.environ.get('PIXELRUSH_QA_SKIP_HIDDEN_TRAIN','1')=='1'
 # Configurada no boot QA; nenhum getenv no quinto quadro.
 _QA_DIRECT_NIGHT_MULT=os.environ.get('PIXELRUSH_QA_DIRECT_NIGHT_MULT','1')=='1'
 # QA754: near_tiles e consumido somente por image/fxmask (luzes); em
@@ -23,6 +23,11 @@ class CityPilotScene(CidadeAnterior):
         pygame.draw.rect(v.image, (109, 108, 110), (0, 225, 450, 6))
         pygame.draw.line(v.image, (174, 171, 162), (0, 225), (449, 225), 1)
         pygame.draw.rect(v.material, (105, 100, 98), (0, 225, 450, 6))
+        # Juntas da calçada criadas uma só vez na construção do atlas.
+        for jx in range(56 + (idx % 3) * 12, 445, 96):
+            pygame.draw.line(v.image, (77, 79, 83), (jx, 226), (jx, 230), 1)
+            pygame.draw.line(v.image, (158, 155, 151), (jx + 1, 226), (jx + 1, 230), 1)
+            pygame.draw.line(v.material, (93, 91, 91), (jx, 226), (jx, 230), 1)
         return v
 
     def render_scene(self, target, travel, frame, night, climate, phase,

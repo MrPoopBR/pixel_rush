@@ -219,9 +219,21 @@
       "canonical": "src/pixelrush/rendering/material_textures_v3185.py",
       "byte_identical": true,
       "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_r11_world_bounds_v327776.py",
+      "canonical": "src/pixelrush/performance/city/world_bounds_v327776.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_r11_vinheta_v327776.py",
+      "canonical": "src/pixelrush/rendering/vignette_v327776.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
     }
   ],
-  "files_count": 36,
+  "files_count": 38,
   "root_python_files_removed": 0,
   "apk_compiled": false,
   "android_real_verified": false
