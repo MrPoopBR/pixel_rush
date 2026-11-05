@@ -13,6 +13,8 @@ QA793: tutorial cinematográfico, novos perigos da neve, movimento do pombo/rato
 
 R23 migração em massa conservadora: **21 módulos reais** movidos para `src/pixelrush`, com aliases históricos e verificação de conteúdo/identidade. Manifesto em `docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json`. A raiz não fica menor até uma limpeza de imports de Android/CI.
 
+**QA793 — desempenho e qualidade extra:** `pixelrush_world_v3130.py` elimina clears repetidos e renderiza FLOW 2.5D direto na Cidade, com 260 RGBA idênticos e sem buffer intermediário; `pixelrush_gamefeel_v3152.py` acompanha jogador com câmera amortecida e sem Surface/frame; fases de aurora/céu aprimoradas; pombo com cadência de asas ligada à velocidade; gráficos completos também na inicialização Android. Testes CI `#42057063672` aprovados em Linux, não homologados no A54.
+
 ## Entradas — nao confundir
 
 - **Android:** `main.py` na raiz. Mantido literalmente como no QA787.
