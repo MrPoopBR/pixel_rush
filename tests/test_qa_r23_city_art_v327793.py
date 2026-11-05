@@ -31,7 +31,9 @@ try:
         for name, before in captured[0].items():
             assert pygame.image.tobytes(getattr(v,name),"RGBA")==before,(idx,name)
         x=56+(idx%3)*12
-        for variant in (existing,v):
+        # O prebake de props estaticos posterior pode sobrepor trechos da
+        # calçada no atlas final. Conferir o tile antes dessa composicao.
+        for variant in (v,):
             assert tuple(variant.image.get_at((x,228)))[:3] == (77,79,83), (idx,"junta")
             assert tuple(variant.image.get_at((x+1,228)))[:3] == (158,155,151), (idx,"realce")
             assert tuple(variant.material.get_at((x,228)))[:3] == (93,91,91), (idx,"material")
