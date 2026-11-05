@@ -85,6 +85,7 @@ def _testar(p):
                   GL_UNSIGNED_BYTE,None)
         gen_fbo(1,C.byref(fbo))
         bind_fbo(GL_FRAMEBUFFER,fbo.value)
+        p._qa_fbo_gate=True
         attach(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,tex.value,0)
         if check(GL_FRAMEBUFFER)!=GL_FRAMEBUFFER_COMPLETE:
             raise RuntimeError('FBO_RGBA8_incompleto')
@@ -133,6 +134,7 @@ def _testar(p):
             return False,'sem_ganho_microbenchmark',c,g
         return True,'pixels_exatos_e_custo_menor',c,g
     finally:
+        p._qa_fbo_gate=False
         bind_fbo(GL_FRAMEBUFFER,0)
         if fbo.value:
             delete_fbo(1,C.byref(fbo))
