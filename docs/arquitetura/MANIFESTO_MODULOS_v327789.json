@@ -1,0 +1,138 @@
+{
+  "schema": "pixelrush.qa.r19.migration.v327789",
+  "branch": "qa/r19-mundo-render-qa-organizacao-v3.277.89",
+  "baseCommit": "17774a8d9e8b5d9df256ddc4ec1c1effa389ac6a",
+  "modulos": [
+    {
+      "antigo": "pixelrush_city2_v3115.py",
+      "novo": "src/pixelrush/world/city/v3115.py",
+      "sha": "ce4e52f07b3d9fdd99e3fa73de2a44545b47032f"
+    },
+    {
+      "antigo": "pixelrush_city2_v3116.py",
+      "novo": "src/pixelrush/world/city/v3116.py",
+      "sha": "c10e9be67beda31a5944bb898bd2fb55295f3d9a"
+    },
+    {
+      "antigo": "pixelrush_city2_v3117.py",
+      "novo": "src/pixelrush/world/city/v3117.py",
+      "sha": "63d9eb45fb4ff6106d4962ba25e67ca0ed4a211b"
+    },
+    {
+      "antigo": "pixelrush_city2_v3119.py",
+      "novo": "src/pixelrush/world/city/v3119.py",
+      "sha": "bbbd1ac6a4306caf6e9f771e7fd31f84d3063fb1"
+    },
+    {
+      "antigo": "pixelrush_city2_v3120.py",
+      "novo": "src/pixelrush/world/city/v3120.py",
+      "sha": "539ddade0d5319304a67fdd760d926f7716dd4df"
+    },
+    {
+      "antigo": "pixelrush_city2_v3123.py",
+      "novo": "src/pixelrush/world/city/v3123.py",
+      "sha": "aa265c01d374401125a6272d367ad7a42e008424"
+    },
+    {
+      "antigo": "pixelrush_city2_v3125.py",
+      "novo": "src/pixelrush/world/city/v3125.py",
+      "sha": "9c8c366184326363c2ac42d8442e1cf26bcf390e"
+    },
+    {
+      "antigo": "pixelrush_city2_v3175.py",
+      "novo": "src/pixelrush/world/city/v3175.py",
+      "sha": "99a5716b0b69cd7d6591f4d4cdfc2c464e395a7f"
+    },
+    {
+      "antigo": "pixelrush_city2_v3177.py",
+      "novo": "src/pixelrush/world/city/v3177.py",
+      "sha": "9bf5bec3e9c56966b5686cfaa203d4f856d7b592"
+    },
+    {
+      "antigo": "pixelrush_citylife_v3123.py",
+      "novo": "src/pixelrush/world/city/life_v3123.py",
+      "sha": "f508d06264d364005a95a74d71f4416f061c28d9"
+    },
+    {
+      "antigo": "pixelrush_floresta_v3132.py",
+      "novo": "src/pixelrush/world/biomes/forest_v3132.py",
+      "sha": "ffba16307235c6becb9e8edb056b0235ac00af19"
+    },
+    {
+      "antigo": "pixelrush_rotacao_biomas_v3261.py",
+      "novo": "src/pixelrush/world/biomes/rotation_v3261.py",
+      "sha": "bd741f17d8614b10dac5625a0396b21ae1d37eba"
+    },
+    {
+      "antigo": "pixelrush_world_prod_v32775.py",
+      "novo": "src/pixelrush/world/runtime/prod_v32775.py",
+      "sha": "ca7e5906f5fc3b65c6acd4716e5fa8b22fe7b208"
+    },
+    {
+      "antigo": "pixelrush_world_prod_v32777.py",
+      "novo": "src/pixelrush/world/runtime/prod_v32777.py",
+      "sha": "aa2c4cf3f045c952e91290b771b74c575173aed2"
+    },
+    {
+      "antigo": "pixelrush_world_v3150.py",
+      "novo": "src/pixelrush/world/runtime/legacy_v3150.py",
+      "sha": "45bb8315c99025ee8e36e26ca65811a021b80c4b"
+    },
+    {
+      "antigo": "pixelrush_ceu_v3233.py",
+      "novo": "src/pixelrush/rendering/sky_v3233.py",
+      "sha": "02ab9ea9d7402008bc34577f298bc427a76c6df0"
+    },
+    {
+      "antigo": "pixelrush_atmosfera_v3199.py",
+      "novo": "src/pixelrush/rendering/atmosphere_v3199.py",
+      "sha": "647f8e9570a68eec030b32b06492d58f6c82d4a6"
+    },
+    {
+      "antigo": "pixelrush_renderfx_v3125.py",
+      "novo": "src/pixelrush/rendering/effects_v3125.py",
+      "sha": "43afcdf553f29a6e365c8f69c07667cdd868ca25"
+    },
+    {
+      "antigo": "pixelrush_render_v3152.py",
+      "novo": "src/pixelrush/rendering/legacy_v3152.py",
+      "sha": "87648722c180fe71b42b867ea9817a585d3c2674"
+    },
+    {
+      "antigo": "pixelrush_render_v3170.py",
+      "novo": "src/pixelrush/rendering/legacy_v3170.py",
+      "sha": "cc41c8e1946da6ebe304dada776bcba1ec2450c4"
+    },
+    {
+      "antigo": "pixelrush_render_v3180.py",
+      "novo": "src/pixelrush/rendering/legacy_v3180.py",
+      "sha": "64a918a7a522466e9f8f6e48845b773b1f233176"
+    },
+    {
+      "antigo": "pixelrush_luz_materiais_v3177.py",
+      "novo": "src/pixelrush/rendering/lighting/materials_v3177.py",
+      "sha": "1298fab3c0f5767720c85cbbf797bed6ef390c8a"
+    },
+    {
+      "antigo": "pixelrush_luz_skins_v3183.py",
+      "novo": "src/pixelrush/rendering/lighting/skins_v3183.py",
+      "sha": "b16b53f490c4dd703f63b9fe89bc3594fde2d1ce"
+    },
+    {
+      "antigo": "pixelrush_luz_skins_v3184.py",
+      "novo": "src/pixelrush/rendering/lighting/skins_v3184.py",
+      "sha": "119ce5917df14fe2725eafef441e4b0071c60d01"
+    },
+    {
+      "antigo": "pixelrush_visual_premium_v3127.py",
+      "novo": "src/pixelrush/rendering/premium_v3127.py",
+      "sha": "5dbdacb47985566438a4dbddc11abac9248dda40"
+    }
+  ],
+  "observacoes": [
+    "Conteudo original transferido usando SHA do blob Git",
+    "Arquivo antigo permanece como adaptador sys.modules",
+    "Arquivos com hashes preflight ou referencias estaticas em scripts de build nao foram migrados",
+    "Nenhuma alteracao de metodos, sprites, logica, fisica ou recursos"
+  ]
+}

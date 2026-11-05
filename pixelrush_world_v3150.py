@@ -1,16 +1,8 @@
-"""Integra a v3.150.0: Cidade Futurista premium + Vulcão premium + revisão fina."""
-from pixelrush_world_v3139 import LivingWorld as Previous, CLASSICOS
-from pixelrush_biomes2_v3150 import ModularBiomeScene
-
-
-class LivingWorld(Previous):
-    def _get_modular(self):
-        if CLASSICOS:
-            return super()._get_modular()
-        scene = self.modular.get(self.biome)
-        if scene is None:
-            scene = ModularBiomeScene(self.biome)
-            self.modular.clear()
-            self.modular[self.biome] = scene
-        scene.visual_quality = 0 if self.lightweight else 1
-        return scene
+# -*- coding: utf-8 -*-
+"""Adaptador de compatibilidade para o modulo real em src/pixelrush/world/runtime/legacy_v3150.py.
+A API e o objeto de modulo permanecem unicos (nao duplicar estado).
+Nao remover ate a homologacao de imports, CI e empacotamento Android.
+"""
+import importlib as _importlib
+import sys as _sys
+_sys.modules[__name__] = _importlib.import_module("src.pixelrush.world.runtime.legacy_v3150")

@@ -1,20 +1,8 @@
-"""v3.177.0 — tratamento de materiais das variantes já existentes da Cidade."""
-from pixelrush_city2_v3175 import aplicar_composicao_cidade
-from pixelrush_luz_materiais_v3177 import iluminar_material
-
-
-def aplicar_luz_cidade(scene):
-    aplicar_composicao_cidade(scene)
-    if getattr(scene,'_iluminacao_3177',False):
-        return scene
-    for layer in scene.layers:
-        if layer.foreground or layer.name not in ('far','mid','near'):
-            continue
-        vistos=set()
-        for variant in layer.variants:
-            if id(variant.image) in vistos:
-                continue
-            vistos.add(id(variant.image))
-            iluminar_material(variant.image,'cidade',layer.name)
-    scene._iluminacao_3177=True
-    return scene
+# -*- coding: utf-8 -*-
+"""Adaptador de compatibilidade para o modulo real em src/pixelrush/world/city/v3177.py.
+A API e o objeto de modulo permanecem unicos (nao duplicar estado).
+Nao remover ate a homologacao de imports, CI e empacotamento Android.
+"""
+import importlib as _importlib
+import sys as _sys
+_sys.modules[__name__] = _importlib.import_module("src.pixelrush.world.city.v3177")
