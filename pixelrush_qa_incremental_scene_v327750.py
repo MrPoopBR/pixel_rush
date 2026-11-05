@@ -25,6 +25,7 @@ from weakref import WeakKeyDictionary
 # Configuradas no boot QA, sem acessar getenv durante os chunks do 5o frame.
 _QA_SCROLL_INIT_CLEAR=os.environ.get('PIXELRUSH_QA_SCROLL_INIT_CLEAR','1')=='1'
 _QA_SCROLL_JUMP_DIRECT=os.environ.get('PIXELRUSH_QA_SCROLL_JUMP_DIRECT','1')=='1'
+_QA_RLE_DIRECT_FASTPATH=os.environ.get('PIXELRUSH_QA_CITY_RLE_FASTPATH','0')=='1'
 # Quando so uma faixa estreita da textura original aparece, preencher
 # cache + blitar buffer e mais lento que o blit fonte, sem ganho visual.
 # Padrao experimental, scroll geral permanece OFF.
@@ -46,7 +47,8 @@ _STATS={'cidade_hit':0,'cidade_rebuild':0,'cidade_strip_px':0,
         'cidade_cache_descartado':0,'modo_cidade':'off',
         'cidade_salto_direto':0,'cidade_init_sem_fill':0,
         'cidade_blit_cobertura_px':0,'cidade_cobertura_direta':0,
-        'cidade_chunk_sem_base':0,'cidade_rle_direto':0}
+        'cidade_chunk_sem_base':0,'cidade_rle_direto':0,
+        'cidade_rle_fastpath':0}
 
 
 def diagnostico():
@@ -79,9 +81,10 @@ def _copiar_pixel_exato(buffer,fonte,x,dest_rect):
         buffer.blit(fonte,area.topleft,src,special_flags=pygame.BLEND_RGBA_MAX)
 
 
-def _atualizar_persistente(scene,variant,kind,x):
+def _atualizar_persistente(scene,variant,kind,x,fonte=None):
     from pixelrush_city2_v3115 import WIDTH, SCENE_W, SCENE_H
-    fonte=scene._scaled_surface(variant,kind)
+    if fonte is None:
+        fonte=scene._scaled_surface(variant,kind)
     # QA755: SDL-RLE faz skip de alpha0 no blit original e pode manter
     # RGB oculto do target; RGBA_MAX -> buffer -> blit altera tais bytes.
     # RLEACCELOK aparece ja em set_alpha(...RLEACCEL), mesmo ANTES
@@ -213,8 +216,25 @@ def instalar():
             _STATS['cidade_sprite_direto']+=1
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
                                        night,climate,phase,map_kind,only_sprites)
+        # QA783: RLE transparente nao pode ser cacheado sem alterar o RGB
+        # oculto. Para chunk ESTATICO, o proprio blit RLE da imagem original
+        # e um caminho exato e evita wrappers/metadados duplicados.
+        fonte=None
+        if not variant.sprites and _QA_RLE_DIRECT_FASTPATH:
+            try:
+                fonte=self._scaled_surface(variant,map_kind)
+                mask=pygame.RLEACCEL|getattr(pygame,'RLEACCELOK',0)
+                if fonte.get_flags() & mask:
+                    target.blit(fonte,(int(x),0))
+                    _STATS['cidade_rle_fastpath']+=1
+                    _STATS['cidade_rle_direto']+=1
+                    return
+            except (pygame.error,MemoryError,ValueError,TypeError,AttributeError):
+                _STATS['cidade_fallback']+=1
+                return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
+                                           night,climate,phase,map_kind,only_sprites)
         try:
-            buffer=_atualizar_persistente(self,variant,map_kind,int(x))
+            buffer=_atualizar_persistente(self,variant,map_kind,int(x),fonte)
         except (pygame.error,MemoryError,ValueError,TypeError,AttributeError):
             _STATS['cidade_fallback']+=1
             return _ORIGINAIS['chunk'](self,target,variant,flip,x,frame,
