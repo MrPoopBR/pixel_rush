@@ -17,6 +17,7 @@ from pixelrush_ameacas_v3196 import (
 _DIRETORIO = Path(__file__).resolve().parent / 'assets' / 'inimigos_v3221'
 _QUADROS = {}
 _POR_IDENTIDADE = {}
+_ANIMACOES_VOO = {}
 _CACHE_BYTES = 0
 MAX_CACHE_BYTES = 2*1024*1024
 
@@ -47,6 +48,10 @@ def _preparar(codigo):
             i+=1
         quadros.append(tuple(novos))
     _QUADROS[codigo]=tuple(quadros)
+    if codigo=="C2":
+        # O pombo usa TODAS as poses do atlas existente (sem gerar frames).
+        # O custo de montagem da sequencia ocorre só no primeiro spawn.
+        _ANIMACOES_VOO[codigo]=tuple(frame for fase in quadros for frame in fase)
     _CACHE_BYTES+=bytes_novos
 
 
@@ -63,6 +68,9 @@ class AmeacaBioma(_Anterior):
         if codigo in ATIVOS:
             _preparar(codigo)
             self.image=_POR_IDENTIDADE[id(self.image)]
+        if codigo=="C2":
+            sequencia=_ANIMACOES_VOO.get("C2",())
+            self._fase_voo=float(self._giro%len(sequencia)) if sequencia else 0.0
 
     def update(self,velocidade_jogo):
         super().update(velocidade_jogo)
@@ -77,12 +85,12 @@ class AmeacaBioma(_Anterior):
             self.rect.x = round(self._x + 10*math.sin(self.ticks*.12+self._giro))
             self.rect.y = round(self._base_y + 8*math.sin(self.ticks*.19) +
                                 6*math.sin(self.ticks*.05+self._giro))
-            # Escolhe poses já carregadas; batidas mais vivas sem duplicar atlases.
-            fases = _QUADROS.get('C2')
-            if fases:
-                fase = (self.ticks//5)%len(fases)
-                poses = fases[fase]
-                self.image = poses[(self.ticks//3)%len(poses)]
+            # Fase fracionaria acompanha velocidade e percorre poses
+            # intermediarias reais do atlas sem recomputar pixels.
+            sequencia=_ANIMACOES_VOO.get("C2",())
+            if sequencia:
+                self._fase_voo += min(.88,.34 + float(velocidade_jogo)*.022)
+                self.image=sequencia[int(self._fase_voo)%len(sequencia)]
         elif self.codigo == 'N1':
             self.rect.x = round(self._x + 7*math.sin(self.ticks*.078+self._giro))
             self.rect.y = self._base_y + round(abs(math.sin(self.ticks*.11))*2)
