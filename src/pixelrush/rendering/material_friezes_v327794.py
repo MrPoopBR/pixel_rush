@@ -6,6 +6,9 @@ dos materiais opacos, sem tocar alfa, hitboxes, RNG, fisica ou mapa geometrico.
 """
 import numpy as np
 import pygame
+import os
+# Microacentos separados dos frisos antigos; rollback preserva QA794 byte a byte.
+_R25_DETAILS=os.environ.get('PIXELRUSH_QA_R25_ART_DETAILS','1')=='1'
 
 PERFIS = {
     'cidade': (47,23,0,4),
@@ -37,7 +40,10 @@ def aplicar_friso(imagem, bioma, plano, indice):
     valido[-15:]=False
     valido[:,:12]=False
     valido[:,-12:]=False
-    xx,yy=np.indices((largura,altura),dtype=np.int32)
+    # Dois eixos broadcast em vez de dois arrays W*H int32 (~450 KiB poupados
+    # por variante na preparacao Android; mesmos pixels para o friso QA794).
+    xx=np.arange(largura,dtype=np.int32)[:,None]
+    yy=np.arange(altura,dtype=np.int32)[None,:]
     px,py,skew,forca=PERFIS[bioma]
     fase=int(indice)*11
     risco=(xx+skew*yy+fase)%px
@@ -47,6 +53,14 @@ def aplicar_friso(imagem, bioma, plano, indice):
     delta=np.zeros((largura,altura),dtype=np.int8)
     delta[escuro]=-forca
     delta[claro]=forca
+    if _R25_DETAILS:
+        # Microrelief de material solido por bioma, deslocado de QA794 para
+        # nao duplicar o padrao de juntas: duas pinceladas a cada ~60x30 px.
+        # As cores historicas, alfa e os canais fisicos nao mudam.
+        mini=valido & ((xx+indice*5)%(px+17)==7) & ((yy+indice*3)%(py+11)<=2)
+        mini &= (delta==0)
+        sinal=-1 if bioma in ('vulcao','floresta') else 1
+        delta[mini]=sinal*max(2,forca-2)
     quantidade=int(np.count_nonzero(delta))
     if not quantidade:return None,0
     tela=pygame.surfarray.pixels3d(imagem)

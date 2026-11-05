@@ -85,6 +85,7 @@ def finalizar_quadro(imagem, tela, tamanho_final, pos_final, superficies_escala,
                     direto=True
                     superficie_final=tela
                     _STATUS['escala_direta']+=1
+                    _STATUS['escala']+=1
             if not direto:
                 superficie_final=superficies_escala.get(tamanho_final)
                 if superficie_final is None:
