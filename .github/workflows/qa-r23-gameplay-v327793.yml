@@ -108,7 +108,8 @@ jobs:
                    "README.md",".github/workflows/qa-r23-gameplay-v327793.yml",
                    "qa_a54/benchmark_city_preclear_v327793.py",
                    "pixelrush_world_v3130.py",
-                   "pixelrush_gamefeel_v3152.py"})
+                   "pixelrush_gamefeel_v3152.py",
+                   "qa_a54/benchmark_modular_preclear_v327793.py"})
           illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
           assert not illegal,illegal
           forbidden=("main.py","JOGAR.py","requirements.txt",".gitignore")
@@ -177,6 +178,30 @@ jobs:
               print(name,"p50 controle",before,"candidato",after,"percentual",round(100*(after/before-1),2))
           # Candidato não integrado: discrepância é diagnóstico, não aprovação.
           PY
+      - name: LAB R23 Neve/Deserto 2.5D RGBA + RAM vs limpeza de buffers
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_modular_preclear_v327793.py --candidato 0 --output qa_a54/qa793_modular_baseline.json
+          python qa_a54/benchmark_modular_preclear_v327793.py --candidato 1 --output qa_a54/qa793_modular_candidate.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path("qa_a54/qa793_modular_baseline.json").read_text("utf8"))
+          b=json.loads(Path("qa_a54/qa793_modular_candidate.json").read_text("utf8"))
+          same=a["rgba_hashes"]==b["rgba_hashes"]
+          print("QA793 modular Neve/Deserto RGBA:",len(a["rgba_hashes"]),
+                "frames", "idênticos" if same else "DIVERGENTES")
+          for name in a["per_pass"]:
+              x=a["per_pass"][name]["p50_ms"];y=b["per_pass"][name]["p50_ms"]
+              print(name,"p50 controle",x,"candidato",y,"delta %",
+                    round(100*(y/x-1),2) if x else "n/a")
+          print("Pico RAM KiB controle/candidato",a["rss_peak_kib"],b["rss_peak_kib"])
+          # Candidato ainda NÃO integrado; mismatch bloqueia apenas integração,
+          # não os gates da produção existente.
+          Path("qa_a54/qa793_modular_diagnostico.json").write_text(
+              json.dumps({"rgba_iguais":same,"quantidade":len(a["rgba_hashes"])},
+                         indent=2),encoding="utf8")
+          PY
       - name: Arquivar laudo sem APK
         uses: actions/upload-artifact@v4
         if: always()
@@ -190,4 +215,7 @@ jobs:
             qa_a54/qa793_preclear_candidate.json
             qa_a54/qa793_direct_baseline.json
             qa_a54/qa793_direct_candidate.json
+            qa_a54/qa793_modular_baseline.json
+            qa_a54/qa793_modular_candidate.json
+            qa_a54/qa793_modular_diagnostico.json
           retention-days: 14
