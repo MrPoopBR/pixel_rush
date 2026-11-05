@@ -76,6 +76,7 @@ jobs:
         run: |
           set -euo pipefail
           python tests/test_qa_r23_gameplay_tutorial_v327793.py
+          python tests/test_qa_r23_camera_sky_v327793.py
           python tests/test_qa_r23_migracao_modulos_v327793.py
       - name: Executar testes estruturais antigos na base QA792 isolada
         run: |
