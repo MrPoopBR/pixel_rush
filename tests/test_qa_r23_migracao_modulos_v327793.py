@@ -24,7 +24,14 @@ class TesteMigracoes(unittest.TestCase):
             old,new=entry["legacy"],entry["canonical"]
             with self.subTest(old=old):
                 before=subprocess.check_output(["git","show",M["base_commit"]+":"+old],cwd=ROOT)
-                self.assertEqual(before,(ROOT/new).read_bytes(),old)
+                if entry.get("byte_identical",True):
+                    self.assertEqual(before,(ROOT/new).read_bytes(),old)
+                else:
+                    self.assertEqual(old,"pixelrush_qa_unified_post_v327750.py")
+                    self.assertEqual(entry["approved_change"],"qa795_direct_present_rgba_gate")
+                    sha=subprocess.check_output(["git","hash-object",new],cwd=ROOT,text=True).strip()
+                    self.assertEqual(sha,entry["git_blob_sha"])
+                    self.assertNotEqual(before,(ROOT/new).read_bytes())
                 wrapper=(ROOT/old).read_text("utf8")
                 self.assertIn("_sys.modules[__name__]",wrapper)
                 self.assertIn("import_module(",wrapper)

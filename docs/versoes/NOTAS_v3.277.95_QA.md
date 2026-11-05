@@ -34,3 +34,7 @@ Wrappers com sys.modules na raiz mantêm compatibilidade e estado global único;
 ## 5. Gates e proteção
 CI offline R25 verifica motor pygame-ce/AST, tutorial real, 42 imports, benchmarking de 2.5D, seis biomas modulares e City, sete materiais com alfa invariável, replay RGB 288 amostras e regressão de câmera.
 Preservados main.py, JOGAR.py, DEV, pets, saves, física, controles, colisões, imagens, p4a-recipes, main e workflows Android. Nenhum APK/AAB compilado, sem alegação de ganho geral de FPS ou homologação A54/MEmu.
+
+
+## R25 — rastreabilidade estrita da otimização pós-sprites
+O módulo canônico unified_post_v327750.py foi migrado como byte-idêntico na QA794, mas na R25 recebeu uma alteração explícita. O manifesto mantém **41 módulos byte-idênticos** à base QA792 e **um módulo com alteração aprovada**, bloqueado pelo Git blob SHA 0bc183651a8f3d8f0281e581cb62a7bf70710f0d. CI verifica o SHA exato, import como mesmo módulo e as 60 amostras RGBA do benchmark. Não representar esse módulo como byte-idêntico após a otimização.

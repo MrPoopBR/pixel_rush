@@ -109,7 +109,13 @@ jobs:
           assert len(manifest["migrated"])==42
           allowed={e["legacy"] for e in manifest["migrated"]}
           for entry in manifest["migrated"]:
-              assert old(entry["legacy"]) == Path(entry["canonical"]).read_bytes()
+              if entry.get("byte_identical",True):
+                  assert old(entry["legacy"]) == Path(entry["canonical"]).read_bytes()
+              else:
+                  assert entry["legacy"]=="pixelrush_qa_unified_post_v327750.py"
+                  assert entry["approved_change"]=="qa795_direct_present_rgba_gate"
+                  sha=subprocess.check_output(["git","hash-object",entry["canonical"]],text=True).strip()
+                  assert sha==entry["git_blob_sha"], (sha,entry["git_blob_sha"])
           allowed.update({"PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py",
                    "pixelrush_cenarios_v398.py","pixelrush_inimigos_v3221.py",
                    "pixelrush_letras_v3218.py","buildozer.spec","VERSAO_ATUAL.txt",

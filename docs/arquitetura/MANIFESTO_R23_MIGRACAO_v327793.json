@@ -235,8 +235,10 @@
     {
       "legacy": "pixelrush_qa_unified_post_v327750.py",
       "canonical": "src/pixelrush/performance/unified_post_v327750.py",
-      "byte_identical": true,
-      "sys_modules_alias": true
+      "byte_identical": false,
+      "sys_modules_alias": true,
+      "approved_change": "qa795_direct_present_rgba_gate",
+      "git_blob_sha": "0bc183651a8f3d8f0281e581cb62a7bf70710f0d"
     },
     {
       "legacy": "pixelrush_qa_city_bootstrap_v327759.py",
