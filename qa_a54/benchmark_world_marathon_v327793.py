@@ -9,6 +9,18 @@ os.environ.setdefault('SDL_AUDIODRIVER','dummy')
 import pygame
 pygame.init()
 pygame.display.set_mode((450,800))
+# Cidade v3122 contorna o init v3118; usar os metadados da rota real R17.
+from pixelrush_qa_city_bootstrap_v327759 import instalar as _boot_cidade
+from pixelrush_qa_city_scaled_budget_v327785 import instalar as _budget
+from pixelrush_qa_city_opaque_overdraw_v327786 import instalar as _opaque
+from pixelrush_qa_city_technical_cover_v327787 import instalar as _tech
+os.environ['PIXELRUSH_QA_CITY_SCALED_BUDGET']='1'
+os.environ['PIXELRUSH_QA_CITY_OPAQUE_OVERDRAW']='1'
+os.environ['PIXELRUSH_QA_CITY_TECH_COVER']='1'
+_boot_cidade()
+_budget()
+_opaque()
+_tech()
 from pixelrush_world_prod_v32777 import LivingWorld
 BIOMAS=('cidade','neve','deserto','vulcao','floresta','cidade_futurista','ilhas_celestes')
 CLIMAS=('limpo','nevasca','tempestade_areia','cinzas','vento_folhas','chuva_acida','brisa_celeste')
