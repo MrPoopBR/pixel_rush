@@ -22,3 +22,7 @@ workflows. Uma chamada de limpeza indiscriminada pode corromper APK/AAB.
 ### Segunda etapa QA789
 
 25 módulos reais de Cidade/biomas/mundo/render foram movidos e as importações legadas preservadas. O motor de 16 mil linhas, módulos Python com hashes de preflight, entidades, pets, física, save e câmera ainda dependem de testes adicionais antes da migração completa. Três documentos foram arquivados com blobs iguais e as notas exigidas por CI foram retidas.
+
+### QA790 — início seguro do motor e QA
+
+Extraídas dez funções independentes do motor e migrados oito módulos integrais de HUD/tutorial/skins/controles. Oito protótipos antigos foram arquivados; os 47 módulos QA pinados por preflight permaneceram na raiz. Ainda faltam a classe Jogador, inimigos completos, tutorial de primeira partida, sistemas com estado global, save e loop. Não deslocar esses componentes sem gates completos no Android.

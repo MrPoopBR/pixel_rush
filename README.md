@@ -1,6 +1,6 @@
 # PIXEL RUSH — jogo 2D em Python / pygame-ce
 
-**Linha de desenvolvimento:** v3.277.89-QA (branch de reorganizacao isolada).
+**Linha de desenvolvimento:** v3.277.90-QA (branch de reorganizacao isolada).
 **Base funcional:** v3.277.87-QA. Nao publicar nem compilar AAB a partir desta
 branch sem novos testes de hardware. O Android real usa CPython 3.12, SDL2,
 pygame-ce e Buildozer.
@@ -97,3 +97,9 @@ Arquivo historico de instrucoes AAB: `docs/historico/README_ANDROID_AAB_ORIGINAL
 Foram migrados 25 módulos de código reais, sem modificar os bytes: 15 de mundo e Cidade para src/pixelrush/world/ e 10 de efeitos e renderização para src/pixelrush/rendering/. O manifesto dos SHAs e caminhos está em docs/arquitetura/MANIFESTO_MODULOS_v327789.json. Os nomes antigos permanecem como adaptadores, para não quebrar imports ou duplicar estados.
 
 Outros módulos e documentos da raiz são verificados por hash em preflights antigos e permaneceram em seus caminhos originais. Consulte docs/arquitetura/QA_RAIZ_PROTEGIDA_v327789.md. Os três documentos Android independentes foram organizados em docs/android/ e docs/historico/ com manifesto específico. Nenhuma funcionalidade foi removida, nenhum APK compilado e o Galaxy A54 ainda não homologou esta estrutura.
+
+## Etapa QA790 — organização de QA e começo da divisão do motor
+
+Foram extraídas dez funções independentes do motor para módulos em `src/pixelrush/entities/`, `src/pixelrush/systems/`, `src/pixelrush/world/` e `src/pixelrush/rendering/`, preservando o código e os imports no ponto original. Oito módulos de HUD, tutorial, controles, desafios e skins também foram migrados, mantendo adaptadores antigos. Oito arquivos históricos não ativos saíram da raiz para `archive/prototipos_tutorial/` com integridade Git comprovável.
+
+Os demais módulos `pixelrush_qa_*.py` da raiz ainda são protegidos por scripts antigos de preflight ou por compatibilidade: consulte [inventário QA](docs/arquitetura/INVENTARIO_QA_v327790.md). A classe Jogador, inimigos completos, física e tutorial obrigatório seguem no motor original nesta etapa. Não houve reescrita desses subsistemas nem compilação Android.
