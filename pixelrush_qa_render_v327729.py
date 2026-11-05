@@ -50,6 +50,7 @@ def preparar_perfil_qa_android():
             ('PIXELRUSH_QA_NATIVE_AUTO','1'),
             ('PIXELRUSH_QA_CITY_INCREMENTAL','1'),
             ('PIXELRUSH_QA_CITY_OPAQUE_OVERDRAW','1'),
+            ('PIXELRUSH_QA_CITY_TECH_COVER','1'),
             ('PIXELRUSH_QA_CLASSIC_INCREMENTAL','1'),
             ('PIXELRUSH_QA_TRACE','1')):
         os.environ.setdefault(nome,valor)
@@ -175,6 +176,10 @@ def instalar():
     # Nao alterar imagem/sprites/iluminacao nem o cache QA785.
     from pixelrush_qa_city_opaque_overdraw_v327786 import instalar as instalar_city_opaque_qa
     instalar_city_opaque_qa()
+    # QA787: culling do quinto quadro (geometry/material e fxmask) validado
+    # por RGBA no mundo real. Capturar DEPOIS de QA786, restaurar antes.
+    from pixelrush_qa_city_technical_cover_v327787 import instalar as instalar_city_technical_qa
+    instalar_city_technical_qa()
     # v3.277.44: batching nas classes v3128/v3130 do mundo REAL,
     # desativado por padrao ate prova de ganho Android.
     from pixelrush_qa_modular_batch_v327744 import instalar as instalar_modular_batch_qa
@@ -232,6 +237,8 @@ def restaurar_para_teste():
         restaurar_geometry_retire_qa()
         from pixelrush_world_v3130 import LivingWorld
         LivingWorld._city_surface = _ORIGINAL
+        from pixelrush_qa_city_technical_cover_v327787 import restaurar_para_teste as restaurar_city_technical_qa
+        restaurar_city_technical_qa()
         from pixelrush_qa_city_opaque_overdraw_v327786 import restaurar_para_teste as restaurar_city_opaque_qa
         restaurar_city_opaque_qa()
         from pixelrush_qa_incremental_scene_v327750 import restaurar_para_teste as restaurar_incremental
