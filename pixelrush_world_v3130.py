@@ -190,7 +190,11 @@ class LivingWorld:
         # repetia 450x500 pixels em C a cada passe do mundo. RGBA bit a bit
         # preservado em 260 buffers (imagem e 5 mapas), p50 2.18%-14.22%
         # menor nos seis passes. Biomas modulares e foreground mantem fill.
-        if self.biome!='cidade' or foreground_only:
+        # QA793: Neve e Deserto também reescrevem integralmente o
+        # destino do mapa normal via scale(low, size, target).
+        # Teste com 160 RGBA bit-idênticos; demais mapas mantêm o fill.
+        if foreground_only or (self.biome!='cidade' and
+                (self.biome not in ('neve','deserto') or kind!='normal')):
             if kind=='normal':
                 surf.fill((128,128,255))
             elif kind=='flow':

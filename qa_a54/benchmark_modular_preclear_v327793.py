@@ -34,9 +34,9 @@ def superficie(self,kind="image",foreground_only=False):
     if surf is None:
         surf=pygame.Surface((WIDTH,GROUND-TOP),pygame.SRCALPHA)
         self._city_surfaces[key]=surf
-    # Candidato: o render_scene modular usa pygame.transform.scale(...,target)
-    # e em teoria sobrescreve todo o destino. Verificar primeiro 100% RGBA.
-    clear=(not args.candidato or self.biome not in MODULAR_BIOMES or foreground_only)
+    # Candidato: SOMENTE o mapa normal modular, regravado por scale(...,target).
+    # Os demais mapas conservam seus fills para evitar regressao em outros passes.
+    clear=(not args.candidato or self.biome not in MODULAR_BIOMES or foreground_only or kind!='normal')
     if clear:
         if kind=="normal":surf.fill((128,128,255))
         elif kind=="flow":surf.fill((128,128,0))

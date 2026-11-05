@@ -189,6 +189,7 @@ jobs:
           a=json.loads(Path("qa_a54/qa793_modular_baseline.json").read_text("utf8"))
           b=json.loads(Path("qa_a54/qa793_modular_candidate.json").read_text("utf8"))
           same=a["rgba_hashes"]==b["rgba_hashes"]
+          assert same, "Normal modular alterou RGBA; otimização integrada bloqueada"
           print("QA793 modular Neve/Deserto RGBA:",len(a["rgba_hashes"]),
                 "frames", "idênticos" if same else "DIVERGENTES")
           for name in a["per_pass"]:
@@ -196,8 +197,7 @@ jobs:
               print(name,"p50 controle",x,"candidato",y,"delta %",
                     round(100*(y/x-1),2) if x else "n/a")
           print("Pico RAM KiB controle/candidato",a["rss_peak_kib"],b["rss_peak_kib"])
-          # Candidato ainda NÃO integrado; mismatch bloqueia apenas integração,
-          # não os gates da produção existente.
+          # Otimizacao do mapa NORMAL ja integrada; igualdade e gate BLOQUEANTE.
           Path("qa_a54/qa793_modular_diagnostico.json").write_text(
               json.dumps({"rgba_iguais":same,"quantidade":len(a["rgba_hashes"])},
                          indent=2),encoding="utf8")
