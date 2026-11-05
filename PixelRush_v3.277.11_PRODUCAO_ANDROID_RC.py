@@ -3285,6 +3285,8 @@ class GerenciadorSons:
             self.sons["novo_recorde"] = criar_som_arpejo([523, 659, 784, 1046], 0.12, "sine", 0.5)
             self.sons["missao"] = criar_som_arpejo([659, 880], 0.1, "sine", 0.5)
             self.sons["clique"] = criar_som_sintetico(900, 1100, 0.04, "sine", 0.35)
+            self.sons["pegada"] = criar_som_sintetico(115, 55, 0.045, "soft_wind", 0.10)
+            self.sons["retomada"] = criar_som_sintetico(680, 920, 0.07, "sine", 0.18)
             self.sons["alerta_laser"] = criar_som_arpejo([1000, 1200, 1000, 1200], 0.06, "square", 0.35)
             self.sons["contagem_laser"] = criar_som_sintetico(880, 880, 0.05, "sine", 0.4)
             self.sons["contagem_laser_high"] = criar_som_sintetico(1200, 1200, 0.06, "square", 0.45)
@@ -3318,7 +3320,7 @@ class GerenciadorSons:
                     self.sons_stems = []
             self.trilha_normal = gerar_trilha_sonora(grave=False)
             self.trilha_lenta = gerar_trilha_sonora(grave=True)
-            self.trilhas_bioma = {nome: gerar_trilha_bioma(i) for i, nome in enumerate(("cidade", "deserto", "neve", "vulcao", "cidade_futurista", "floresta"))}
+            self.trilhas_bioma = {nome: gerar_trilha_bioma(i) for i, nome in enumerate(("cidade", "deserto", "neve", "vulcao", "cidade_futurista", "floresta", "ilhas_celestes"))}
             self.sons["amb_cidade"] = criar_som_arpejo([523, 659, 784], 0.05, "square", 0.12)
             self.sons["amb_deserto"] = criar_som_sintetico(340, 220, 0.12, "soft_wind", 0.10)
             self.sons["amb_neve"] = criar_som_arpejo([880, 1174, 988], 0.04, "sine", 0.12)
@@ -3387,8 +3389,8 @@ class GerenciadorSons:
                 # Mudanca de clima NAO entra na identidade da musica.
                 # v3.172: a base musical permanece contínua; tensão/slow são
                 # expressos pelo volume dos stems em vez de reiniciar o loop.
-                trilha = self.trilha_normal
-                chave = ("gameplay",)
+                trilha = self.trilhas_bioma.get(cenario) or self.trilha_normal
+                chave = ("gameplay", cenario)
             elif estado in ("INICIO", "CONFIG", "CONFIG_CONTROLES", "CONFIG_ACESSIBILIDADE", "LOJA", "UPGRADES", "DESAFIOS", "RANKING", "RELIQUIAS", "CONQUISTAS", "RECORDES"):
                 trilha = self.trilha_normal
                 chave = ("menu",)
@@ -3405,7 +3407,7 @@ class GerenciadorSons:
                 self.musica_tocando = None
                 self.chave_musica = None
             elif trilha is not self.musica_tocando:
-                self.canal_musica.play(trilha, loops=-1)
+                self.canal_musica.play(trilha, loops=-1, fade_ms=520)
                 # Camada percussiva inicia junto ao ciclo da trilha; clima não reinicia.
                 if self.canal_ritmo and self.camada_ritmo:
                     self.canal_ritmo.play(self.camada_ritmo, loops=-1)
@@ -8853,7 +8855,9 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
         if obs.rect.right > LARGURA_VIRTUAL - 140:
             return
 
-    if len(obstaculos) + len(perigos_especiais) + len(buracos) >= 2:
+    # Após 2.500m há espaço para um terceiro perigo com aviso prévio.
+    limite_perigos = 3 if metros >= 2500 else 2
+    if len(obstaculos) + len(perigos_especiais) + len(buracos) >= limite_perigos:
         return
 
     # v3.131: encontros legíveis; um único perigo por evento e o mesmo
@@ -9011,8 +9015,8 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
     if metros >= 200:
         add("agrupado_colado", 0.55)
         add("voador", 0.9 if cenario not in ("cidade", "cidade_futurista") else 1.1)
-    if metros >= 600:
-        add("pulador", 0.7 if cenario not in ("cidade_futurista", "ilhas_celestes") else 0.55)
+    if metros >= 600 and cenario == "cidade_futurista":
+        add("pulador", 0.7)
     if cenario == "cidade":
         add("hidrante_cidade", 0.55)  # v3.276: obstáculo novo exclusivo da Cidade
     if cenario == "deserto":
@@ -9022,7 +9026,6 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
         add("bola_neve", 0.95)
     elif cenario == "ilhas_celestes":
         add("voador", 1.3)
-        add("pulador", 0.85)
 
     if metros >= 150:
         for codigo in POR_BIOMA.get(cenario, ()):
@@ -9091,8 +9094,9 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
     y_moeda = random.choice([ALTURA_VIRTUAL - 125, ALTURA_VIRTUAL - 150, ALTURA_VIRTUAL - 180, ALTURA_VIRTUAL - 205, ALTURA_VIRTUAL - 228])
     gerar_padrao_moedas(x_inicial + 180, y_moeda, formato_moeda, todos_sprites, moedas, pool_manager)
 
-    if baus is not None and len(baus) == 0 and metros >= 150 and random.random() < 0.055:
-        bau = BauSecreto(x_inicial + 300, ALTURA_VIRTUAL - 112)
+    if baus is not None and len(baus) == 0 and metros >= 350 and random.random() < 0.026:
+        # 195 px após o encontro; risco maior mas rota com espaço para reação.
+        bau = BauSecreto(x_inicial + 195, ALTURA_VIRTUAL - 145)
         todos_sprites.add(bau)
         baus.add(bau)
 
@@ -11786,6 +11790,10 @@ def main():
             jogador.update(vel_jogo, frame_count, segurando_pulo, segurando_baixo, particulas, pool_manager,
                            gerenciador_sons, dados["vol_sfx"], pode_pousar=pode_pousar)
             _pro_sub_fim()
+            # SFX pré-gerado; a cada ~0,25 s, somente ao pisar no chão.
+            if (jogador.no_chao and not jogador.agachado and
+                    frame_count % max(13, int(23 - min(9, vel_jogo * .45))) == 0):
+                gerenciador_sons.tocar_som("pegada", False, dados["vol_sfx"] * .34)
             # Plano K 12: aproveita ações já executadas pelo jogador (sem novos controles).
             diretor_perseguidores.registrar_manuobra(
                 no_chao=jogador.no_chao, agachado=jogador.agachado,
@@ -12953,7 +12961,7 @@ def main():
         gerenciador_sons.mixagem_contextual.atualizar(gerenciador_sons, estado)
 
         if estado == "JOGANDO":
-            novo_tempo_spawn = max(900, 1500 - (metros_atuais // 300) * 25)
+            novo_tempo_spawn = max(730, 1500 - (metros_atuais // 260) * 28)
             if novo_tempo_spawn != tempo_spawn_atual and not (tutorial_corrida and tutorial_corrida.ativo):
                 tempo_spawn_atual = novo_tempo_spawn
                 pygame.time.set_timer(EVENTO_GERAR, tempo_spawn_atual)
@@ -15569,6 +15577,22 @@ def _v3168_obter_tile_chao(self):
             pygame.draw.rect(tile, (42, 63, 101), (x, 54, 18, 2))
             pygame.draw.line(tile, pal['line1'], (x + 3, 55), (x + 8, 55), 1)
             pygame.draw.line(tile, pal['line2'], (x + 10, 55), (x + 14, 55), 1)
+    # Estrada de cimento de Cidade com geada azulada e neve apenas nas laterais.
+    # Acabamento uma vez na criação do tile, sem novo custo no draw().
+    if self.cenario == 'neve':
+        pygame.draw.rect(tile, (136, 172, 199), (0, 12, largura_tile, 46))
+        pygame.draw.rect(tile, (167, 202, 224), (0, 15, largura_tile, 4))
+        pygame.draw.rect(tile, (119, 154, 181), (0, 49, largura_tile, 7))
+        pygame.draw.rect(tile, (235, 248, 255), (0, 0, largura_tile, 12))
+        pygame.draw.rect(tile, (218, 241, 251), (0, 58, largura_tile, 12))
+        pygame.draw.line(tile, (255, 255, 255), (0, 12), (largura_tile, 12), 2)
+        pygame.draw.line(tile, (193, 228, 245), (0, 57), (largura_tile, 57), 2)
+        for xx in range(18, largura_tile, 66):
+            pygame.draw.line(tile, (216, 240, 249), (xx, 38), (xx + 28, 38), 2)
+            pygame.draw.line(tile, (151, 199, 227), (xx + 6, 42), (xx + 21, 42), 1)
+        for xx in range(12, largura_tile, 94):
+            pygame.draw.line(tile, (242, 252, 255), (xx, 3), (xx + 19, 4), 2)
+            pygame.draw.line(tile, (190, 219, 238), (xx + 18, 62), (xx + 40, 63), 2)
     self._cache_chao[cache_key] = tile
     return tile
 
