@@ -13,7 +13,8 @@ import pygame
 
 _STATUS={'quadros':0,'camera':0,'camera_ignorada':0,'escala':0,
          'sem_escala':0,'blits_finais':0,'blits_redundantes_pulados':0,
-         'fallbacks':0,'modo':'qa_cpu_igual'}
+         'fallbacks':0,'modo':'qa_cpu_igual',
+         'escala_direta':0,'escala_direta_fallback':0}
 _HABILITADO=os.environ.get('PIXELRUSH_QA_POST_PIPELINE','1')=='1'
 # QA795: caminho escalado direto para framebuffer RGB opaco, opt-out seguro.
 _R25_SCALE_DIRECT=os.environ.get('PIXELRUSH_QA_R25_DIRECT_PRESENT','1')=='1'
@@ -130,4 +131,5 @@ def finalizar_quadro(imagem, tela, tamanho_final, pos_final, superficies_escala,
 def restaurar_estatisticas_para_teste():
     _STATUS.update(quadros=0,camera=0,camera_ignorada=0,escala=0,
                    sem_escala=0,blits_finais=0,blits_redundantes_pulados=0,
-                   fallbacks=0,modo='qa_cpu_igual')
+                   fallbacks=0,modo='qa_cpu_igual',escala_direta=0,
+                   escala_direta_fallback=0)

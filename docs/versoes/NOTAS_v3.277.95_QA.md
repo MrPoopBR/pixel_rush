@@ -38,3 +38,6 @@ Preservados main.py, JOGAR.py, DEV, pets, saves, física, controles, colisões, 
 
 ## R25 — rastreabilidade estrita da otimização pós-sprites
 O módulo canônico unified_post_v327750.py foi migrado como byte-idêntico na QA794, mas na R25 recebeu uma alteração explícita. O manifesto mantém **41 módulos byte-idênticos** à base QA792 e **um módulo com alteração aprovada**, bloqueado pelo Git blob SHA 0bc183651a8f3d8f0281e581cb62a7bf70710f0d. CI verifica o SHA exato, import como mesmo módulo e as 60 amostras RGBA do benchmark. Não representar esse módulo como byte-idêntico após a otimização.
+
+### CI — contador de diagnóstico da escala direta
+O primeiro CI R25 identificou KeyError de escala_direta no benchmark por ausência da chave inicial e do reset. Corrigidos exclusivamente os contadores estatísticos, sem alteração do algoritmo RGB. SHA canônico de auditoria atualizado para cee6487af8cde079b825dac701c4976d71326ae5.
