@@ -25,7 +25,8 @@ for i,(biome,color) in enumerate(C.items()):
             rect=pygame.Rect(rng.randrange(0,225-w),rng.randrange(0,250-h),w,h)
             rgba=(*color,rng.choice((0,90,170,255)))
             pygame.draw.rect(a,rgba,rect)
-        b.blit(a,(0,0))
+        # Copia RAW: preserva tambem RGB oculto dos pixels alpha zero.
+        pygame.transform.scale(a,a.get_size(),b)
         # Ambos começam com a mesma textura Premium já existente.
         refinar_textura(a,biome,'near',test_case)
         refinar_textura(b,biome,'near',test_case)
