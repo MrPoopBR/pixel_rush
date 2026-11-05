@@ -53,7 +53,7 @@ def metric(name,func,kind_position,default):
     return wrapped
 for name,position,default in [
     ('render',8,'image'),('chunk',9,'image'),
-    ('sprite',8,'image'),('scale',2,'image')]:
+    ('sprite',7,'image'),('scale',2,'image')]:
     attr={'render':'render_scene','chunk':'_render_chunk',
           'sprite':'_draw_sprite','scale':'_scaled_surface'}[name]
     setattr(CityPilotScene,attr,metric(name,getattr(CityPilotScene,attr),position,default))
