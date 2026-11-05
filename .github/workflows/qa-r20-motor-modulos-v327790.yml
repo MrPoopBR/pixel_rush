@@ -1,0 +1,213 @@
+name: PIXEL RUSH QA v3.277.90 R20 - motor modular e QA SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r20-organizacao-qa-motor-v3.277.90
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327790-organizacao-offline
+  cancel-in-progress: true
+
+jobs:
+  qa-r20-modulos-e-motor:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r20-organizacao-qa-motor-v3.277.90'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout isolado com historico para auditoria
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Python 3.13 e pygame-ce
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Instalar pygame-ce offline e verificar sintaxe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python -m compileall -q src tests/test_qa_r20_motor_modulos_v327790.py
+          python -m py_compile PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py main.py JOGAR.py
+          grep -q '^version = 3.277.90$' buildozer.spec
+          grep -q '^android.numeric_version = 327790$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.90-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+
+      - name: Auditar motor AST original versus extracao sem outras modificacoes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast,json,subprocess
+          from pathlib import Path
+          root=Path('.')
+          old=subprocess.check_output(['git','show','c968515568f02375565fe132ba35c1987bd88df2:PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py']).decode('utf8')
+          new=(root/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
+          manifest=json.loads((root/'docs/arquitetura/MANIFESTO_FUNCOES_MOTOR_v327790.json').read_text('utf8'))
+          names={item['nome']:item['destino'].removesuffix('.py').replace('/','.')
+                 for item in manifest['funcoes']}
+          assert len(names)==10
+          tree=ast.parse(old)
+          class Extract(ast.NodeTransformer):
+              def visit_FunctionDef(self,node):
+                  if node.name in names and node.col_offset==0:
+                      return ast.copy_location(ast.ImportFrom(
+                           module=names[node.name],
+                           names=[ast.alias(name=node.name)],level=0),node)
+                  return self.generic_visit(node)
+              def visit_Assign(self,node):
+                  if any(isinstance(t,ast.Name) and t.id=='VERSAO' for t in node.targets):
+                      if isinstance(node.value,ast.Constant) and node.value.value=='v3.277.89-QA-ANDROID-RC':
+                          node.value=ast.Constant('v3.277.90-QA-ANDROID-RC')
+                  return self.generic_visit(node)
+          converted=Extract().visit(tree)
+          result=ast.parse(new)
+          assert ast.dump(converted,include_attributes=False)==ast.dump(result,include_attributes=False),(
+             'O motor sofreu modificacao semantica alem das 10 funcoes e versao')
+          print('QA790: AST do motor comparada integralmente, sem outras mudancas')
+          PY
+
+      - name: Verificar blobs de modulos, prototipos, QA e escopo da branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,pathlib,subprocess
+          p=pathlib.Path('.')
+          base='c968515568f02375565fe132ba35c1987bd88df2'
+          f=json.loads((p/'docs/arquitetura/MANIFESTO_QA_R20_v327790.json').read_text('utf8'))
+          assert len(f['modulos_ativos'])==len(f['prototipos_arquivados'])==8
+          for item in f['modulos_ativos']:
+              original=subprocess.check_output(['git','show',base+':'+item['anterior']])
+              assert original==(p/item['canonico']).read_bytes()
+              assert (p/item['anterior']).is_file()
+              assert b'_sys.modules[__name__]' in (p/item['anterior']).read_bytes()
+          for item in f['prototipos_arquivados']:
+              original=subprocess.check_output(['git','show',base+':'+item['anterior']])
+              assert original==(p/item['arquivo']).read_bytes()
+              assert not (p/item['anterior']).exists()
+          diff=subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines()
+          allowed={'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','buildozer.spec',
+                   'VERSAO_ATUAL.txt','README.md'}
+          for path in diff:
+              assert (path in allowed or path.startswith((
+                  'src/','docs/','tests/','archive/prototipos_tutorial/',
+                  'prototipo_tutorial_v3264.py','prototipo_tutorial_v3270.py',
+                  'prototipo_tutorial_v3271.py','prototipo_tutorial_v3272.py',
+                  'pixelrush_apresentacao_v3264.py','pixelrush_apresentacao_v3270.py',
+                  'pixelrush_apresentacao_v3271.py','pixelrush_apresentacao_v3272.py',
+                  'pixelrush_hud_v','pixelrush_tutorial_textos_prod_v32773.py',
+                  'pixelrush_tutorial_i18n_v3277.py',
+                  'pixelrush_tutorial_corrida_v3275.py',
+                  'pixelrush_controles_v3171.py',
+                  'pixelrush_desafios_percurso_v3212.py',
+                  'pixelrush_skins_v3188.py',
+                  '.github/workflows/qa-r20-'))),path
+          for path in ('main.py','JOGAR.py','pixelrush_qa_render_v327729.py',
+                       'pixelrush_tutorial_prod_v32771.py',
+                       'pixelrush_tutorial_corrida_v3277.py',
+                       'pixelrush_apresentacao_v3273.py',
+                       'prototipo_tutorial_v3273.py',
+                       'pixelrush_qa_gles_exact_v327736.py',
+                       'pixelrush_qa_camera_v327733.py'):
+              assert subprocess.check_output(['git','show',base+':'+path])==(p/path).read_bytes(),path
+          spec=subprocess.check_output(['git','show',base+':buildozer.spec'])
+          spec=spec.replace(b'version = 3.277.89',b'version = 3.277.90').replace(
+                 b'android.numeric_version = 327789',b'android.numeric_version = 327790')
+          assert spec==(p/'buildozer.spec').read_bytes()
+          assert not any(n.startswith(('assets/','assets_android/','world_art_v3106/',
+                'world_parallax_v3112/','assets_i18n_v3247/','p4a-recipes/')) for n in diff)
+          assert not any(n.startswith('.github/workflows/') and not n.startswith(
+                '.github/workflows/qa-r20-') for n in diff)
+          print('QA790: integridade de 8 modulos e 8 prototipos, pinned QA, assets, saves e AAB')
+          PY
+          python tools/auditar_estrutura_v327788.py --check
+
+      - name: Testar 10 funcoes de jogador/inimigos/sistemas e 8 aliases
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r20_motor_modulos_v327790.py
+          python tests/test_qa_r19_modulos_migrados_v327789.py
+          python tests/test_qa_r18_estrutura_v327788.py
+
+      - name: Comparar mundo 2.5D RGBA QA789 vs QA790 em 2 perfis
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/qa789_original" c968515568f02375565fe132ba35c1987bd88df2
+          export QA789_PATH="$RUNNER_TEMP/qa789_original"
+          export QA790_PATH="$GITHUB_WORKSPACE"
+          python - <<'PY'
+          import json,os,pathlib,subprocess,sys,tempfile
+          a=pathlib.Path(os.environ['QA789_PATH'])
+          b=pathlib.Path(os.environ['QA790_PATH'])
+          script='qa_a54/benchmark_city_technical_v327787.py'
+          with tempfile.TemporaryDirectory() as tmp:
+              for light in (0,1):
+                  results={}
+                  for label,root in (('baseline',a),('modular',b)):
+                      dest=pathlib.Path(tmp)/f'{light}_{label}.json'
+                      env=os.environ.copy()
+                      env['PYTHONPATH']=str(root)
+                      subprocess.run([sys.executable,str(root/script),
+                          '--limit','20','--light',str(light),
+                          '--opaque','1','--tech','1','--output',str(dest)],
+                          check=True,timeout=120,cwd=root,env=env,
+                          stdout=subprocess.DEVNULL)
+                      results[label]=json.loads(dest.read_text('utf8'))
+                  x,y=results['baseline'],results['modular']
+                  assert x['quadros_rgba']==y['quadros_rgba']==260
+                  assert x['hashes_rgba']==y['hashes_rgba'],f'Pixel diferente no perfil {light}'
+                  assert x['cache_maximo_observado']==y['cache_maximo_observado']
+                  assert x['opaque_stats']['chunks_hidden']==y['opaque_stats']['chunks_hidden']
+                  assert x['tech_stats']['clip_geo_mat']==y['tech_stats']['clip_geo_mat']
+                  assert x['tech_stats']['clip_fxmask']==y['tech_stats']['clip_fxmask']
+                  assert x['periodo_redesenho_preservado']==y['periodo_redesenho_preservado']==5
+                  orig=x['timings']['fifth_total']['p50_ms']
+                  new=y['timings']['fifth_total']['p50_ms']
+                  assert new<orig*1.4+.2,('Regressao extrema de CPU',orig,new)
+                  print(f'QA790 perfil {light}: 260/260 RGBA exatos; quinto quadro {orig} -> {new}ms')
+          PY
+
+      - name: Regressao pygame-ce Cidade e viewport
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r17_city_technical_v327787.py
+          python tests/test_qa_r16_city_opaque_v327786.py
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+          python tests/test_qa_menu_limpeza_v327778.py
+
+      - name: Evidencias de organizacao R20 - sem APK/AAB
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-v327790-r20-modular-offline
+          path: |
+            docs/versoes/NOTAS_v3.277.90_QA.md
+            docs/arquitetura/INVENTARIO_QA_v327790.md
+            docs/arquitetura/MANIFESTO_QA_R20_v327790.json
+            docs/arquitetura/MANIFESTO_FUNCOES_MOTOR_v327790.json
+          if-no-files-found: warn
+          retention-days: 14
