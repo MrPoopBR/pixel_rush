@@ -477,8 +477,19 @@ class LivingWorld:
         if self.biome=='cidade' or self.biome in MODULAR_BIOMES:surface.blit(self._city_surface('material'),(0,TOP))
         else:self._blit_strip(surface,self._load('material'))
     def draw_flow_map(self,surface):
-        if self.biome=='cidade' or self.biome in MODULAR_BIOMES:surface.blit(self._city_surface('flow'),(0,TOP))
-        else:self._blit_strip(surface,self._load('flowmask'))
+        # QA793: canal FLOW opaco direto sobre a faixa do destino.
+        # Zero blit intermediario, -0.9 MB de buffer persistente.
+        # Gate: 260 buffers RGBA identicos, RGB e SRCALPHA.
+        if (self.biome=='cidade' and surface.get_size()==(WIDTH,HEIGHT)
+                and surface.get_colorkey() is None
+                and surface.get_alpha() in (None,255)):
+            region=surface.subsurface((0,TOP,WIDTH,GROUND-TOP))
+            self.city2.render_scene(region,self.travel,self.frame,self.night,
+                                    self.climate,self.phase,False,map_kind='flow')
+        elif self.biome=='cidade' or self.biome in MODULAR_BIOMES:
+            surface.blit(self._city_surface('flow'),(0,TOP))
+        else:
+            self._blit_strip(surface,self._load('flowmask'))
     def draw_geometry_map(self,surface):
         if self.biome=='cidade' or self.biome in MODULAR_BIOMES:surface.blit(self._city_surface('geometry'),(0,TOP))
         else:self._blit_strip(surface,self._load('geometry'))

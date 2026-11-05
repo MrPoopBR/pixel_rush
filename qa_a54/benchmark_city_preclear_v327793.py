@@ -84,6 +84,15 @@ if args.direto:
     def fluxo_direto(self,surface):
         return _desenhar_direto(self,surface,'flow',_original_flow)
     _Base.draw_flow_map=fluxo_direto
+else:
+    # Experimento A/B continua comparando contra a implementacao anterior.
+    from pixelrush_world_v3130 import LivingWorld as _Base,MODULAR_BIOMES,TOP
+    def fluxo_original(self,surface):
+        if self.biome=='cidade' or self.biome in MODULAR_BIOMES:
+            surface.blit(self._city_surface('flow'),(0,TOP))
+        else:
+            self._blit_strip(surface,self._load('flowmask'))
+    _Base.draw_flow_map=fluxo_original
 
 from pixelrush_world_prod_v32777 import LivingWorld
 random.seed(20261105)
