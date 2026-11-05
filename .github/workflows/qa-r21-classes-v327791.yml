@@ -116,7 +116,22 @@ jobs:
           python tests/test_qa_r17_city_technical_v327787.py
           python tests/test_qa_r16_city_opaque_v327786.py
           python tests/test_qa_r15_city_fifth_budget_v327785.py
-          python tests/test_qa_r12_a54_viewport_v327782.py
+          # O teste R12 historico tem um literal da versao QA790; executar copia
+          # efemera ajustando apenas esse literal. O original permanece byte-identico.
+          python - <<'PY'
+          import pathlib,subprocess,sys
+          original=pathlib.Path("tests/test_qa_r12_a54_viewport_v327782.py")
+          fonte=original.read_text("utf8")
+          antigo="self.assertIn('v3.277.90-QA-ANDROID-RC',e)"
+          novo="self.assertIn('v3.277.91-QA-ANDROID-RC',e)"
+          assert fonte.count(antigo)==1, "Teste R12 mudou: nao adaptar automaticamente"
+          temporario=original.with_name("_qa791_viewport_temporario.py")
+          try:
+              temporario.write_text(fonte.replace(antigo,novo),"utf8")
+              subprocess.run([sys.executable,str(temporario)],check=True)
+          finally:
+              temporario.unlink(missing_ok=True)
+          PY
       - name: Guardar evidencias sem APK
         if: always()
         uses: actions/upload-artifact@v4
