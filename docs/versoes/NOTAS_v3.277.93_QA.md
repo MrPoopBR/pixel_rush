@@ -24,3 +24,7 @@
 
 ## Proteções de escopo e evidência
 `main.py`, `JOGAR.py`, DEV, código dos pets e arquivos de saves, todos os assets e workflows Android/APK/AAB devem permanecer byte-idênticos à QA792. Android `buildozer.spec` altera **somente os números de versão**. CI R23 confere sintaxe, pygame-ce 2.5.8, AST, RNG/objetos, 3 minutos de paleta, RGBA estável da UI, boneco de neve, integridade de arquivos e benchmark Cidade 2.5D. Não afirmar conclusão de CI antes de verificar resultado real.
+
+## Migração adicional integrada e auditável (R23)
+Foram migrados **21 módulos históricos** adicionais, com conteúdo byte-idêntico ao commit QA792 e aliases `sys.modules` nos 21 caminhos originais. A raiz não perdeu arquivos físicos porque imports Android, CI e módulos históricos ainda usam esses nomes. O manifesto completo está em `docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json`, com teste de identidade/importação. Inclui áudio, corredores, moedas, cenas, cinema, sombras, geometria, pista, i18n, sequências e física de áudio. NÃO mover `pixelrush_inimigos_v3221.py`, `pixelrush_profiler_v3204.py` ou `pixelrush_avisos_raros_i18n_v3247.py` indiscriminadamente: usam `__file__` para recursos e telemetria.
+

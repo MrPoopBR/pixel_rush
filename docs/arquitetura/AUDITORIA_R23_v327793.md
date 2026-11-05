@@ -48,6 +48,9 @@ O inventário abaixo inclui os **28 códigos originais AMEACAS (4×7)** e ameaç
 - Música procedural sintetizada uma vez no carregamento, não por frame, e passo sonoro com efeito curto.
 - Nenhum cache ou shader GPU extra foi criado para o 2.5D nesta etapa.
 
+## Migração adicional integrada e auditável (R23)
+Foram migrados **21 módulos históricos** adicionais, com conteúdo byte-idêntico ao commit QA792 e aliases `sys.modules` nos 21 caminhos originais. A raiz não perdeu arquivos físicos porque imports Android, CI e módulos históricos ainda usam esses nomes. O manifesto completo está em `docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json`, com teste de identidade/importação. Inclui áudio, corredores, moedas, cenas, cinema, sombras, geometria, pista, i18n, sequências e física de áudio. NÃO mover `pixelrush_inimigos_v3221.py`, `pixelrush_profiler_v3204.py` ou `pixelrush_avisos_raros_i18n_v3247.py` indiscriminadamente: usam `__file__` para recursos e telemetria.
+
 ## Auditoria de modularização
 Módulos legados existem por imports indiretos e verificações SHA de preflight. A QA792 já transferiu seis componentes com aliases seguros; nesta QA793, novos componentes (`world/daynight_v327793`, `ui/tutorial/premium_v327793`, `entities/enemies/snowman_v327793`) nasceram canônicos dentro de `src/pixelrush`. Migração massiva remanescente exige manifesto por blob e atualização de imports/safe paths em Android. `pixelrush_inimigos_v3221.py` usa `Path(__file__)` para localizar atlases e NÃO pode ser movido diretamente sem corrigir esse recurso.
 

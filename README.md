@@ -11,6 +11,8 @@ QA792: classes Moeda, PoolManager e MonitorQualidadeVisual separadas sem mudar s
 
 QA793: tutorial cinematográfico, novos perigos da neve, movimento do pombo/rato, sete biomas, dia/noite de 180s, áudio e controles integrados em QA. Confira `docs/versoes/NOTAS_v3.277.93_QA.md` e `docs/arquitetura/AUDITORIA_R23_v327793.md`. Desempenho Android real ainda não homologado.
 
+R23 migração em massa conservadora: **21 módulos reais** movidos para `src/pixelrush`, com aliases históricos e verificação de conteúdo/identidade. Manifesto em `docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json`. A raiz não fica menor até uma limpeza de imports de Android/CI.
+
 ## Entradas — nao confundir
 
 - **Android:** `main.py` na raiz. Mantido literalmente como no QA787.

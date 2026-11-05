@@ -57,6 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           python tests/test_qa_r23_gameplay_tutorial_v327793.py
+          python tests/test_qa_r23_migracao_modulos_v327793.py
       - name: Executar testes estruturais antigos na base QA792 isolada
         run: |
           set -euo pipefail
@@ -75,10 +76,15 @@ jobs:
           old=lambda p:subprocess.check_output(["git","show",base+":"+p])
           changed=subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines()
           prefix=("src/pixelrush/","tests/","docs/")
-          allowed={"PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py",
+          manifest=__import__("json").loads(Path("docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json").read_text("utf8"))
+          assert len(manifest["migrated"])==21
+          allowed={e["legacy"] for e in manifest["migrated"]}
+          for entry in manifest["migrated"]:
+              assert old(entry["legacy"]) == Path(entry["canonical"]).read_bytes()
+          allowed.update({"PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py",
                    "pixelrush_cenarios_v398.py","pixelrush_inimigos_v3221.py",
                    "pixelrush_letras_v3218.py","buildozer.spec","VERSAO_ATUAL.txt",
-                   "README.md",".github/workflows/qa-r23-gameplay-v327793.yml"}
+                   "README.md",".github/workflows/qa-r23-gameplay-v327793.yml"})
           illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
           assert not illegal,illegal
           forbidden=("main.py","JOGAR.py","requirements.txt",".gitignore")
@@ -115,4 +121,5 @@ jobs:
           path: |
             docs/versoes/NOTAS_v3.277.93_QA.md
             docs/arquitetura/AUDITORIA_R23_v327793.md
+            docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json
           retention-days: 14
