@@ -18,7 +18,7 @@ ROOT_QA={
         "src/pixelrush/performance/city/technical_maps.py",
 }
 def hash_git(data):
-    header=("blob "+str(len(data))+"\\0").encode().replace(b'\\0',b'\\x00')
+    header=f"blob {len(data)}".encode("ascii")+bytes((0,))
     return hashlib.sha1(header+data).hexdigest()
 def diagnostico():
     py=sorted(p.name for p in ROOT.glob("*.py"))
