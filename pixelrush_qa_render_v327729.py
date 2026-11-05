@@ -155,6 +155,10 @@ def instalar():
     # somente no QA, sem trocar a arte ja preparada.
     from pixelrush_qa_city_bootstrap_v327759 import instalar as instalar_city_bootstrap_qa
     instalar_city_bootstrap_qa()
+    # QA785: 20 slots para o hotset de mapas do quinto quadro, sem mexer
+    # na arte nem na politica de eviccao ou memoria dos outros biomas.
+    from pixelrush_qa_city_scaled_budget_v327785 import instalar as instalar_city_budget_qa
+    instalar_city_budget_qa()
     from pixelrush_qa_hotpath_v327753 import instalar as instalar_hotpath_qa
     instalar_hotpath_qa()
     # Scroll incremental 2.5D so liga quando o frame COMPLETO vence
@@ -226,6 +230,8 @@ def restaurar_para_teste():
         restaurar_incremental()
         from pixelrush_qa_hotpath_v327753 import restaurar_para_teste as restaurar_hotpath
         restaurar_hotpath()
+        from pixelrush_qa_city_scaled_budget_v327785 import restaurar_para_teste as restaurar_city_budget_qa
+        restaurar_city_budget_qa()
         from pixelrush_qa_city_bootstrap_v327759 import restaurar_para_teste as restaurar_city_bootstrap_qa
         restaurar_city_bootstrap_qa()
         from pixelrush_qa_scroll_auto_v327742 import restaurar_para_teste as restaurar_scroll
