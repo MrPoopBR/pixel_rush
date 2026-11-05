@@ -2,7 +2,7 @@
   "schema": "pixelrush.qa.r23.modules.moved.v327793",
   "base_branch": "qa/r22-classes-historicos-v3.277.92",
   "base_commit": "d8f97adf246bc593da3bb049bef2f3a5c31dd698",
-  "version": "3.277.93-QA",
+  "version": "3.277.94-QA",
   "migrated": [
     {
       "legacy": "pixelrush_aereo_v3224.py",
@@ -231,9 +231,21 @@
       "canonical": "src/pixelrush/rendering/vignette_v327776.py",
       "byte_identical": true,
       "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_unified_post_v327750.py",
+      "canonical": "src/pixelrush/performance/unified_post_v327750.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_city_bootstrap_v327759.py",
+      "canonical": "src/pixelrush/performance/city/bootstrap_v327759.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
     }
   ],
-  "files_count": 38,
+  "files_count": 40,
   "root_python_files_removed": 0,
   "apk_compiled": false,
   "android_real_verified": false
