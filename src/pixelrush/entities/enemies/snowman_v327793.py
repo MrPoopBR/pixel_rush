@@ -40,6 +40,7 @@ class BolaDeNeve(pygame.sprite.Sprite):
 
 class BonecoNeve(pygame.sprite.Sprite):
     _quadros=None
+    _proxima_altura=0
     def __init__(self,x,grupo_todos=None,grupo_perigos=None):
         super().__init__()
         if BonecoNeve._quadros is None:
@@ -49,6 +50,8 @@ class BonecoNeve(pygame.sprite.Sprite):
         self._x=float(self.rect.x)
         self.ticks=0
         self._atirou=False
+        self._altura_bola=BonecoNeve._proxima_altura
+        BonecoNeve._proxima_altura=(BonecoNeve._proxima_altura+1)%3
         self._grupo_todos=grupo_todos
         self._grupo_perigos=grupo_perigos
         self.codigo="N5"
@@ -102,7 +105,7 @@ class BonecoNeve(pygame.sprite.Sprite):
         if (not self._atirou and self.ticks>=32 and
                 self.rect.left>=300 and self.rect.left<=510 and
                 self._grupo_todos is not None and self._grupo_perigos is not None):
-            y=(self.rect.top+22,self.rect.top+38,self.rect.top+53)[(self.ticks//7)%3]
+            y=(self.rect.top+22,self.rect.top+38,self.rect.top+53)[self._altura_bola]
             bola=BolaDeNeve(self.rect.left-14,y)
             self._grupo_todos.add(bola)
             self._grupo_perigos.add(bola)
