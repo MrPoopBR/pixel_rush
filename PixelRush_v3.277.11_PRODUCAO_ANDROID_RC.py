@@ -10515,6 +10515,11 @@ def main():
     # Um frame completo durante o gesto congelado evita recalcular 2.5D/FX
     # dezenas de vezes sem movimento (somente tutorial). Maximo 450x800 RGB.
     cache_tutorial_congelado = None
+    retomada_contagem_quadros = 0
+    pausa_aberta_missoes = False
+    fonte_contagem = pygame.font.Font(None, 148)
+    imagens_contagem = tuple(fonte_contagem.render(str(x), True, (255, 233, 142))
+                            for x in (3, 2, 1))
     # QA Android: reutiliza o pano de fundo; fisica/HUD/sprites continuam atuais.
     if E_ANDROID:
         from pixelrush_qa_ultraleve_v327730 import CacheFundoUltraQA, FundoMenusUltraQA
@@ -10763,6 +10768,7 @@ def main():
     btn_menu_gameover = pygame.Rect(75, 610, 300, 50)
 
     btn_pausa = pygame.Rect(HUD_PAUSA_AREA)
+    btn_missoes_partida = pygame.Rect(15, 94, 238, 35)
     btn_continuar = pygame.Rect(75, 530, 300, 50)
     btn_menu_pausa = pygame.Rect(75, 600, 300, 50)
 
@@ -10795,6 +10801,9 @@ def main():
     }
 
     def reiniciar_jogo():
+        nonlocal retomada_contagem_quadros, pausa_aberta_missoes
+        retomada_contagem_quadros = 0
+        pausa_aberta_missoes = False
         nonlocal tutorial_corrida, palavra_hud_ate, palavra_festa_ate, tutorial_concluido_ate, entrada_corrida_ate
         tutorial_corrida = None
         palavra_hud_ate = palavra_festa_ate = tutorial_concluido_ate = 0
@@ -10965,6 +10974,7 @@ def main():
             textos_flut.add(TextoFlutuante(LARGURA_VIRTUAL // 2, 205, "CORREDOR CONCLUÍDO!", (255, 225, 120), "normal"))
 
     def processar_clique_ui(pos):
+        nonlocal retomada_contagem_quadros, pausa_aberta_missoes
         nonlocal tutorial_corrida
         nonlocal codigo_editavel
         nonlocal estado, ultimo_clique_tempo, aba_loja, loja_pagina, pagina_conquistas, pagina_upgrades
@@ -11260,11 +11270,18 @@ def main():
 
         elif estado == "JOGANDO":
             if btn_pausa.collidepoint(pos):
+                pausa_aberta_missoes = False
+                estado = "PAUSA"
+            elif btn_missoes_partida.collidepoint(pos) and not (
+                    tutorial_corrida and tutorial_corrida.ativo):
+                pausa_aberta_missoes = True
                 estado = "PAUSA"
 
         elif estado == "PAUSA":
             if btn_continuar.collidepoint(pos):
                 estado = "JOGANDO"
+                retomada_contagem_quadros = 180
+                pausa_aberta_missoes = False
             elif btn_menu_pausa.collidepoint(pos):
                 estado = "INICIO"
 
@@ -11490,6 +11507,7 @@ def main():
                             y_base += 62
     def atualizar_simulacao():
         global portal_proximo_metro
+        nonlocal retomada_contagem_quadros
         nonlocal frame_count, pontuacao, moedas_coletadas, novo_recorde_alcançado, estado, bioma_lendario_ativo, bioma_lendario_timer
         nonlocal evento_corrida, evento_corrida_x, evento_corrida_timer, evento_corrida_cooldown, eventos_corrida_superados, alerta_furtivo, alerta_detector_timer, interruptor_ativado
         nonlocal clima_tipo_anterior, eventos_vulcao_rodada
@@ -11516,6 +11534,11 @@ def main():
             # Pausa curtíssima apenas da simulação após impacto; sem alterar o FPS.
             return
         frame_count += 1
+        if estado == "JOGANDO" and retomada_contagem_quadros > 0:
+            if retomada_contagem_quadros % 60 == 0:
+                gerenciador_sons.tocar_som("retomada", False, dados["vol_sfx"] * .65)
+            retomada_contagem_quadros -= 1
+            return
         if estado == "JOGANDO" and tutorial_corrida is not None and tutorial_corrida.ativo:
             # O mundo é o MESMO da partida. Os sprites didáticos não entram no
             # grupo de colisões e não há morte ou spawn natural antes do aceite.
@@ -13069,6 +13092,12 @@ def main():
                 r_pulo, r_baixo = botoes(dados)
                 acao_dedo = controle_dedos.start(getattr(evento, 'finger_id', 0), pos_touch, modo_touch,
                                                   r_pulo, r_baixo, btn_pausa if estado == 'JOGANDO' else None)
+                if acao_dedo == 'primario' and estado == 'JOGANDO' and (
+                        not (tutorial_corrida and tutorial_corrida.ativo)
+                        and btn_missoes_partida.collidepoint(pos_touch)):
+                    controle_dedos.end(getattr(evento, 'finger_id', 0))
+                    processar_clique_ui(pos_touch)
+                    continue
                 if acao_dedo != 'primario':
                     if estado == 'JOGANDO' and jogador:
                         if acao_dedo == 'pausa':
@@ -13218,7 +13247,12 @@ def main():
                     mouse_gameplay_press = bool(
                         estado == "JOGANDO" and jogador and not mouse_input_ignored and
                         not btn_pausa.collidepoint((vx, vy)))
-                    if estado == "JOGANDO" and jogador and btn_pausa.collidepoint((vx, vy)):
+                    if estado == "JOGANDO" and jogador and btn_missoes_partida.collidepoint((vx, vy)):
+                        mouse_gesture_moved = True
+                        mouse_gameplay_press = False
+                        if not mouse_input_ignored:
+                            processar_clique_ui((vx, vy))
+                    elif estado == "JOGANDO" and jogador and btn_pausa.collidepoint((vx, vy)):
                         mouse_gesture_moved = True
                         mouse_gameplay_press = False
                         if not mouse_input_ignored:
@@ -13303,6 +13337,8 @@ def main():
                             estado = 'PAUSA'
                         elif estado == 'PAUSA':
                             estado = 'JOGANDO'
+                            retomada_contagem_quadros = 180
+                            pausa_aberta_missoes = False
 
             elif evento.type == pygame.KEYDOWN:
                 if estado == 'GAMEOVER' and replay_morte.ativo:
@@ -13342,6 +13378,8 @@ def main():
                         estado = "PAUSA"
                     elif estado == "PAUSA":
                         estado = "JOGANDO"
+                        retomada_contagem_quadros = 180
+                        pausa_aberta_missoes = False
                     elif estado in ["LOJA", "UPGRADES", "CONFIG", "CONFIG_CONTROLES", "CONFIG_ACESSIBILIDADE", "RANKING", "RELIQUIAS", "BASE_CORREDOR", "CANTINHO_PETS"]:
                         estado = "INICIO"
 
@@ -14941,8 +14979,10 @@ def main():
             elif estado == "PAUSA":
                 display_surface.blit(OVERLAY_PAUSA, (0, 0))
 
-                desenhar_texto_centralizado(display_surface, t("pausa_titulo", dados), fonte_grande, AMARELO_NEON, PRETO,
-                                            150)
+                desenhar_texto_centralizado(
+                    display_surface,
+                    (t("missoes_partida", dados) if pausa_aberta_missoes else t("pausa_titulo", dados)),
+                    fonte_grande, AMARELO_NEON, PRETO, 150)
 
                 rect_pausa_box = pygame.Rect(45, 210, 360, 290)
                 pygame.draw.rect(display_surface, CINZA_PAINEL, rect_pausa_box, border_radius=12)
@@ -15090,6 +15130,15 @@ def main():
             desenhar_texto_centralizado(display_surface, "Somente testes - progresso isolado", fonte_pequena,
                                         (189, 211, 226), PRETO, 727)
 
+        if estado == 'JOGANDO' and retomada_contagem_quadros > 0:
+            numero = max(1, min(3, (retomada_contagem_quadros + 59)//60))
+            quadro = pygame.Rect(116, 284, 218, 234)
+            pygame.draw.rect(display_surface, (18, 32, 53), quadro, border_radius=18)
+            pygame.draw.rect(display_surface, (135, 220, 245), quadro, 3, border_radius=18)
+            img = imagens_contagem[3-numero]
+            display_surface.blit(img, img.get_rect(center=(225, 390)))
+            desenhar_texto_centralizado(display_surface, "PREPARE-SE", fonte_missoes,
+                                        (220, 245, 255), PRETO, 467)
         # Replay visual de seis segundos: nunca reexecuta física, spawn nem saves.
         if estado == 'JOGANDO' and jogador is not None:
             _pro_sub_inicio("qa_replay_captura")
