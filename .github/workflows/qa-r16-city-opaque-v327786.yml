@@ -1,0 +1,121 @@
+name: PIXEL RUSH QA v3.277.86 R16 Cidade 2.5D RGBA/CPU (SEM APK)
+
+on:
+  push:
+    branches:
+      - qa/r16-city-opaque-overdraw-v3.277.86
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-r16-v327786-offline
+  cancel-in-progress: true
+
+jobs:
+  cidade-overdraw-qa786:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r16-city-opaque-overdraw-v3.277.86'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout isolado com historico
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Instalar pygame-ce offline (SEM Android)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python -m py_compile pixelrush_qa_city_opaque_overdraw_v327786.py \
+            pixelrush_qa_render_v327729.py \
+            qa_a54/benchmark_city_opaque_v327786.py \
+            qa_a54/smoke_city_render_integrated_v327786.py \
+            tests/test_qa_r16_city_opaque_v327786.py
+          grep -q '^version = 3.277.86$' buildozer.spec
+          grep -q '^android.numeric_version = 327786$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.86-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+
+      - name: Escopo: gameplay, física, main, DEV, saves, pets, recursos e AAB intactos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          base='3574963d8e127ab106a39b5dec426aaefe175ebf'
+          changes=subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines()
+          roots={'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','buildozer.spec',
+                 'VERSAO_ATUAL.txt','pixelrush_qa_render_v327729.py',
+                 'pixelrush_qa_city_opaque_overdraw_v327786.py'}
+          for f in changes:
+              assert (f in roots or f.startswith(('tests/','NOTAS_v3.277.86_QA.md',
+                   'qa_a54/benchmark_city_opaque_v327786.py',
+                   'qa_a54/smoke_city_render_integrated_v327786.py',
+                   '.github/workflows/qa-r16-'))),f
+          old=subprocess.check_output(['git','show',base+':PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'])
+          new=open('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','rb').read()
+          assert old.replace(b'VERSAO = "v3.277.85-QA-ANDROID-RC"',
+                             b'VERSAO = "v3.277.86-QA-ANDROID-RC"')==new
+          print('Escopo preservado, mudanças apenas QA e versão:',len(changes))
+          PY
+
+      - name: Pygame-ce: 260 RGBA por perfil e >4% ganho em mundo completo
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r16_city_opaque_v327786.py
+
+      - name: Testar o verdadeiro pipeline QA e comparar rollback (41 RGBA)
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python qa_a54/smoke_city_render_integrated_v327786.py --enabled 0 > /tmp/qa786-original.txt
+          python qa_a54/smoke_city_render_integrated_v327786.py --enabled 1 > /tmp/qa786-optimized.txt
+          python - <<'PY'
+          import json
+          a=json.loads(open('/tmp/qa786-original.txt').read().splitlines()[-1])
+          b=json.loads(open('/tmp/qa786-optimized.txt').read().splitlines()[-1])
+          assert a['hashes']==b['hashes'] and len(a['hashes'])==41
+          assert a['chunks_hidden']==0 and b['chunks_hidden']>0
+          assert a['cache_limit']==b['cache_limit']==20
+          print('QA786 runtime real: 41 RGBA completos identicos, ',b['chunks_hidden'],'blits removidos')
+          PY
+
+      - name: Regressao cache v3.277.85 e hotspots Cidade/viewport
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+          python tests/test_qa_r11_city_hotspots_v327776.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+
+      - name: Relatorios e changelog — sem APK ou AAB
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327786-r16-cidade-offline
+          path: |
+            NOTAS_v3.277.86_QA.md
+            qa-r11-city-hotspots-v327776.json
+          if-no-files-found: warn
+          retention-days: 14
