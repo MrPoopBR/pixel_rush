@@ -19,7 +19,8 @@ _NATIVE=None
 _REPORT={'status':'nao_avaliado','selecionado':False,
          'pixels_exatos':None,'teste_real':False,
          'backend':None,'original_p50_ms':None,'native_p50_ms':None,
-         'fallbacks':0,'frames_native':0}
+         'fallbacks':0,'frames_native':0,'casos_rgba':0,
+         'erro_load':None}
 
 def diagnostico():
     return dict(_REPORT)
@@ -29,14 +30,19 @@ def _load_native():
     global _NATIVE
     if _NATIVE is not None:
         return _NATIVE
-    from pixelrush_qa_crop_native_v327741 import Crop32QA
+    try:
+        from pixelrush_qa_crop_native_v327741 import Crop32QA
+    except ImportError as exc:
+        _REPORT['erro_load']=(type(exc).__name__+': '+str(exc))[:180]
+        return None
     # APK: lib nativa em lib/arm64-v8a. Desktop: caminho absoluto fornecido.
     lib=os.environ.get('PIXELRUSH_QA_NATIVE_CAMERA_LIB',
                        'libpixelrush_camera_crop_v327741.so')
     try:
         _NATIVE=Crop32QA(lib)
         return _NATIVE
-    except (OSError,RuntimeError,ValueError):
+    except (OSError,RuntimeError,ValueError) as exc:
+        _REPORT['erro_load']=(type(exc).__name__+': '+str(exc))[:180]
         return None
 
 
@@ -101,20 +107,41 @@ def _verificar_primeiro_frame(imagem,camera,jogador,velocidade,momento,ativo):
     buf=pygame.Surface(size).convert(imagem)
     formato='RGBA'
     try:
-        # Primeiro compara o frame real exato, depois mede custos completos.
-        esperado=pygame.transform.smoothscale(imagem,size,buf)
-        esperado=pygame.image.tobytes(
-            esperado.subsurface((*crop,*imagem.get_size())),formato)
-        candidato=native.processar(imagem,size,crop,backend)
-        _REPORT['teste_real']=True
-        _REPORT['pixels_exatos']=(pygame.image.tobytes(candidato,formato)==esperado)
-        if not _REPORT['pixels_exatos']:
-            _REPORT['status']='diferenca_pixel_inaceitavel'
-            return False
+        # QA783: RGBA completo em mais de uma geometria de zoom/foco.
+        # Simulamos amostras SOMENTE no preflight e restauramos a camera.
+        casos=[geometria]
+        z0,f0=camera.zoom,camera.foco_y
+        try:
+            for z in (.008,.025,.034):
+                camera.zoom=z
+                camera.foco_y=f0
+                outro=_geometria_camera(
+                    camera,imagem,jogador,velocidade,momento,ativo)
+                if outro is not None and outro not in casos:
+                    casos.append(outro)
+        finally:
+            camera.zoom=z0
+            camera.foco_y=f0
+        for tamanho_teste,recorte_teste in casos:
+            teste_buf=pygame.Surface(tamanho_teste).convert(imagem)
+            esperado=pygame.transform.smoothscale(
+                imagem,tamanho_teste,teste_buf)
+            esperado=pygame.image.tobytes(
+                esperado.subsurface((*recorte_teste,*imagem.get_size())),formato)
+            candidato=native.processar(
+                imagem,tamanho_teste,recorte_teste,backend)
+            _REPORT['teste_real']=True
+            _REPORT['casos_rgba']+=1
+            if pygame.image.tobytes(candidato,formato)!=esperado:
+                _REPORT['pixels_exatos']=False
+                _REPORT['status']='diferenca_pixel_inaceitavel'
+                return False
+        _REPORT['pixels_exatos']=True
         baseline=[];new=[]
         for i in range(6):
             t=time.perf_counter_ns()
-            pygame.transform.smoothscale(imagem,size,buf)
+            pygame.transform.smoothscale(imagem,size,buf).subsurface(
+                (*crop,*imagem.get_size()))
             baseline.append((time.perf_counter_ns()-t)/1e6)
             t=time.perf_counter_ns()
             native.processar(imagem,size,crop,backend)
@@ -186,4 +213,5 @@ def restaurar_para_teste():
     _INSTALLED=False
     _NATIVE=None
     _REPORT.update(status='nao_avaliado',selecionado=False,teste_real=False,
-                   pixels_exatos=None,frames_native=0,fallbacks=0)
+                   pixels_exatos=None,frames_native=0,fallbacks=0,
+                   casos_rgba=0,erro_load=None)
