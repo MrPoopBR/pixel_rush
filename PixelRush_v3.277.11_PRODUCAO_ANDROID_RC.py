@@ -213,7 +213,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.92-QA-ANDROID-RC"
+VERSAO = "v3.277.93-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -10381,7 +10381,7 @@ from pixelrush_perf_biomas_v3251 import criar_monitor as criar_monitor_biomas  #
 def main():
     global portal_proximo_metro
     from pixelrush_apresentacao_v3273 import precisa_tutorial, qa_sem_abertura
-    from pixelrush_tutorial_guia_prod_v327724 import TutorialCorrida
+    from src.pixelrush.ui.tutorial.premium_v327793 import TutorialCorrida
     from pixelrush_fundo_mobile_v327726 import CacheFundoMobile
     from pixelrush_producao_fx_v32771 import (desenhar_fx_palavra as _prod_fx_palavra,
                                              desenhar_mensagem_tutorial as _prod_mensagem_tutorial,
@@ -11088,7 +11088,7 @@ def main():
                         jogador, LARGURA_VIRTUAL, ALTURA_VIRTUAL,
                         classe_terrestre=ObstaculoTerrestre,
                         classe_voador=ObstaculoVoador, classe_moeda=Moeda,
-                        classe_cidade=AmeacaBioma, classe_hidrante=HidranteCidade,
+                        classe_cidade=AmeacaBioma, classe_hidrante=HidranteCidade, classe_bau=BauSecreto,
                         idioma=dados.get('idioma','pt_BR'))
             elif btn_loja.collidepoint(pos):
                 estado = "LOJA"
@@ -11552,6 +11552,9 @@ def main():
                 palavra_partida, particulas, pool_manager, gerenciador_sons,
                 dados.get("vol_sfx", 0.7), frame_count)
             moedas_coletadas += ganho_tutorial
+            # Demonstração didática: Febre visível, sem ativar a física da corrida.
+            febre_timer = 120 if getattr(tutorial_corrida, 'demo_febre', False) else 0
+            febre_turbo_distancia_restante = 0
             if tutorial_corrida.contagem_coletas > letras_antes and (tutorial_corrida.etapa == 'letras' or terminou_tutorial):
                 palavra_hud_ate = frame_count + 300
                 criar_explosao_particulas(jogador.rect.centerx + 22, jogador.rect.y, (255, 220, 85), 12, particulas, pool_manager)
@@ -11559,6 +11562,7 @@ def main():
             # Apenas a corrida normal, no bloco abaixo, passa a contar pontos.
             if terminou_tutorial:
                 dados["tutorial_inicial_concluido"] = True
+                febre_timer = 0
                 tutorial_concluido_ate = frame_count + 150
                 palavra_festa_ate = frame_count + 150
                 palavra_hud_ate = frame_count + 300
@@ -13408,7 +13412,8 @@ def main():
         # reutilizamos a imagem pronta em vez de redesenhar o fundo, sprites e UI.
         chave_tela_estatica = (estado, cor_ceu_tupla)
         if (estado == "JOGANDO" and tutorial_corrida and tutorial_corrida.ativo
-                and getattr(tutorial_corrida, "_pausa_comando", False)
+                and (getattr(tutorial_corrida, "_pausa_comando", False)
+                     or getattr(tutorial_corrida, '_extra_popup', False))
                 and cache_tutorial_congelado is not None):
             display_surface.blit(cache_tutorial_congelado, (0, 0))
         elif estado in ("PAUSA", "GAMEOVER") and chave_tela_estatica in cache_telas_estaticas:
@@ -15123,10 +15128,14 @@ def main():
         else:
             paisagem_sonora.atualizar(cenario_atual, estado, dados['vol_sfx'], clima.tipo)
 
+        if (estado == 'JOGANDO' and tutorial_corrida and tutorial_corrida.ativo
+                and cache_tutorial_congelado is not None):
+            tutorial_corrida.desenhar_fx_congelado(display_surface, pygame.time.get_ticks())
         # Captura somente o primeiro frame congelado; gestos e progresso
         # invalidam o cache instantaneamente e redesenham o mundo real.
         if (estado == "JOGANDO" and tutorial_corrida and tutorial_corrida.ativo
-                and getattr(tutorial_corrida, "_pausa_comando", False)):
+                and (getattr(tutorial_corrida, "_pausa_comando", False)
+                     or getattr(tutorial_corrida, '_extra_popup', False))):
             if cache_tutorial_congelado is None:
                 cache_tutorial_congelado = display_surface.copy()
         else:
