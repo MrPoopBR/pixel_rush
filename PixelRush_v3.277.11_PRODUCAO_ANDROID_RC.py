@@ -8931,7 +8931,7 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
         return True
     if sequencia == 'ESCOLHA':
         # Passar por baixo é seguro; uma trajetória aérea dá mais moedas.
-        obs = ObstaculoVoador(x_inicial, cenario)
+        obs = AmeacaBioma(x_inicial, 'C2') if cenario == 'cidade' else ObstaculoVoador(x_inicial, cenario)
         obs.rect.y = ALTURA_VIRTUAL - 235
         todos_sprites.add(obs)
         obstaculos.add(obs)
@@ -8945,7 +8945,7 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
     if sequencia == 'PASSAGEM':
         # Sobre a hitbox do agachamento e dentro da área do jogador em pé.
         # A física e a caixa de colisão atuais permanecem inalteradas.
-        obs = ObstaculoVoador(x_inicial, cenario)
+        obs = AmeacaBioma(x_inicial, 'C2') if cenario == 'cidade' else ObstaculoVoador(x_inicial, cenario)
         obs.rect.y = ALTURA_VIRTUAL - 157
         todos_sprites.add(obs)
         obstaculos.add(obs)
@@ -9024,6 +9024,8 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
     elif cenario == "neve":
         add("espinho_gelo", 1.25)
         add("bola_neve", 0.95)
+        if metros >= 420:
+            add("boneco_neve", 0.85)
     elif cenario == "ilhas_celestes":
         add("voador", 1.3)
 
@@ -9049,7 +9051,15 @@ def gerar_padrao(todos_sprites, obstaculos, perigos_especiais, moedas, powerups,
         todos_sprites.add(obs)
         obstaculos.add(obs)
     elif tipo_obs == "voador":
-        obs = ObstaculoVoador(x_inicial, cenario)
+        # Pombos na Cidade, drones somente no futuro, aves de cada bioma fora.
+        codigo_ar = {"cidade":"C2","neve":"N2","vulcao":"V2",
+                     "floresta":"F2","ilhas_celestes":"IC2"}.get(cenario)
+        obs = AmeacaBioma(x_inicial,codigo_ar) if codigo_ar else ObstaculoVoador(x_inicial,cenario)
+        todos_sprites.add(obs)
+        obstaculos.add(obs)
+    elif tipo_obs == "boneco_neve" and cenario == "neve":
+        from src.pixelrush.entities.enemies.snowman_v327793 import BonecoNeve
+        obs = BonecoNeve(x_inicial + 160,todos_sprites,obstaculos)
         todos_sprites.add(obs)
         obstaculos.add(obs)
     elif tipo_obs == "hidrante_cidade" and cenario == "cidade":

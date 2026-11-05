@@ -5,6 +5,7 @@ arquivos PNG foram gerados antes do jogo: nenhuma morfologia/NumPy adicional é
 executada durante a corrida. Herança conserva estado, física, fases e hitbox.
 """
 from pathlib import Path
+import math
 import pygame
 from pixelrush_polimento_atores_prod_v32772 import refinar_quadro_inimigo as _prod_refinar_inimigo
 from pixelrush_ameacas_v3196 import (
@@ -70,10 +71,9 @@ class AmeacaBioma(_Anterior):
         # Movimento próprio em C1/C2/N1. A arte é pré-calculada, sem novas
         # superfícies e sem RNG extra durante o quadro.
         if self.codigo == 'C1':
-            self.rect.x = round(self._x + 14 * __import__('math').sin(self.ticks * .095 + self._giro))
-            self.rect.y = self._base_y + int(abs(__import__('math').sin(self.ticks*.15))*2)
+            self.rect.x = round(self._x + 14 * math.sin(self.ticks * .095 + self._giro))
+            self.rect.y = self._base_y + int(abs(math.sin(self.ticks*.15))*2)
         elif self.codigo == 'C2':
-            import math
             self.rect.x = round(self._x + 10*math.sin(self.ticks*.12+self._giro))
             self.rect.y = round(self._base_y + 8*math.sin(self.ticks*.19) +
                                 6*math.sin(self.ticks*.05+self._giro))
@@ -84,6 +84,5 @@ class AmeacaBioma(_Anterior):
                 poses = fases[fase]
                 self.image = poses[(self.ticks//3)%len(poses)]
         elif self.codigo == 'N1':
-            import math
             self.rect.x = round(self._x + 7*math.sin(self.ticks*.078+self._giro))
             self.rect.y = self._base_y + round(abs(math.sin(self.ticks*.11))*2)
