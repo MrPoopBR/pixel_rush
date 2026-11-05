@@ -99,7 +99,7 @@ jobs:
           changed=subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines()
           prefix=("src/pixelrush/","tests/","docs/")
           manifest=__import__("json").loads(Path("docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json").read_text("utf8"))
-          assert len(manifest["migrated"])==21
+          assert len(manifest["migrated"])==36
           allowed={e["legacy"] for e in manifest["migrated"]}
           for entry in manifest["migrated"]:
               assert old(entry["legacy"]) == Path(entry["canonical"]).read_bytes()

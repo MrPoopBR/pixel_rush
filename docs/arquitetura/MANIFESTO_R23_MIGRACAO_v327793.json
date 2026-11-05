@@ -129,9 +129,99 @@
       "canonical": "src/pixelrush/rendering/shadows_v3234.py",
       "byte_identical": true,
       "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_acessibilidade_v3210.py",
+      "canonical": "src/pixelrush/ui/accessibility_v3210.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_fase_b_visuais_v3270.py",
+      "canonical": "src/pixelrush/rendering/phase_b_v3270.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_fase_b_visuais_v3271.py",
+      "canonical": "src/pixelrush/rendering/phase_b_v3271.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_fase_b_visuais_v3272.py",
+      "canonical": "src/pixelrush/rendering/phase_b_v3272.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_fase_b_visuais_v3273.py",
+      "canonical": "src/pixelrush/rendering/phase_b_v3273.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_fase_b_visuais_v3274.py",
+      "canonical": "src/pixelrush/rendering/phase_b_v3274.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_fase_b_visuais_v3275.py",
+      "canonical": "src/pixelrush/rendering/phase_b_v3275.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_fase_b_visuais_v3276.py",
+      "canonical": "src/pixelrush/rendering/phase_b_v3276.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_polimento_v3171.py",
+      "canonical": "src/pixelrush/rendering/polish_v3171.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_profundidade_v3198.py",
+      "canonical": "src/pixelrush/rendering/depth_v3198.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_render_otimizado_v3201.py",
+      "canonical": "src/pixelrush/performance/atmosphere_fast_v3201.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_bruma_v3232.py",
+      "canonical": "src/pixelrush/rendering/fog_v3232.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_contornos_v3230.py",
+      "canonical": "src/pixelrush/rendering/outlines_v3230.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_composicao_v3175.py",
+      "canonical": "src/pixelrush/rendering/composition_v3175.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_texturas_v3185.py",
+      "canonical": "src/pixelrush/rendering/material_textures_v3185.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
     }
   ],
-  "files_count": 21,
+  "files_count": 36,
   "root_python_files_removed": 0,
   "apk_compiled": false,
   "android_real_verified": false
