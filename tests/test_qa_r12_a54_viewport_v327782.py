@@ -99,7 +99,7 @@ class AndroidFullscreenQA782(unittest.TestCase):
     def test_engine_integra_viewport_no_loop_real_sem_tocar_fisica(self):
         e=(Path(__file__).resolve().parents[1]/
            'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text('utf8')
-        self.assertIn('v3.277.84-QA-ANDROID-RC',e)
+        self.assertIn('v3.277.85-QA-ANDROID-RC',e)
         self.assertIn('abrir as _qa_abrir_tela',e)
         self.assertIn('area_preservada(',e)
         self.assertGreaterEqual(e.count('dedo_normalizado(evento.x,evento.y)'),4)
