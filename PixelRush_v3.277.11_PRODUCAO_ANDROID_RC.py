@@ -11546,11 +11546,17 @@ def main():
             # O mundo é o MESMO da partida. Os sprites didáticos não entram no
             # grupo de colisões e não há morte ou spawn natural antes do aceite.
             letras_antes = tutorial_corrida.contagem_coletas if tutorial_corrida.etapa == 'letras' else 0
+            etapa_didatica_antes = tutorial_corrida.etapa
             ganho_tutorial, terminou_tutorial = tutorial_corrida.atualizar(
                 jogador, bg_parallax, todos_sprites, letras_coletaveis,
                 palavra_partida, particulas, pool_manager, gerenciador_sons,
                 dados.get("vol_sfx", 0.7), frame_count)
             moedas_coletadas += ganho_tutorial
+            # O combo didático usa o MESMO contador/multiplicador do jogo real,
+            # e não apenas uma mensagem falsa no popup.
+            if etapa_didatica_antes == 'combo_moedas':
+                for _coleta_tutorial in range(ganho_tutorial):
+                    registrar_acao_combo("MOEDA", jogador.rect.centerx, jogador.rect.centery)
             # Demonstração didática: Febre visível, sem ativar a física da corrida.
             febre_timer = 120 if getattr(tutorial_corrida, 'demo_febre', False) else 0
             febre_turbo_distancia_restante = 0

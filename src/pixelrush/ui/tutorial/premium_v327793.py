@@ -41,6 +41,7 @@ class TutorialCorrida(_Anterior):
         self.demo_febre = False
         self._ultimo_frame = 0
         self._instante_ui = 0
+        self._popup_desde_ms = 0
 
     @property
     def etapa(self):
@@ -92,6 +93,11 @@ class TutorialCorrida(_Anterior):
             if self._extra_popup and evento.type in (
                     pygame.KEYDOWN, pygame.FINGERUP, pygame.MOUSEBUTTONUP,
                     pygame.JOYBUTTONDOWN):
+                # Ignorar a soltura residual do dedo anterior: só aceitar
+                # um novo gesto após o popup estar visível e legível.
+                if (evento.type in (pygame.FINGERUP, pygame.MOUSEBUTTONUP) and
+                        pygame.time.get_ticks() - self._popup_desde_ms < 220):
+                    return True
                 if evento.type == pygame.MOUSEBUTTONUP and getattr(evento,"button",1) != 1:
                     return True
                 self._extra_popup = False
@@ -141,6 +147,7 @@ class TutorialCorrida(_Anterior):
         self.demo_febre = False
         self._extra_indice += 1
         self._extra_popup = True
+        self._popup_desde_ms = pygame.time.get_ticks()
         self._extra_preparada = False
         self._extra_timer = 0
         if self._extra_indice >= len(_ETAPAS_EXTRA):
@@ -175,6 +182,7 @@ class TutorialCorrida(_Anterior):
                 self.corrida_continua = False
                 self._extra_indice = 0
                 self._extra_popup = True
+                self._popup_desde_ms = pygame.time.get_ticks()
                 self._extra_preparada = False
                 self._extra_timer = 0
                 return resultado[0],False
