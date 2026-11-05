@@ -1,0 +1,118 @@
+name: PIXEL RUSH QA v3.277.93 R23 - tutorial biomas gameplay SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r23-integracao-gameplay-tutorial-v3.277.93
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-v327793-r23-offline
+  cancel-in-progress: true
+
+jobs:
+  qa-r23-offline:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r23-integracao-gameplay-tutorial-v3.277.93'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+      PYTHONPATH: .
+    steps:
+      - name: Checkout com histórico da QA792
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: pygame-ce e análise sintática
+        run: |
+          set -euo pipefail
+          python -m pip install pygame-ce==2.5.8 numpy==2.3.0
+          python -m compileall -q src tests
+          python -m py_compile PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py main.py JOGAR.py
+          python - <<'PY'
+          import ast,pathlib
+          paths=["PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py",
+                 "src/pixelrush/ui/tutorial/premium_v327793.py",
+                 "src/pixelrush/world/daynight_v327793.py",
+                 "src/pixelrush/entities/enemies/snowman_v327793.py",
+                 "pixelrush_cenarios_v398.py","pixelrush_letras_v3218.py",
+                 "pixelrush_inimigos_v3221.py"]
+          for p in paths:
+              ast.parse(pathlib.Path(p).read_text("utf8"),filename=p)
+          print("QA793 AST 7 arquivos: OK")
+          PY
+          grep -q '^version = 3.277.93$' buildozer.spec
+          grep -q '^android.numeric_version = 327793$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.93-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+      - name: Tutorial completo, efeitos, 3 minutos, inimigos reais e RGBA
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r23_gameplay_tutorial_v327793.py
+      - name: Executar testes estruturais antigos na base QA792 isolada
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/qa792" d8f97adf246bc593da3bb049bef2f3a5c31dd698
+          ( cd "$RUNNER_TEMP/qa792" &&
+            PYTHONPATH=. python tests/test_qa_r22_classes_historicos_v327792.py &&
+            PYTHONPATH=. python tests/test_qa_r20_motor_modulos_v327790.py &&
+            PYTHONPATH=. python tests/test_qa_r19_modulos_migrados_v327789.py )
+      - name: Integridade main, DEV, saves, assets, AAB e só versão buildozer
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          base="d8f97adf246bc593da3bb049bef2f3a5c31dd698"
+          old=lambda p:subprocess.check_output(["git","show",base+":"+p])
+          changed=subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines()
+          prefix=("src/pixelrush/","tests/","docs/")
+          allowed={"PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py",
+                   "pixelrush_cenarios_v398.py","pixelrush_inimigos_v3221.py",
+                   "pixelrush_letras_v3218.py","buildozer.spec","VERSAO_ATUAL.txt",
+                   "README.md",".github/workflows/qa-r23-gameplay-v327793.yml"}
+          illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
+          assert not illegal,illegal
+          forbidden=("main.py","JOGAR.py","requirements.txt",".gitignore")
+          for p in forbidden:
+              assert old(p)==Path(p).read_bytes(),p
+          assert not any(p.startswith(("assets/","p4a-recipes/")) for p in changed)
+          assert not any(p.startswith(".github/workflows/") and
+                         p!=".github/workflows/qa-r23-gameplay-v327793.yml" for p in changed)
+          before=old("buildozer.spec")
+          expect=before.replace(b"version = 3.277.92",b"version = 3.277.93").replace(
+              b"android.numeric_version = 327792",b"android.numeric_version = 327793")
+          assert Path("buildozer.spec").read_bytes()==expect
+          assert Path("docs/versoes/NOTAS_v3.277.93_QA.md").is_file()
+          print("Protegidos main, DEV, assets, receitas, AAB, saves: nenhum arquivo alterado")
+          PY
+      - name: Benchmark de regressão do render 2.5D com qualidade completa
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_city_technical_v327787.py \
+            --limit 20 --light 0 --opaque 1 --tech 1 --output "$RUNNER_TEMP/qa793_city.json"
+          python - <<'PY'
+          import json,os,pathlib
+          result=json.loads((pathlib.Path(os.environ["RUNNER_TEMP"])/"qa793_city.json").read_text("utf8"))
+          assert result["quadros_rgba"] == 260
+          assert result["periodo_redesenho_preservado"] == 5
+          assert result["hashes_rgba"]
+          print("QA793 Cidade 2.5D RGBA:",result["quadros_rgba"],"buffers, período 5")
+          PY
+      - name: Arquivar laudo sem APK
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pixelrush-v327793-r23-offline
+          path: |
+            docs/versoes/NOTAS_v3.277.93_QA.md
+            docs/arquitetura/AUDITORIA_R23_v327793.md
+          retention-days: 14
