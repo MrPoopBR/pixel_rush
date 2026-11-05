@@ -1,0 +1,168 @@
+name: PIXEL RUSH QA v3.277.88 - organizacao estrutural / pygame-ce SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r18-organizacao-modular-v3.277.88
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327788-organizacao-offline
+  cancel-in-progress: true
+
+jobs:
+  organizacao-qa:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r18-organizacao-modular-v3.277.88'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout completo, branch isolada
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Pygame-ce e checagem sintatica sem Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python -m compileall -q src tools/auditar_estrutura_v327788.py tests/test_qa_r18_estrutura_v327788.py
+          python -m py_compile PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py main.py JOGAR.py pixelrush_qa_render_v327729.py
+          grep -q '^version = 3.277.88$' buildozer.spec
+          grep -q '^android.numeric_version = 327788$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.88-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+
+      - name: Validar arquivo historico e mapeamento Git SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/auditar_estrutura_v327788.py --check
+          python - <<'PY'
+          import json,pathlib,subprocess
+          root=pathlib.Path('.')
+          base='73e1997144ee29f3f0dde5fa9a1420507ecfa9ef'
+          doc=json.loads((root/'docs/historico/MANIFESTO_MOVIMENTOS_v327788.json').read_text('utf8'))
+          assert len(doc['arquivos'])==71, len(doc['arquivos'])
+          for f in doc['arquivos']:
+              before=subprocess.check_output(['git','show',base+':'+f['antigo']])
+              after=(root/f['novo']).read_bytes()
+              assert before==after, f
+              assert not (root/f['antigo']).exists(), f
+          old_readme=subprocess.check_output(['git','show',base+':README.md'])
+          assert old_readme==(root/'docs/historico/README_ANDROID_AAB_ORIGINAL.md').read_bytes()
+          mapping={'pixelrush_qa_city_scaled_budget_v327785.py':
+                        'src/pixelrush/performance/city/cache_budget.py',
+                   'pixelrush_qa_city_opaque_overdraw_v327786.py':
+                        'src/pixelrush/performance/city/opaque_overdraw.py',
+                   'pixelrush_qa_city_technical_cover_v327787.py':
+                        'src/pixelrush/performance/city/technical_maps.py'}
+          for legacy,new in mapping.items():
+              original=subprocess.check_output(['git','show',base+':'+legacy])
+              relocated=(root/new).read_bytes()
+              assert original==relocated, legacy
+              assert (root/legacy).is_file(),legacy
+          print('QA788: 71 documentos arquivados, 3 fontes migradas, bytes/SHA identicos')
+          PY
+
+      - name: Provar main Android, jogabilidade, AAB, assets e buildozer intactos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess,pathlib
+          base='73e1997144ee29f3f0dde5fa9a1420507ecfa9ef'
+          all_changes=subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines()
+          allowed={'README.md','VERSAO_ATUAL.txt','PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py',
+                   'buildozer.spec',
+                   'pixelrush_qa_city_scaled_budget_v327785.py',
+                   'pixelrush_qa_city_opaque_overdraw_v327786.py',
+                   'pixelrush_qa_city_technical_cover_v327787.py'}
+          for p in all_changes:
+              assert (p in allowed or p.startswith((
+                   'src/','docs/','tests/','tools/auditar_estrutura_v327788.py',
+                   '.github/workflows/qa-r18-', 'NOTAS_DA_VERSAO_', 'NOTAS_v3.277.',
+                   'QA_CHANGELOG_v327', 'QA_TRACKER_32_v327', 'QA_AUDITORIA_32_',
+                   'QA_R12_A54_DIAGNOSTICO_'))),p
+          for p in ('main.py','JOGAR.py'):
+              original=subprocess.check_output(['git','show',base+':'+p])
+              assert original==pathlib.Path(p).read_bytes(),p
+          p='PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'
+          old=subprocess.check_output(['git','show',base+':'+p])
+          assert old.replace(b'VERSAO = "v3.277.87-QA-ANDROID-RC"',
+                             b'VERSAO = "v3.277.88-QA-ANDROID-RC"')==pathlib.Path(p).read_bytes()
+          old_spec=subprocess.check_output(['git','show',base+':buildozer.spec'])
+          spec=(old_spec.replace(b'version = 3.277.87',b'version = 3.277.88')
+               .replace(b'android.numeric_version = 327787',b'android.numeric_version = 327788'))
+          assert spec==pathlib.Path('buildozer.spec').read_bytes()
+          assert not any(p.startswith(('assets/','assets_android/','assets_i18n_v3247/',
+                'world_art_v3106/','world_parallax_v3112/','p4a-recipes/')) for p in all_changes)
+          assert not any(p.startswith('.github/workflows/') and not p.startswith(
+                '.github/workflows/qa-r18-') for p in all_changes)
+          print('QA788: entradas, motor, fisica, saves, DEV, AAB e assets preservados')
+          PY
+
+      - name: Teste de compatibilidade dos imports e API da nova estrutura
+        env:
+          SDL_AUDIODRIVER: dummy
+          SDL_VIDEODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r18_estrutura_v327788.py
+
+      - name: Regressao Cidade real QA787, QA786, QA785 + viewport/tela
+        env:
+          SDL_AUDIODRIVER: dummy
+          SDL_VIDEODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r17_city_technical_v327787.py
+          python tests/test_qa_r16_city_opaque_v327786.py
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+
+      - name: Validar 41 buffers RGBA no pipeline QA completo apos migrar
+        env:
+          SDL_AUDIODRIVER: dummy
+          SDL_VIDEODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python qa_a54/smoke_city_render_integrated_v327787.py --enabled 0 >/tmp/org_before.jsonl
+          python qa_a54/smoke_city_render_integrated_v327787.py --enabled 1 >/tmp/org_after.jsonl
+          python - <<'PY'
+          import json
+          a=json.loads(open('/tmp/org_before.jsonl').read().splitlines()[-1])
+          b=json.loads(open('/tmp/org_after.jsonl').read().splitlines()[-1])
+          assert a['hashes']==b['hashes'] and len(a['hashes'])==41
+          assert b['clip_geo_mat']>0 and b['clip_fxmask']>0
+          assert a['chunks_hidden_qa786']==b['chunks_hidden_qa786']
+          assert a['cache_limit']==b['cache_limit']==20
+          print('QA788: pipeline Cidade identico, RGBA 41/41, QA785/QA786/QA787 mantidos')
+          PY
+
+      - name: Publicar apenas evidencias de organizacao, sem APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327788-organizacao-offline
+          path: |
+            docs/arquitetura/ESTRUTURA.md
+            docs/arquitetura/PLANO_MIGRACAO.md
+            docs/versoes/NOTAS_v3.277.88_QA.md
+            docs/historico/MANIFESTO_MOVIMENTOS_v327788.json
+          if-no-files-found: warn
+          retention-days: 14
