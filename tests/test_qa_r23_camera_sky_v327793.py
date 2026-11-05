@@ -40,6 +40,7 @@ class CameraCeu(unittest.TestCase):
             cam.seguir_jogador(j,False)
         self.assertEqual(cam.deslocamento(),(0,0))
         j.no_chao=False
+        j.descida_rapida=False  # nova manobra de pulo após completar o pouso
         for _ in range(20):cam.seguir_jogador(j,True,reduzir_efeitos=True)
         self.assertEqual(cam.deslocamento(),(0,0))
         cam.seguir_jogador(j,True)
