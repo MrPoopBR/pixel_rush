@@ -10567,6 +10567,9 @@ def main():
     touch_hold_frames = 0
     touch_jump_started = False
     touch_gesture_moved = False
+    touch_combo_longo = False
+    touch_combo_baixo = False
+    touch_swipe_pico_y = 0.0
     jetpack_gesto_usado = False
     mouse_drag_active = False
     mouse_drag_anchor_pos = None
@@ -11809,8 +11812,9 @@ def main():
                 mouse_current_pos[1] - mouse_start_pos[1] > 30)
             modo_touch_rodada = normalizar_modo(dados.get('controle_modo', 'CLASSICO'))
             segurando_pulo = (input_pulo_ativo or gamepad_pulo or controle_dedos.holding('pulo') or
-                               (input_mouse_ativo and not mouse_baixo) or
-                               (toque_ativo and modo_touch_rodada == MODO_CLASSICO and not segurando_baixo_touch))
+                               (input_mouse_ativo and not mouse_baixo) or touch_combo_longo or
+                               (toque_ativo and modo_touch_rodada == MODO_CLASSICO and
+                                not segurando_baixo_touch and not touch_combo_baixo))
             segurando_baixo = (input_baixo_ativo or gamepad_baixo or controle_dedos.holding('baixo') or
                                segurando_baixo_touch or mouse_baixo or
                                (gesto_agachar_frames > 0 and jogador.no_chao))
@@ -13030,6 +13034,13 @@ def main():
                     and evento.type in (pygame.MOUSEBUTTONUP, pygame.FINGERUP,
                                         pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN)):
                 continue
+            if (estado == "JOGANDO" and retomada_contagem_quadros > 0 and
+                    evento.type in (pygame.KEYDOWN, pygame.KEYUP, pygame.FINGERDOWN,
+                                   pygame.FINGERMOTION, pygame.FINGERUP,
+                                   pygame.MOUSEBUTTONDOWN, pygame.MOUSEMOTION,
+                                   pygame.MOUSEBUTTONUP, pygame.JOYBUTTONDOWN,
+                                   pygame.JOYBUTTONUP)):
+                continue
             if (estado == "JOGANDO" and tutorial_corrida is not None and tutorial_corrida.ativo
                     and evento.type not in (pygame.QUIT, pygame.ACTIVEEVENT,
                                             APP_WILLENTERBACKGROUND, APP_DIDENTERBACKGROUND,
@@ -13116,6 +13127,9 @@ def main():
                 toque_ativo = True
                 touch_hold_frames = 0
                 touch_jump_started = False
+                touch_combo_longo = False
+                touch_combo_baixo = False
+                touch_swipe_pico_y = float(pos_touch[1])
                 touch_gesture_moved = bool(
                     estado == "JOGANDO" and jogador and jogador.jetpack_fase is not None)
                 jetpack_gesto_usado = False
@@ -13145,15 +13159,28 @@ def main():
                             touch_jetpack_anchor = (touch_current_pos[0], ancorar_jetpack(
                                 touch_jetpack_anchor[1], touch_current_pos[1], passos_jet))
                             jetpack_gesto_usado = True
-                    elif (estado == 'JOGANDO' and jogador and touch_start_pos and
-                          normalizar_modo(dados.get('controle_modo')) == MODO_GESTOS):
+                    elif estado == 'JOGANDO' and jogador and touch_start_pos:
                         dy_gesto = touch_current_pos[1] - touch_start_pos[1]
-                        if (dy_gesto < -(limiar(dados) + 10) and
-                                not touch_jump_started and not touch_gesture_moved):
+                        threshold = limiar(dados) + 10
+                        if touch_combo_longo and not touch_combo_baixo:
+                            touch_swipe_pico_y = min(touch_swipe_pico_y, touch_current_pos[1])
+                            if touch_current_pos[1] - touch_swipe_pico_y >= threshold:
+                                touch_combo_baixo = True
+                                touch_combo_longo = False
+                                if jogador.no_chao:
+                                    gesto_agachar_frames = max(gesto_agachar_frames, 12)
+                                else:
+                                    jogador.iniciar_descida_rapida(gerenciador_sons, dados['vol_sfx'])
+                        elif (dy_gesto < -threshold and not touch_jump_started and
+                                not touch_gesture_moved and jogador.jetpack_fase is None):
+                            # Deslizar para cima também prepara pulo longo;
+                            # segurar o dedo mantém a duração normal do salto.
                             jogador.pular(gerenciador_sons, dados['vol_sfx'])
                             touch_jump_started = True
                             touch_gesture_moved = True
-                        elif dy_gesto > limiar(dados) + 10 and not touch_gesture_moved:
+                            touch_combo_longo = True
+                            touch_swipe_pico_y = touch_current_pos[1]
+                        elif (dy_gesto > threshold and not touch_gesture_moved):
                             if jogador.no_chao:
                                 gesto_agachar_frames = max(gesto_agachar_frames, 12)
                             else:
@@ -13227,6 +13254,8 @@ def main():
                 touch_hold_frames = 0
                 touch_jump_started = False
                 touch_gesture_moved = False
+                touch_combo_longo = False
+                touch_combo_baixo = False
                 jetpack_gesto_usado = False
 
             elif evento.type == pygame.MOUSEBUTTONDOWN:
