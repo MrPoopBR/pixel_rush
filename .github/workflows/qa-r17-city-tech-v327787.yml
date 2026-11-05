@@ -1,0 +1,127 @@
+name: PIXEL RUSH QA v3.277.87 R17 mapas tecnicos Cidade RGBA SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r17-city-techmaps-v3.277.87
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327787-r17-offline
+  cancel-in-progress: true
+
+jobs:
+  city-r17-qa:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r17-city-techmaps-v3.277.87'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout branch isolada com historico
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Python 3.13 com pygame-ce 2.5.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Preparar suite offline sem Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python -m py_compile pixelrush_qa_city_technical_cover_v327787.py pixelrush_qa_render_v327729.py qa_a54/benchmark_city_technical_v327787.py qa_a54/smoke_city_render_integrated_v327787.py tests/test_qa_r17_city_technical_v327787.py
+          grep -q '^version = 3.277.87$' buildozer.spec
+          grep -q '^android.numeric_version = 327787$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.87-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+          ! grep -q 'pixelrush_qa_city_technical_cover_v327787' main.py
+
+      - name: Auditar branch contra QA786 e preservar gameplay/pets/saves
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          base='dcce704639e2b42bfade76d93b5766cda325cc9b'
+          files=subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines()
+          permitted={'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','buildozer.spec',
+                     'VERSAO_ATUAL.txt','pixelrush_qa_render_v327729.py',
+                     'pixelrush_qa_city_technical_cover_v327787.py'}
+          for name in files:
+              assert (name in permitted or name.startswith((
+                  'tests/','qa_a54/benchmark_city_technical_v327787.py',
+                  'qa_a54/smoke_city_render_integrated_v327787.py',
+                  '.github/workflows/qa-r17-','NOTAS_v3.277.87_QA.md'))),name
+          old=subprocess.check_output(['git','show',base+':PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'])
+          new=open('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','rb').read()
+          assert old.replace(b'VERSAO = "v3.277.86-QA-ANDROID-RC"',
+                             b'VERSAO = "v3.277.87-QA-ANDROID-RC"')==new
+          for name in ('main.py','JOGAR.py'):
+              assert subprocess.check_output(['git','show',base+':'+name])==open(name,'rb').read()
+          print('PROTECAO QA787 OK;  gameplay, main e launcher intactos')
+          PY
+
+      - name: Medir 260 RGBA e ganho do quinto quadro contra QA786 nos dois perfis
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r17_city_technical_v327787.py
+
+      - name: Comparar runtime QA real com rollback sem alterar RGBA (41 quadros)
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python qa_a54/smoke_city_render_integrated_v327787.py --enabled 0 >/tmp/qa787-base.jsonl
+          python qa_a54/smoke_city_render_integrated_v327787.py --enabled 1 >/tmp/qa787-optimized.jsonl
+          python - <<'PY'
+          import json
+          def load(path):
+              return json.loads(open(path,encoding='utf8').read().splitlines()[-1])
+          a,b=load('/tmp/qa787-base.jsonl'),load('/tmp/qa787-optimized.jsonl')
+          assert len(a['hashes'])==len(b['hashes'])==41
+          assert a['hashes']==b['hashes']
+          assert a['clip_geo_mat']==a['clip_fxmask']==0
+          assert b['clip_geo_mat']>0 and b['clip_fxmask']>0
+          assert a['chunks_hidden_qa786']==b['chunks_hidden_qa786']
+          assert a['cache_limit']==b['cache_limit']==20
+          print('QA787 PIPELINE REAL RGBA 41/41, geometry/material',
+                b['clip_geo_mat'],'fxmask',b['clip_fxmask'],
+                'QA786 intacta',b['chunks_hidden_qa786'])
+          PY
+
+      - name: Regressao QA786 QA785 e hotspots Cidade/viewport
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r16_city_opaque_v327786.py
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+          python tests/test_qa_r11_city_hotspots_v327776.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+
+      - name: Publicar somente relatorios e changelog, nunca APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327787-r17-city-technical-offline
+          path: |
+            NOTAS_v3.277.87_QA.md
+            qa-r11-city-hotspots-v327776.json
+          if-no-files-found: warn
+          retention-days: 14
