@@ -5,6 +5,9 @@ import os
 import pygame
 # QA R23: candidato fechado ate completar A/B RGBA e desempenho.
 _QA_SKIP_HIDDEN_TRAIN=os.environ.get('PIXELRUSH_QA_SKIP_HIDDEN_TRAIN','1')=='1'
+# LAB R26: evitar enumeracao de far/mid inteiramente cobertos nos mapas
+# opacos NORMAL/FLOW. Desligado ate gate A/B de RGBA + ganho comprovado.
+_QA_R26_SKIP_OCCLUDED_LAYERS=os.environ.get('PIXELRUSH_QA_R26_SKIP_OCCLUDED_LAYERS','0')=='1'
 # Configurada no boot QA; nenhum getenv no quinto quadro.
 _QA_DIRECT_NIGHT_MULT=os.environ.get('PIXELRUSH_QA_DIRECT_NIGHT_MULT','1')=='1'
 # QA754: near_tiles e consumido somente por image/fxmask (luzes); em
@@ -62,10 +65,19 @@ class CityPilotScene(CidadeAnterior):
                 # nao materializar tuple que seria descartada apos cada layer.
                 usa_near=(layer.name=='near' and not foreground_only and
                           map_kind in ('image','fxmask'))
-                visible=(tuple(self._layer_tiles(travel,layer))
+                # QA786 valida cobertura near, identidade de todos os atlases,
+                # formato e ordem das camadas nesta chamada de render.
+                # Se validado, nem materializar tiles far/mid; a near opaca
+                # os substitui em sua totalidade, inclusive sprites tecnicos.
+                oculto=(_QA_R26_SKIP_OCCLUDED_LAYERS and
+                        not foreground_only and layer.name in ('far','mid') and
+                        map_kind in ('normal','flow') and
+                        getattr(self,'_qa_opaque_maps_pass',None)==map_kind)
+                visible=(() if oculto else
+                         (tuple(self._layer_tiles(travel,layer))
                          if (usa_near if _QA_NEAR_TUPLE_ON_DEMAND
                              else layer.name=='near')
-                         else self._layer_tiles(travel,layer))
+                         else self._layer_tiles(travel,layer)))
                 for x,variant,flip in visible:
                     self._render_chunk(target,variant,flip,int(x),frame,night,climate,phase,map_kind)
                 if layer.name=='mid' and not foreground_only:
