@@ -24,6 +24,7 @@ os.environ["PIXELRUSH_QA_CITY_OPAQUE_OVERDRAW"]="1"
 os.environ["PIXELRUSH_QA_CITY_TECH_COVER"]="1"
 parser=argparse.ArgumentParser()
 parser.add_argument("--candidato",type=int,choices=(0,1),required=True)
+parser.add_argument("--direto",type=int,choices=(0,1),default=0)
 parser.add_argument("--output",type=Path,required=True)
 args=parser.parse_args()
 import pygame
@@ -65,6 +66,28 @@ if True:
         return surf
     _WorldBase._city_surface=superficie_sem_duplo_fill
 
+# Experimento 2: desenhar normal/flow diretamente na janela 450x500,
+# sem o buffer intermediário de 900 KB nem o blit subsequente.
+if args.direto:
+    from pixelrush_world_v3130 import LivingWorld as _Base,WIDTH,GROUND,TOP
+    _original_normal=_Base.draw_normal_map
+    _original_flow=_Base.draw_flow_map
+    def _desenhar_direto(self,surface,kind,original):
+        if (self.biome!='cidade' or surface.get_size()!=(450,800)
+                or surface.get_colorkey() is not None
+                or surface.get_alpha() not in (None,255)):
+            return original(self,surface)
+        # Somente mapas opacos: os demais canais dependem de alpha blend.
+        area=surface.subsurface((0,TOP,WIDTH,GROUND-TOP))
+        self.city2.render_scene(area,self.travel,self.frame,self.night,
+                                self.climate,self.phase,False,map_kind=kind)
+    def normal_direto(self,surface):
+        return _desenhar_direto(self,surface,'normal',_original_normal)
+    def fluxo_direto(self,surface):
+        return _desenhar_direto(self,surface,'flow',_original_flow)
+    _Base.draw_normal_map=normal_direto
+    _Base.draw_flow_map=fluxo_direto
+
 from pixelrush_world_prod_v32777 import LivingWorld
 random.seed(20261105)
 world=LivingWorld("cidade")
@@ -96,7 +119,7 @@ def dados(values):
             "p95_ms":round(v[int(.95*(len(v)-1))],5),
             "mean_ms":round(statistics.mean(v),5)}
 report={"schema":"pixelrush.qa.r23.city.preclear.v327793",
-        "candidato":bool(args.candidato),"frames":130,
+        "candidato":bool(args.candidato),"direto":bool(args.direto),"frames":130,
         "rgba_count":len(hashes),"hashes_rgba":hashes,
         "per_pass":{k:dados(v) for k,v in timings.items()},
         "cache_max":len(world.city2._scaled),
