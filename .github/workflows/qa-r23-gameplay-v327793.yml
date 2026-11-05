@@ -110,7 +110,8 @@ jobs:
                    "qa_a54/benchmark_city_preclear_v327793.py",
                    "pixelrush_world_v3130.py",
                    "pixelrush_gamefeel_v3152.py",
-                   "qa_a54/benchmark_modular_preclear_v327793.py"})
+                   "qa_a54/benchmark_modular_preclear_v327793.py",
+                   "qa_a54/benchmark_world_marathon_v327793.py"})
           illegal=[p for p in changed if p not in allowed and not p.startswith(prefix)]
           assert not illegal,illegal
           forbidden=("main.py","JOGAR.py","requirements.txt",".gitignore")
@@ -203,6 +204,18 @@ jobs:
               json.dumps({"rgba_iguais":same,"quantidade":len(a["rgba_hashes"])},
                          indent=2),encoding="utf8")
           PY
+      - name: Maratona R23 de 140 quadros em 7 biomas, sem reduzir graficos
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_world_marathon_v327793.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("qa_a54/qa793_seven_biomes.json").read_text("utf8"))
+          assert d["frames_total"]==140 and d["rgba_total"]==280
+          assert d["quality"]=="completo" and len(d["biomes"])==7
+          print("R23 7 biomas: 140 quadros, 280 RGBA, memória e tempos por passe")
+          PY
       - name: Arquivar laudo sem APK
         uses: actions/upload-artifact@v4
         if: always()
@@ -219,4 +232,5 @@ jobs:
             qa_a54/qa793_modular_baseline.json
             qa_a54/qa793_modular_candidate.json
             qa_a54/qa793_modular_diagnostico.json
+            qa_a54/qa793_seven_biomes.json
           retention-days: 14
