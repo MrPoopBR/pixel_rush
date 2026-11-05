@@ -138,7 +138,7 @@ class InimigoEspecialBioma(pygame.sprite.Sprite):
         if sprites is None:
             sprites=tuple(_quadro(bioma,i) for i in range(3))
             _FRAMES[bioma]=sprites
-        self.image=sprites[1]
+        self.image=sprites[0]
         self.rect=self.image.get_rect(midbottom=(int(x),730))
         self.bioma=bioma
         self.codigo,self.nome=ESPECIAIS_BIOMA[bioma]

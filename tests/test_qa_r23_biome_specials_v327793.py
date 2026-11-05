@@ -58,7 +58,7 @@ class AtoresBiomaR23(unittest.TestCase):
             quadros=_FRAMES[biome]
             for i in range(160):
                 first.update(6.0)
-                self.assertTrue(first.image is quadros[i//8%3])
+                self.assertTrue(first.image is quadros[((i+1)//8)%3])
                 self.assertLessEqual(abs(first.rect.y-original.y),7)
             self.assertLess(first.rect.x,original.x-300)
             self.assertEqual(memoria_atlas_bytes(),frame_bytes)
