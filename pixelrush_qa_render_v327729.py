@@ -49,6 +49,7 @@ def preparar_perfil_qa_android():
             ('PIXELRUSH_QA_CAMERA_AUTOTUNE','1'),
             ('PIXELRUSH_QA_NATIVE_AUTO','1'),
             ('PIXELRUSH_QA_CITY_INCREMENTAL','1'),
+            ('PIXELRUSH_QA_CITY_OPAQUE_OVERDRAW','1'),
             ('PIXELRUSH_QA_CLASSIC_INCREMENTAL','1'),
             ('PIXELRUSH_QA_TRACE','1')):
         os.environ.setdefault(nome,valor)
