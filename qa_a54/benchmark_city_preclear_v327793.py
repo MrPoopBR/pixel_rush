@@ -2,8 +2,8 @@
 """QA793: perfil por passe da Cidade 2.5D, antes/depois de um fill redundante.
 
 NÃO modifica produção nem salva dados; compara 130 quadros e 260 RGBA exatos.
-O ramo 'candidato' é monkey-patch temporário em uma única função do World
-legado. A decisão de integrar depende de melhora medida, não de suposições.
+Dois monkey-patches temporários: controle volta à rotina anterior, candidato
+repete a rotina integrada. A diferença depende de medida, não de suposições.
 """
 import argparse
 import hashlib
@@ -37,7 +37,7 @@ instalar_boot()
 instalar_budget()
 instalar_opaque()
 instalar_tech()
-if args.candidato:
+if True:
     from pixelrush_world_v3130 import LivingWorld as _WorldBase,WIDTH,GROUND,TOP,MODULAR_BIOMES
     def superficie_sem_duplo_fill(self,kind="image",foreground_only=False):
         key=(kind,bool(foreground_only))
@@ -47,7 +47,7 @@ if args.candidato:
             self._city_surfaces[key]=surf
         # A Cidade limpa o destino em render_scene ANTES de cada layer.
         # Só pula o primeiro fill quando o renderer realmente o sobrescreve.
-        if self.biome!="cidade" or foreground_only:
+        if not args.candidato or self.biome!="cidade" or foreground_only:
             if kind=="normal":
                 surf.fill((128,128,255))
             elif kind=="flow":
