@@ -132,6 +132,25 @@ jobs:
           assert result["hashes_rgba"]
           print("QA793 Cidade 2.5D RGBA:",result["quadros_rgba"],"buffers, período 5")
           PY
+      - name: Perfil A/B Cidade 2.5D por passe e RGBA (sem integrar candidato)
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_city_preclear_v327793.py --candidato 0 --output qa_a54/qa793_preclear_baseline.json
+          python qa_a54/benchmark_city_preclear_v327793.py --candidato 1 --output qa_a54/qa793_preclear_candidate.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          b=json.loads(Path("qa_a54/qa793_preclear_baseline.json").read_text())
+          c=json.loads(Path("qa_a54/qa793_preclear_candidate.json").read_text())
+          assert b["hashes_rgba"]==c["hashes_rgba"]
+          assert b["rgba_count"]==c["rgba_count"]==260
+          assert b["quality"]==c["quality"]=="completo"
+          for name in b["per_pass"]:
+              a=b["per_pass"][name]["p50_ms"];v=c["per_pass"][name]["p50_ms"]
+              print("QA793",name,"p50 ms baseline",a,"candidate",v,
+                    "change %",round(100*(v/a-1),2) if a else "n/a")
+          print("QA793 260 RGBA EXATOS; proposta ainda não integrada")
+          PY
       - name: Arquivar laudo sem APK
         uses: actions/upload-artifact@v4
         if: always()
@@ -141,4 +160,6 @@ jobs:
             docs/versoes/NOTAS_v3.277.93_QA.md
             docs/arquitetura/AUDITORIA_R23_v327793.md
             docs/arquitetura/MANIFESTO_R23_MIGRACAO_v327793.json
+            qa_a54/qa793_preclear_baseline.json
+            qa_a54/qa793_preclear_candidate.json
           retention-days: 14
