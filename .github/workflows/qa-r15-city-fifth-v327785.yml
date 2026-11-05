@@ -1,0 +1,91 @@
+name: PIXEL RUSH QA v3.277.85 R15 - Cidade 5o quadro RGBA SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r15-city-fifth-cache-v3.277.85
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327785-r15-offline
+  cancel-in-progress: true
+
+jobs:
+  cidade-r15-offline:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r15-city-fifth-cache-v3.277.85'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolado com historico para comparar escopo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Python 3.13 e pygame-ce
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Instalar runtime offline sem SDK Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          python -m py_compile pixelrush_qa_city_scaled_budget_v327785.py pixelrush_qa_render_v327729.py tests/test_qa_r15_city_fifth_budget_v327785.py qa_a54/benchmark_city_fifth_v327785.py
+          ! grep -q 'pixelrush_qa_city_scaled_budget_v327785' main.py
+
+      - name: Auditar escopo contra a QA784
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          base='3ff714a6b7182d56e7ace7b74c6ad1961f801547'
+          files=subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines()
+          for p in files:
+              assert p in ('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','buildozer.spec','VERSAO_ATUAL.txt',
+                           'pixelrush_qa_render_v327729.py','pixelrush_qa_city_scaled_budget_v327785.py') or \
+                     p.startswith(('.github/workflows/qa-r15-', 'qa_a54/benchmark_city_fifth_v327785.py',
+                                   'tests/', 'NOTAS_v3.277.85_QA.md')),p
+          old=subprocess.check_output(['git','show',base+':PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'])
+          new=open('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','rb').read()
+          assert old.replace(b'VERSAO = "v3.277.84-QA-ANDROID-RC"',
+                             b'VERSAO = "v3.277.85-QA-ANDROID-RC"')==new or old==new
+          print('Escopo QA restrito e arquivo de jogo inalterado, exceto versao',len(files))
+          PY
+
+      - name: Testar quinto quadro completo e 260 RGBA em 2 perfis (14 vs 20)
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+
+      - name: Regressao existente de Cidade real e passes instrumentados
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r11_city_hotspots_v327776.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+
+      - name: Relatorios offline — sem Android
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327785-r15-cidade-offline
+          path: |
+            NOTAS_v3.277.85_QA.md
+            qa-r11-city-hotspots-v327776.json
+          if-no-files-found: warn
+          retention-days: 14
