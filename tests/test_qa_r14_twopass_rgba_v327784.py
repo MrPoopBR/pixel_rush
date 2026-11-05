@@ -28,7 +28,8 @@ class TestPhysicalRGBAQA784(unittest.TestCase):
             self.assertEqual((p.width,p.height),(450,800))
             self.assertFalse(report['aprovado_aparelho'])
             self.assertEqual(report['selecionado'],
-                bool(report['ganho_p50'] and report['ganho_p50']>1/0.85))
+                bool(report['gpu_p50_ms']<report['cpu_p50_ms']*.85 and
+                     report['cpu_p50_ms']-report['gpu_p50_ms']>=.15))
             print('QA784 fullscreen GPU vs CPU',pygame.display.get_window_size(),report)
         finally:
             if two is not None:two.close()
