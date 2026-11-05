@@ -2,7 +2,7 @@
   "schema": "pixelrush.qa.r23.modules.moved.v327793",
   "base_branch": "qa/r22-classes-historicos-v3.277.92",
   "base_commit": "d8f97adf246bc593da3bb049bef2f3a5c31dd698",
-  "version": "3.277.95-QA",
+  "version": "3.277.96-QA",
   "migrated": [
     {
       "legacy": "pixelrush_aereo_v3224.py",
@@ -257,9 +257,45 @@
       "canonical": "src/pixelrush/performance/camera/native_auto_v327742.py",
       "byte_identical": true,
       "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_gc_cooperativo_v327757.py",
+      "canonical": "src/pixelrush/performance/gc_cooperative_v327757.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_hotpath_v327753.py",
+      "canonical": "src/pixelrush/performance/hotpath_v327753.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_cache_policy_v327758.py",
+      "canonical": "src/pixelrush/performance/cache_policy_v327758.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_geometry_retire_v327761.py",
+      "canonical": "src/pixelrush/performance/city/geometry_retire_v327761.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_scene_v327733.py",
+      "canonical": "src/pixelrush/rendering/scene_qa_v327733.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_qa_r11_passes_v327776.py",
+      "canonical": "src/pixelrush/performance/city/r11_passes_v327776.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
     }
   ],
-  "files_count": 42,
+  "files_count": 48,
   "root_python_files_removed": 0,
   "apk_compiled": false,
   "android_real_verified": false
