@@ -64,3 +64,11 @@ Foram migrados **21 módulos históricos** adicionais, com conteúdo byte-idênt
 - Mantidos os ganhos já medidos com pixels exatos no 2.5D: limpeza redundante removida, fluxo direto sem buffer 450x500, normal modular parcialmente otimizado e batch FABRIK condicionado a sprites maiores. O benchmark/maratona dos 7 biomas, testes pygame-ce/AST/RGBA, saves protegidos, compatibilidade de imports e integridade do Android permanecem gates bloqueantes.
 - Não alterados **main.py, JOGAR.py, DEV, pets, saves, assets nem workflows Android/AAB**. Mesmo número de versão `v3.277.93-QA`, conforme o pedido de uma versão única; APK/AAB não compilados.
 - **Ainda pendentes:** homologação Galaxy A54/MEmu, otimização profunda comprovada dos 64,7 ms pós-sprites e 88,6 ms do quinto quadro no hardware real, reestruturação artística total e exclusão segura dos arquivos legados depois da migração integral.
+
+
+## R23 — zoom RGB diretamente no destino, sem superfície temporária
+- Continuação isolada da mesma v3.277.93-QA, sem alterar main, DEV, gameplay, física, saves, pets, assets, workflows Android/APK/AAB ou aparência.
+- pixelrush_gamefeel_v3152.py: acabamento_camera passa a usar transform.scale diretamente em uma subsurface do buffer existente, somente para fonte e destino RGB opacos 450x800 com formato de pixels idêntico. Remove a criação de Surface dependente do tamanho e o blit intermediário. Para alfa, SRCALPHA, colorkey, outra resolução/formato e falhas SDL: fallback integral para o método anterior.
+- tests/test_qa_r23_zoom_direto_v327793.py: novo gate de 500 quadros RGBA idênticos ao legado + 4 fallbacks e 3 casos sem zoom; adicionado ao CI R23 sem compilar Android.
+- Benchmark local pygame-ce 2.5.8 Python 3.13 SDL dummy: 500 RGBA idênticos; p50 do zoom original 0,4234 ms, novo 0,1848 ms, cerca de 56,3% de queda apenas nessa operação isolada. Não é ganho de FPS total nem medição no A54. CI remoto ainda deve ser verificado.
+- Não declarar eliminação dos 64,7 ms pós-sprites nem homologação de hardware sem relatório real.

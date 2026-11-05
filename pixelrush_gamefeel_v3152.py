@@ -49,6 +49,40 @@ class GameFeel(Anterior):
         return (x+int(round(self._qa_camera_x)),
                 y+int(round(self._qa_camera_y)))
 
+    def acabamento_camera(self, surf, ativo):
+        """Escala RGB diretamente no buffer existente sem alterar RGBA.
+
+        Alfa, colorkey, dimensao ou formato divergentes continuam no metodo
+        original, sem afetar HUD, fisica, efeitos nem saves.
+        """
+        if not ativo or self.zoom <= .002:
+            return surf
+        destino = self._buffer_zoom
+        if (surf is not destino
+                and surf.get_size() == (450, 800)
+                and destino.get_size() == (450, 800)
+                and surf.get_bitsize() == destino.get_bitsize()
+                and surf.get_masks() == destino.get_masks()
+                and not ((surf.get_flags() | destino.get_flags()) & pygame.SRCALPHA)
+                and surf.get_colorkey() is None
+                and destino.get_colorkey() is None
+                and surf.get_alpha() in (None, 255)
+                and destino.get_alpha() in (None, 255)):
+            escala = 1.0 - self.zoom
+            largura = max(1, int(450 * escala))
+            altura = max(1, int(800 * escala))
+            if largura <= 450 and altura <= 800:
+                area = ((450 - largura) // 2, (800 - altura) // 2,
+                        largura, altura)
+                try:
+                    destino.fill((13, 20, 40))
+                    pygame.transform.scale(
+                        surf, (largura, altura), destino.subsurface(area))
+                except (pygame.error, ValueError, TypeError):
+                    return super().acabamento_camera(surf, ativo)
+                return destino
+        return super().acabamento_camera(surf, ativo)
+
     def registrar_coleta(self, x, y):
         # O efeito complementa as partículas de coleta já existentes,
         # sem acionar vibração ou novo áudio repetitivo.
