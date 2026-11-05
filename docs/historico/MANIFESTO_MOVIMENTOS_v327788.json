@@ -1,0 +1,363 @@
+{
+  "schema": "pixelrush.org.qa.v327788",
+  "base": "73e1997144ee29f3f0dde5fa9a1420507ecfa9ef",
+  "criterio": "apenas documentos historicos sem referencias estaticas encontradas em codigo/CI do snapshot v327783; verificar live CI na branch",
+  "total": 71,
+  "arquivos": [
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.1-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.1-PROD.md",
+      "sha": "5039e740cd66e2e81fa1657b5c761ea4278586a8"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.2-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.2-PROD.md",
+      "sha": "3e871a1f96961c6723519f12ac0d3f6b0026b9b3"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.3-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.3-PROD.md",
+      "sha": "6c9b7a0948e1c7cd089b067bdca322a253b415d3"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.4-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.4-PROD.md",
+      "sha": "d3082c9f7880bc5f59e53a5b54e576bb3631e49f"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.5-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.5-PROD.md",
+      "sha": "525a637410228047b1d4bd3af188bf1ecd1fb89b"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.6-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.6-PROD.md",
+      "sha": "ce9984dda805df93eee86c0506afbf915a4148c6"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.7-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.7-PROD.md",
+      "sha": "500412ec8b60360cb6f061ab737c1a0039405b7e"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.8-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.8-PROD.md",
+      "sha": "d0e6c5bc8630f09107d577f0b45cab48ba1d42cf"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.9-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.9-PROD.md",
+      "sha": "a3eccf4ba82e200ac340bbc9de7faafd4b5ee4e8"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.10-PROD.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.10-PROD.md",
+      "sha": "7c4542fe56a5e4878e73c5328b11091579f2db86"
+    },
+    {
+      "antigo": "NOTAS_DA_VERSAO_v3.277.11-PROD-ANDROID-RC.md",
+      "novo": "docs/historico/producao/NOTAS_DA_VERSAO_v3.277.11-PROD-ANDROID-RC.md",
+      "sha": "5ee9caa6d11ac2b12fac329aae742f711d4532bd"
+    },
+    {
+      "antigo": "NOTAS_v3.277.12.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.12.txt",
+      "sha": "25ed571c33c85e44d0600b81ea6c10a4784dc913"
+    },
+    {
+      "antigo": "NOTAS_v3.277.13.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.13.txt",
+      "sha": "d305a09875d1d26fd2d8c9104b9780c9460fd5a5"
+    },
+    {
+      "antigo": "NOTAS_v3.277.14.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.14.txt",
+      "sha": "ae919fb0ec29975239903567b2fd0aa069e9831d"
+    },
+    {
+      "antigo": "NOTAS_v3.277.15.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.15.txt",
+      "sha": "79a6ec40d6c169c6e0d92e99af0fba274909d3c1"
+    },
+    {
+      "antigo": "NOTAS_v3.277.16.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.16.txt",
+      "sha": "20b7bd88cbc449141e199beb376531680405b60b"
+    },
+    {
+      "antigo": "NOTAS_v3.277.17.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.17.txt",
+      "sha": "b041e15cd840e8acdcf41796e46152d35053b73d"
+    },
+    {
+      "antigo": "NOTAS_v3.277.18.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.18.txt",
+      "sha": "133e0a801bb878d6e9e5ef5c1648b54e1b2b496a"
+    },
+    {
+      "antigo": "NOTAS_v3.277.19.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.19.txt",
+      "sha": "1b431e3fa631305fc7dcd6bea06eb31c55a57308"
+    },
+    {
+      "antigo": "NOTAS_v3.277.20.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.20.txt",
+      "sha": "d801a926fb2a940be51c2d2ad2703e2603bfba91"
+    },
+    {
+      "antigo": "NOTAS_v3.277.21.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.21.txt",
+      "sha": "bfbe2843d7ef05346d23f98159e2f4ca93915f14"
+    },
+    {
+      "antigo": "NOTAS_v3.277.22.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.22.txt",
+      "sha": "5ddd2299dcae53634ffffb1b383c089e19308bc3"
+    },
+    {
+      "antigo": "NOTAS_v3.277.23.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.23.txt",
+      "sha": "9be228ad8894d8180165d0a4622961f6e677ec4a"
+    },
+    {
+      "antigo": "NOTAS_v3.277.24.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.24.txt",
+      "sha": "dcb024f4ab0ef08db8aeec37f52661f84d4fd9bd"
+    },
+    {
+      "antigo": "NOTAS_v3.277.25.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.25.txt",
+      "sha": "a39417b04fb98477afd8e6cb8c1cca90db3313c8"
+    },
+    {
+      "antigo": "NOTAS_v3.277.26.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.26.txt",
+      "sha": "9f86b9a513ce2968a4bd25bc3167ef5988f53815"
+    },
+    {
+      "antigo": "NOTAS_v3.277.27.txt",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.27.txt",
+      "sha": "6704a0bf2fb8c807b81fa683fee9f588efa4e482"
+    },
+    {
+      "antigo": "NOTAS_v3.277.28-QA.md",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.28-QA.md",
+      "sha": "d2414af11bd3ddd082e452427a7d128a6551b85e"
+    },
+    {
+      "antigo": "NOTAS_v3.277.29-QA.md",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.29-QA.md",
+      "sha": "24bea3ad505d4714c1567df828e2b19d299dc1a2"
+    },
+    {
+      "antigo": "NOTAS_v3.277.30-QA.md",
+      "novo": "docs/historico/versoes/NOTAS_v3.277.30-QA.md",
+      "sha": "07fe665a33efe1717bc37cda77fb9f9928a88e76"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327748.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327748.md",
+      "sha": "30c8bd661dfe0b0198df4a60b205c09875020458"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327749.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327749.md",
+      "sha": "3c420b108e9fd9d851a10c82efc17c90d377939b"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327750.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327750.md",
+      "sha": "ff21ca87a58616aa13a3f9f6f612d46c59bf6703"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327752.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327752.md",
+      "sha": "ccdf7e0be5156c2de66820975870e4628e6c19d1"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327753.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327753.md",
+      "sha": "01f46b8e1e9ec74863cf5e0a0cbc58b7253b4953"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327764.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327764.md",
+      "sha": "ae7e756dda6226a06e6b14421eaba0fcb61be5df"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327770.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327770.md",
+      "sha": "8dc36559a321f7470b7b5282b1848c2570a136e6"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327771.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327771.md",
+      "sha": "aec20f452f9326da465a96559e38514b650c9272"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327772.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327772.md",
+      "sha": "b38995d81bf2cc3110eb12ebe173c904d66c2dca"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327773.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327773.md",
+      "sha": "261838d2f78d799e66ee7538dab6d1e0a17d92f0"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327777.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327777.md",
+      "sha": "d804a939a930de05406d40e77d5666f20ceb1762"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327778.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327778.md",
+      "sha": "7c8bd16810a10753d8e9216ee5778c12a88cf391"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327779.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327779.md",
+      "sha": "0d02ca19a4490bfb4a4aff0b98f475b3877a3b11"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327780.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327780.md",
+      "sha": "a1805ef692174e2c5445685cabd9d80aff95e212"
+    },
+    {
+      "antigo": "QA_TRACKER_32_v327781.md",
+      "novo": "docs/historico/qa/trackers/QA_TRACKER_32_v327781.md",
+      "sha": "1fdedc55da04d193c585bc67d97f70ae6b5df7ba"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327731.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327731.md",
+      "sha": "4537fcc7404b7a7ee137f8346363b4b1dc7720c2"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327733.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327733.md",
+      "sha": "3f35ed4598abb30244a87fc555552cdf34a120a9"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327734.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327734.md",
+      "sha": "e9190857aa64a22ca946bd996c4665c6686c10d4"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327735.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327735.md",
+      "sha": "82501f9581a6787881d5fd7776bd7da4291dbb5b"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327736.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327736.md",
+      "sha": "6ce8b581f63d3e6897f11bbc73a96e1ec52acc4d"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327739.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327739.md",
+      "sha": "f69fccb333d6b15c610243364f67b23ce14917bd"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327741.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327741.md",
+      "sha": "1b295969466871f4119ed2d3f58137d346b1cd5d"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327748.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327748.md",
+      "sha": "1ed3f20e1cecc0879246da86a1ea3e11d1ba3217"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327749.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327749.md",
+      "sha": "f502679835c3aaf5d2fa54a988ac04dcfe54265a"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327750.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327750.md",
+      "sha": "d0196dbd9f3e54242fdc7f85c02d6ffb82d15943"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327751.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327751.md",
+      "sha": "b32ae9af081a11de6f122a4a5ea8acac1b2d262f"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327752.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327752.md",
+      "sha": "c32a42bf13a69d4c83a4407d37ff183a6e527bb8"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327753.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327753.md",
+      "sha": "9b50be41d54bfe968313761a8b38ef245b83bc0a"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327754.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327754.md",
+      "sha": "c0ee4b0eaf7f99746d3fa541988f844ceeb0333c"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327764.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327764.md",
+      "sha": "b178722c9aa49f90805d1cd8a07f90d3bffedaed"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327770.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327770.md",
+      "sha": "da493182522a7bac85411f804d5c5cff775b9a94"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327771.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327771.md",
+      "sha": "47a55eb2f354f93fb1f090c971b8e4d01d351091"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327772.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327772.md",
+      "sha": "56c92c5110c32de0ab43e83c26cfe73690f52110"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327773.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327773.md",
+      "sha": "affb24e9d1aea8468d34353e9efa8e6d3c09a208"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327777.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327777.md",
+      "sha": "4e8a6e09cea928c76ac76ccb9b8091abebfa913e"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327778.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327778.md",
+      "sha": "2b6f3c4c7bb577e1196f81737a72c06b9bfaebd1"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327779.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327779.md",
+      "sha": "58d338fe5caa8384f61dbcf0017919e9048d012b"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327780.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327780.md",
+      "sha": "d88cb0687f084cc94096d9122ea2811c805879e4"
+    },
+    {
+      "antigo": "QA_CHANGELOG_v327781.md",
+      "novo": "docs/historico/qa/changelogs/QA_CHANGELOG_v327781.md",
+      "sha": "ce9b55d71f188521ab5382f36e8426d08938964d"
+    },
+    {
+      "antigo": "QA_AUDITORIA_32_v327738.md",
+      "novo": "docs/historico/qa/auditorias/QA_AUDITORIA_32_v327738.md",
+      "sha": "5e149d511f57f12ed0182bc3595ee5b16233dd27"
+    },
+    {
+      "antigo": "QA_R12_A54_DIAGNOSTICO_v327782.md",
+      "novo": "docs/historico/qa/auditorias/QA_R12_A54_DIAGNOSTICO_v327782.md",
+      "sha": "f6c557583ac907f7d858a9f82ac2dcbd2cada2c4"
+    }
+  ]
+}
