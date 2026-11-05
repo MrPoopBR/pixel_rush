@@ -236,6 +236,8 @@ class QA793(unittest.TestCase):
         self.assertIn('retomada_contagem_quadros = 180',engine)
         self.assertIn('self.sons["pegada"]',engine)
         self.assertIn('self.trilhas_bioma.get(cenario)',engine)
+        self.assertIn('LivingWorld(self.cenario, lightweight=False)',engine)
+        self.assertIn('self.world.lightweight = False',engine)
         self.assertIn('classe_bau=BauSecreto',engine)
         self.assertIn('dados["tutorial_inicial_concluido"] = True',engine)
         self.assertIn('btn_missoes_partida.collidepoint(pos)',engine)

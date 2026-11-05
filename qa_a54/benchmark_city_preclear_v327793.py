@@ -129,6 +129,7 @@ report={"schema":"pixelrush.qa.r23.city.preclear.v327793",
         "rgba_count":len(hashes),"hashes_rgba":hashes,
         "per_pass":{k:dados(v) for k,v in timings.items()},
         "cache_max":len(world.city2._scaled),
+        "flow_buffer_residente":("flow",False) in world._city_surfaces,
         "quality":"completo","hardware_android":False}
 assert report["rgba_count"]==260
 args.output.parent.mkdir(parents=True,exist_ok=True)

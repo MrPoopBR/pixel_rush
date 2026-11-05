@@ -167,6 +167,8 @@ jobs:
           a=json.loads(Path("qa_a54/qa793_direct_baseline.json").read_text())
           b=json.loads(Path("qa_a54/qa793_direct_candidate.json").read_text())
           same=a["hashes_rgba"]==b["hashes_rgba"]
+          assert same, "QA793 FLOW direto alterou RGBA: integração bloqueada"
+          assert a["flow_buffer_residente"] and not b["flow_buffer_residente"], "buffer FLOW nao eliminado"
           print("QA793 LAB2 RGBA:",sum(x!=y for x,y in zip(a["hashes_rgba"],b["hashes_rgba"])),
                 "divergencias de 260; candidato", "APTO" if same else "REPROVADO")
           for name in ("normal","flow"):
