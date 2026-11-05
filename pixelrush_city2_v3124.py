@@ -6,8 +6,9 @@ import pygame
 # QA R23: candidato fechado ate completar A/B RGBA e desempenho.
 _QA_SKIP_HIDDEN_TRAIN=os.environ.get('PIXELRUSH_QA_SKIP_HIDDEN_TRAIN','1')=='1'
 # LAB R26: evitar enumeracao de far/mid inteiramente cobertos nos mapas
-# opacos NORMAL/FLOW. Desligado ate gate A/B de RGBA + ganho comprovado.
-_QA_R26_SKIP_OCCLUDED_LAYERS=os.environ.get('PIXELRUSH_QA_R26_SKIP_OCCLUDED_LAYERS','0')=='1'
+# opacos NORMAL/FLOW. R26 CI #42084960670: 260 RGBA exatos, p50
+# quinto quadro -3.06% no Linux; opt-out '0'. Inerte sem QA786.
+_QA_R26_SKIP_OCCLUDED_LAYERS=os.environ.get('PIXELRUSH_QA_R26_SKIP_OCCLUDED_LAYERS','1')=='1'
 # Configurada no boot QA; nenhum getenv no quinto quadro.
 _QA_DIRECT_NIGHT_MULT=os.environ.get('PIXELRUSH_QA_DIRECT_NIGHT_MULT','1')=='1'
 # QA754: near_tiles e consumido somente por image/fxmask (luzes); em

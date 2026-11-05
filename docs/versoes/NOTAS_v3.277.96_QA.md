@@ -21,3 +21,7 @@ Mais seis módulos QA migrados para pacotes canônicos: gc_cooperative_v327757, 
 Manter escala direta SDL RGB32, fallback seguro, replay pooled e paletas existentes. Workflow R26 testa os 60 hashes RGBA de apresentação, 288 amostras RGBA de replay, QA793 câmera, benchmark Cidade 240 buffers RGBA, teste tutorial e maratona dos sete biomas. Mais benchmark A/B do novo culling por camadas, incluindo modo sem auditoria para prova de fallback.
 
 Preservados main.py, JOGAR.py, DEV, pets, saves, assets, física, controles, regras de spawn e workflows APK/AAB. Não compilar Android nem declarar gargalos de 64,7ms pós-sprites ou 88,6ms do mundo 2.5D resolvidos sem telemetria Galaxy A54/MEmu.
+
+
+## Integração R26 após prova A/B
+GitHub Actions #42084960670: **SUCCESS**, 260 RGBA iguais e fallback sem QA786 confirmado. p50 quinto quadro 3,4776ms (antes) versus 3,3713ms (candidato), redução local de 3,06%; FLOW 0,1420ms → 0,1341ms (-5,56%). NORMAL não melhorou nessa execução (+0,29%); total melhorou. A flag PIXELRUSH_QA_R26_SKIP_OCCLUDED_LAYERS passa a padrão 1, mas só evita enumeração quando QA786 instalado E capaz de provar cobertura do destino; nos demais casos a rotina antiga não muda. PIXELRUSH_QA_R26_SKIP_OCCLUDED_LAYERS=0 reverte. Nova repetição A/B e CI regressivo final exigidos, sem APK/AAB. Não extrapolar ganho para FPS geral ou para A54.
