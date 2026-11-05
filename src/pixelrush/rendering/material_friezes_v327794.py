@@ -9,6 +9,8 @@ import pygame
 import os
 # Microacentos separados dos frisos antigos; rollback preserva QA794 byte a byte.
 _R25_DETAILS=os.environ.get('PIXELRUSH_QA_R25_ART_DETAILS','1')=='1'
+# R26: luz de aresta pintada somente na carga de atlas, sem mudar alpha.
+_R26_EDGE_RIM=os.environ.get('PIXELRUSH_QA_R26_EDGE_RIM','1')=='1'
 
 PERFIS = {
     'cidade': (47,23,0,4),
@@ -32,10 +34,28 @@ def aplicar_friso(imagem, bioma, plano, indice):
     largura,altura=alpha.shape
     valido=_material(bioma,rgb)&(alpha==255)
     atual=rgb.astype(np.int16)
+    # Vizinhos por views contiguas: evita 8 np.roll integrais e conserva
+    # pixels exatos no interior; a borda externa ja e zerada abaixo.
     for dx,dy in ((-1,0),(1,0),(0,-1),(0,1)):
-        outro=np.roll(rgb,(dx,dy),axis=(0,1))
-        valido&=(np.roll(alpha,(dx,dy),axis=(0,1))==255)&(
-            np.max(np.abs(atual-outro.astype(np.int16)),axis=2)<=24)
+        if dx==-1:
+            slice_atual=(slice(None,-1),slice(None))
+            vizinho=rgb[1:,:,:]
+            alpha_vizinho=alpha[1:,:]
+        elif dx==1:
+            slice_atual=(slice(1,None),slice(None))
+            vizinho=rgb[:-1,:,:]
+            alpha_vizinho=alpha[:-1,:]
+        elif dy==-1:
+            slice_atual=(slice(None),slice(None,-1))
+            vizinho=rgb[:,1:,:]
+            alpha_vizinho=alpha[:,1:]
+        else:
+            slice_atual=(slice(None),slice(1,None))
+            vizinho=rgb[:,:-1,:]
+            alpha_vizinho=alpha[:,:-1]
+        valido[slice_atual] &= (
+            (alpha_vizinho==255) &
+            (np.max(np.abs(atual[slice_atual]-vizinho.astype(np.int16)),axis=2)<=24))
     valido[:15]=False
     valido[-15:]=False
     valido[:,:12]=False
@@ -61,6 +81,20 @@ def aplicar_friso(imagem, bioma, plano, indice):
         mini &= (delta==0)
         sinal=-1 if bioma in ('vulcao','floresta') else 1
         delta[mini]=sinal*max(2,forca-2)
+    if _R26_EDGE_RIM:
+        # Acabamento de contorno do proprio telhado/encosta, nao cria
+        # sprite nem objeto. Aplica apenas onde o material solido toca
+        # transparencia logo acima, com pinceladas espaçadas por bioma.
+        material=_material(bioma,rgb)
+        borda=np.zeros((largura,altura),dtype=np.bool_)
+        borda[:,1:]=(alpha[:,1:]==255)&(alpha[:,:-1]<255)
+        borda&=material
+        borda[:15]=False; borda[-15:]=False
+        borda[:,:12]=False; borda[:,-12:]=False
+        borda &= ((xx+fase*2)%(px+5)<5) & (delta==0)
+        tom=(-3 if bioma in ('floresta','vulcao') else
+             5 if bioma in ('neve','cidade_futurista','ilhas_celestes') else 3)
+        delta[borda]=tom
     quantidade=int(np.count_nonzero(delta))
     if not quantidade:return None,0
     tela=pygame.surfarray.pixels3d(imagem)
