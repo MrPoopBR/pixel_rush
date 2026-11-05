@@ -140,8 +140,8 @@ class A54Matriz775(unittest.TestCase):
         a=(ROOT/"pixelrush_qa_gles_bridge_v327749.py").read_text("utf8")
         scroll=(ROOT/"pixelrush_qa_incremental_scene_v327750.py").read_text("utf8")
         self.assertIn("android.archs = arm64-v8a",spec)
-        self.assertIn("android.numeric_version = 327783",spec)
-        self.assertIn('VERSAO = "v3.277.83-QA-ANDROID-RC"',game)
+        self.assertIn("android.numeric_version = 327784",spec)
+        self.assertIn('VERSAO = "v3.277.84-QA-ANDROID-RC"',game)
         self.assertIn("PIXELRUSH_QA_GLES_BRIDGE','0'",a)
         self.assertIn("PIXELRUSH_QA_CITY_INCREMENTAL','0'",scroll)
         self.assertIn("PIXELRUSH_QA_CITY_RECYCLE_SCALE','1'",
