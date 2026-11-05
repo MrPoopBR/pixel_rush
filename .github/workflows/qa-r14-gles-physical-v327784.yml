@@ -1,0 +1,142 @@
+name: PIXEL RUSH QA v3.277.84 R14 - GLES fisico RGBA e Cidade SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r14-gles-fisico-pixel-exato-v3.277.84
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327784-r14-offline
+  cancel-in-progress: true
+
+jobs:
+  pygame-mesa-qa784:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r14-gles-fisico-pixel-exato-v3.277.84'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout da branch isolada
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python 3.13 e pygame-ce 2.5.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Mesa Xvfb GLES3, camera C host (SEM SDK Android)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb libegl1 libgl1-mesa-dri libgles2 libgl1
+          python -m pip install --disable-pip-version-check pygame-ce==2.5.8 numpy==2.3.0
+          cc -O3 -shared -fPIC -std=c11 qa_native/camera_crop_native_v327741.c -o /tmp/libpixelrush_camera_crop_v327741.so
+          python -m py_compile pixelrush_qa_gles_present_v327735.py pixelrush_qa_gles_bridge_v327749.py pixelrush_qa_gles_twopass_v327784.py tests/test_qa_r14_twopass_rgba_v327784.py qa_a54/probe_city_twopass_v327784.py qa_a54/test_bridge_gles_fallback_v327784.py
+          grep -q '^version = 3.277.84$' buildozer.spec
+          grep -q '^android.numeric_version = 327784$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.84-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+          ! grep -q "('PIXELRUSH_QA_GLES_FULLSCREEN_PROBE','1')" pixelrush_qa_render_v327729.py
+          ! grep -q "('PIXELRUSH_QA_CITY_RLE_FASTPATH','1')" pixelrush_qa_render_v327729.py
+
+      - name: Proteger main/DEV/AAB/assets/fisica e saves
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          baseline='06f0c4f41a1b6f277e782d9fe8fb62ed9801df1a'
+          files=subprocess.check_output(['git','diff','--name-only',baseline,'HEAD'],text=True).splitlines()
+          allowed_root={'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','buildozer.spec','VERSAO_ATUAL.txt'}
+          for f in files:
+              if f in allowed_root or f.startswith(('pixelrush_qa_gles_','NOTAS_v3.277.84_QA.md','tests/','qa_a54/','.github/workflows/qa-r14-')):
+                  continue
+              raise AssertionError('Arquivo fora do escopo QA784: '+f)
+          old=subprocess.check_output(['git','show',baseline+':PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'])
+          new=open('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','rb').read()
+          assert old.replace(b'VERSAO = "v3.277.83-QA-ANDROID-RC"',
+                             b'VERSAO = "v3.277.84-QA-ANDROID-RC"')==new
+          assert not any(f=='main.py' or f.startswith('pixelrush_saves') for f in files)
+          print('Protecoes QA784 OK',len(files),'arquivos restritos')
+          PY
+
+      - name: Regressao SDL R13/R12 e camera nativa host
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+          PIXELRUSH_QA_NATIVE_CAMERA_LIB: /tmp/libpixelrush_camera_crop_v327741.so
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r13_four_backends_v327783.py
+          python tests/test_qa_r12_a54_viewport_v327782.py
+          python tests/test_qa_r12_camera_preflight_v327782.py
+          python tests/test_qa_gles_bridge_v327749.py
+          python qa_a54/run_bootstrap_v327775.py tests/test_qa_crop_native_v327741.py
+
+      - name: Cinco resolucoes fisicas GLES3 RGBA completo + ganho obrigatorio
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+          PIXELRUSH_QA_GLES_PBO: '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for size in 1024x1280 945x2048 1080x2340 750x1600 720x1600; do
+            echo "QA784 viewport $size"
+            xvfb-run -a -s "-screen 0 $size"'x24' python tests/test_qa_r14_twopass_rgba_v327784.py
+          done
+
+      - name: Cidade real seis casos RGBA em duas resolucoes
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+          PIXELRUSH_QA_GLES_PBO: '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for size in 945x2048 1080x2340; do
+            echo "QA784 Cidade real $size"
+            xvfb-run -a -s "-screen 0 $size"'x24' python qa_a54/probe_city_twopass_v327784.py
+          done
+
+      - name: Rejeitar GPU Mesa mais lenta e preservar SDL fullscreen
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 945x2048x24" python qa_a54/test_bridge_gles_fallback_v327784.py
+
+      - name: Regressao original GLES3/PBO e preflight
+        env:
+          SDL_AUDIODRIVER: dummy
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PYTHONPATH: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          PIXELRUSH_QA_GLES_PBO=1 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_gles_pbo_v327742.py
+          PIXELRUSH_QA_GLES_PBO=1 xvfb-run -a -s "-screen 0 1024x1280x24" python tests/test_qa_gpu_preflight_v327780.py
+
+      - name: Publicar somente relatorios offline (nunca APK/AAB)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-qa-v327784-r14-offline
+          path: |
+            qa-gles-pbo-v327742.json
+            qa-gpu-preflight-v327780.json
+            NOTAS_v3.277.84_QA.md
+          if-no-files-found: warn
+          retention-days: 14
