@@ -105,7 +105,7 @@ jobs:
                        'pixelrush_qa_gles_exact_v327736.py',
                        'pixelrush_qa_city_tiles_v327749.py',
                        'QA_CHANGELOG_v327782.md','QA_TRACKER_32_v327782.md'):
-              assert old:=subprocess.check_output(['git','show',base+':'+path])
+              old=subprocess.check_output(['git','show',base+':'+path])
               assert old==root.joinpath(path).read_bytes(),path
           before=subprocess.check_output(['git','show',base+':PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py'])
           after=root.joinpath('PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_bytes()
