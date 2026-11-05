@@ -66,11 +66,11 @@ if True:
         return surf
     _WorldBase._city_surface=superficie_sem_duplo_fill
 
-# Experimento 2: desenhar normal/flow diretamente na janela 450x500,
+# Experimento 2: desenhar apenas flow diretamente na janela 450x500,
 # sem o buffer intermediário de 900 KB nem o blit subsequente.
 if args.direto:
     from pixelrush_world_v3130 import LivingWorld as _Base,WIDTH,GROUND,TOP
-    _original_normal=_Base.draw_normal_map
+    # Normal direto foi 56% mais lento no benchmark; apenas fluxo entra no gate.
     _original_flow=_Base.draw_flow_map
     def _desenhar_direto(self,surface,kind,original):
         if (self.biome!='cidade' or surface.get_size()!=(450,800)
@@ -81,11 +81,8 @@ if args.direto:
         area=surface.subsurface((0,TOP,WIDTH,GROUND-TOP))
         self.city2.render_scene(area,self.travel,self.frame,self.night,
                                 self.climate,self.phase,False,map_kind=kind)
-    def normal_direto(self,surface):
-        return _desenhar_direto(self,surface,'normal',_original_normal)
     def fluxo_direto(self,surface):
         return _desenhar_direto(self,surface,'flow',_original_flow)
-    _Base.draw_normal_map=normal_direto
     _Base.draw_flow_map=fluxo_direto
 
 from pixelrush_world_prod_v32777 import LivingWorld
