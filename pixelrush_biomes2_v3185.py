@@ -1,9 +1,12 @@
 """Plano F v3.185.0 — texturas materiais dos seis biomas modulares."""
 import numpy as np
 import pygame
+import os
 from pixelrush_rle_prod_v327727 import acelerar_textura_estatica
 from pixelrush_biomes2_v3182 import ModularBiomeScene as Anterior
 from pixelrush_texturas_v3185 import refinar_textura
+from src.pixelrush.rendering.material_friezes_v327794 import aplicar_friso
+_R24_FRISOS=os.environ.get('PIXELRUSH_QA_R24_FRISOS','1')=='1'
 
 
 class ModularBiomeScene(Anterior):
@@ -25,7 +28,15 @@ class ModularBiomeScene(Anterior):
                         continue
                     vistas.add(id(imagem))
                     delta, qtd = refinar_textura(imagem, biome, plano, indice)
-                    self._estatistica_texturas_3185[plano] += qtd
+                    # R24: detalhes no MESMO atlas, apenas na construcao.
+                    antigo_delta=delta
+                    friso,quantidade=(aplicar_friso(imagem,biome,plano,indice)
+                                     if _R24_FRISOS else (None,0))
+                    self._estatistica_texturas_3185[plano] += qtd+quantidade
+                    if friso is not None:
+                        delta=(friso if delta is None else
+                               np.clip(delta.astype(np.int16)+friso.astype(np.int16),
+                                       -128,127).astype(np.int8))
                     if delta is None or biome not in ('neve', 'deserto'):
                         continue
                     # Os dois biomas possuem 5 paletas noturnas PREEXISTENTES.
@@ -36,7 +47,11 @@ class ModularBiomeScene(Anterior):
                         if night is None:
                             continue
                         fatores = 1. - np.array((.42, .39, .27), dtype=np.float32) * (nivel / 4.)
-                        ajuste = np.rint(delta[:, :, None].astype(np.float32) * fatores).astype(np.int16)
+                        # Nivel zero pode aliasar imagem: friso ja aplicado nela.
+                        delta_noite=(antigo_delta if night is imagem and friso is not None
+                                     else delta)
+                        if delta_noite is None:continue
+                        ajuste = np.rint(delta_noite[:, :, None].astype(np.float32) * fatores).astype(np.int16)
                         arr = pygame.surfarray.pixels3d(night)
                         arr[:] = np.clip(arr.astype(np.int16) + ajuste, 0, 255).astype(np.uint8)
                         del arr

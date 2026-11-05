@@ -3,6 +3,9 @@ from pixelrush_world_v3182 import LivingWorld as Anterior
 from pixelrush_world_v3163 import CLASSICOS
 from pixelrush_biomes2_v3185 import ModularBiomeScene
 from pixelrush_texturas_v3185 import aplicar_texturas_cidade
+from src.pixelrush.rendering.material_friezes_v327794 import aplicar_cidade
+import os
+_R24_FRISOS=os.environ.get('PIXELRUSH_QA_R24_FRISOS','1')=='1'
 
 
 class LivingWorld(Anterior):
@@ -10,6 +13,7 @@ class LivingWorld(Anterior):
         super().__init__(biome=biome, lightweight=lightweight)
         if self.biome == 'cidade' and not self.lightweight:
             aplicar_texturas_cidade(self.city2)
+            if _R24_FRISOS:aplicar_cidade(self.city2)
 
     def _get_modular(self):
         if CLASSICOS or self.biome == 'cidade':
@@ -27,3 +31,4 @@ class LivingWorld(Anterior):
         super().switch(biome)
         if self.biome == 'cidade' and anterior != 'cidade' and not self.lightweight:
             aplicar_texturas_cidade(self.city2)
+            if _R24_FRISOS:aplicar_cidade(self.city2)
