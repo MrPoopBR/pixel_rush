@@ -213,7 +213,7 @@ init_audio()
 # sequências de perigo/moedas seguras com um terço de encontros clássicos.
 # Preservados comandos, física, hitboxes, economia, saves e ferramentas DEV.
 # Variante isolada da linha DEV v3.277.0. Nunca atualizar a linha DEV daqui.
-VERSAO = "v3.277.91-QA-ANDROID-RC"
+VERSAO = "v3.277.92-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
 BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
@@ -2485,44 +2485,9 @@ def desenhar_texto_com_sombra(superficie, texto, fonte_obj, cor_texto, cor_sombr
     superficie.blit(surf_texto, pos)
 
 
-class MonitorQualidadeVisual:
-    """Histerese evita flicker ao alternar detalhes, sem mudar o passo fixo."""
-    def __init__(self):
-        self.reduzido = False
-        self.fps_suavizado = 30.0 if E_ANDROID else 60.0
-        self.tempo_baixo = 0.0
-        self.tempo_recuperacao = 0.0
-
-    def atualizar(self, fps, dt, modo, jogando):
-        if modo != 'auto':
-            self.reduzido = False
-            self.tempo_baixo = self.tempo_recuperacao = 0.0
-            return
-        if not jogando or fps < 1:
-            self.tempo_baixo = self.tempo_recuperacao = 0.0
-            return
-        dt = max(0.0, min(0.12, float(dt)))
-        self.fps_suavizado += (fps - self.fps_suavizado) * min(1.0, dt * 3.0)
-        fps = self.fps_suavizado
-        # Proporcao identica dos limiares 49/55 FPS de desktop,
-        # mas sobre alvo de apresentacao 30 FPS no Android.
-        alvo_fps = 30.0 if E_ANDROID else 60.0
-        if fps < alvo_fps * (49.0 / 60.0):
-            self.tempo_baixo += dt
-            self.tempo_recuperacao = 0.0
-        elif fps > alvo_fps * (55.0 / 60.0):
-            self.tempo_recuperacao += dt
-            self.tempo_baixo = 0.0
-        else:
-            self.tempo_baixo = max(0.0, self.tempo_baixo - dt * 0.25)
-            self.tempo_recuperacao = max(0.0, self.tempo_recuperacao - dt * 0.5)
-        if not self.reduzido and self.tempo_baixo >= 2.0:
-            self.reduzido = True
-            self.tempo_baixo = 0.0
-        elif self.reduzido and self.tempo_recuperacao >= 12.0:
-            self.reduzido = False
-            self.tempo_recuperacao = 0.0
-
+from src.pixelrush.performance import quality_monitor as _quality_monitor
+_quality_monitor.E_ANDROID = E_ANDROID
+from src.pixelrush.performance.quality_monitor import MonitorQualidadeVisual
 
 MONITOR_QUALIDADE_VISUAL = MonitorQualidadeVisual()
 PARTICULAS_VISUAIS_LIMITADAS = False
@@ -5626,132 +5591,11 @@ CHAVE_TRANSPARENCIA_SPRITES = (255, 0, 255)
 # --- SISTEMA DE OBJECT POOLING ---
 from src.pixelrush.entities.particles import Particula
 
-class Moeda(Sprite):
-    # Variantes leves para evitar repeticao visual sem custo por frame.
-    _imagens_variantes = None
-
-    @staticmethod
-    def _criar_variantes():
-        variantes = []
-        for estilo in range(4):
-            imagem = pygame.Surface((24, 24)).convert()
-            imagem.fill(CHAVE_TRANSPARENCIA_SPRITES)
-            cor_brilho = (255, 243, 161)
-            cor_sombra = (209, 155, 22)
-            pygame.draw.circle(imagem, cor_sombra, (12, 12), 11)
-            pygame.draw.circle(imagem, AMARELO_MOEDA, (11, 11), 10)
-            pygame.draw.circle(imagem, (255, 236, 115), (11, 11), 8)
-            pygame.draw.circle(imagem, PRETO, (11, 11), 11, 2)
-            pygame.draw.circle(imagem, cor_brilho, (8, 8), 3)
-            pygame.draw.circle(imagem, (230, 180, 35), (11, 11), 4, 1)
-            pygame.draw.rect(imagem, (255, 249, 205), (7, 5, 3, 2))
-            pygame.draw.line(imagem, (255, 228, 90), (11, 8), (11, 14), 1)
-            pygame.draw.rect(imagem, (217, 150, 27), (17, 15, 3, 2))
-            if estilo == 1:
-                pygame.draw.line(imagem, cor_brilho, (16, 2), (16, 7), 1)
-                pygame.draw.line(imagem, cor_brilho, (13, 4), (19, 4), 1)
-            elif estilo == 2:
-                pygame.draw.circle(imagem, (255, 250, 223), (15, 6), 2)
-                pygame.draw.circle(imagem, (255, 236, 115), (16, 16), 2)
-            elif estilo == 3:
-                pygame.draw.rect(imagem, cor_brilho, (15, 3, 4, 3))
-                pygame.draw.line(imagem, cor_brilho, (17, 1), (17, 7), 1)
-                pygame.draw.line(imagem, cor_brilho, (14, 4), (20, 4), 1)
-            else:
-                pygame.draw.rect(imagem, cor_brilho, (16, 4, 3, 3))
-                pygame.draw.line(imagem, cor_brilho, (17, 1), (17, 6), 1)
-                pygame.draw.line(imagem, cor_brilho, (14, 4), (20, 4), 1)
-            imagem.set_colorkey(CHAVE_TRANSPARENCIA_SPRITES)
-            variantes.append(imagem)
-        return variantes
-
-    def __init__(self, x_pos=0, y_pos=0):
-        super().__init__()
-        self.pool_manager = None
-        self._pool_livre = False
-        if Moeda._imagens_variantes is None:
-            Moeda._imagens_variantes = Moeda._criar_variantes()
-        self.image = random.choice(Moeda._imagens_variantes)
-        self.rect = self.image.get_rect(center=(x_pos, y_pos))
-        self._x_float = float(self.rect.x)
-        self._y_float = float(self.rect.y)
-        self.ativo = True
-
-    def kill(self):
-        super().kill()
-        manager = self.pool_manager
-        if manager is not None and not self._pool_livre:
-            self.ativo = False
-            self._pool_livre = True
-            manager.moedas_disponiveis.append(self)
-
-    def reset(self, x_pos, y_pos):
-        if Moeda._imagens_variantes is not None:
-            self.image = random.choice(Moeda._imagens_variantes)
-        self.rect = self.image.get_rect(center=(x_pos, y_pos))
-        self._x_float = float(self.rect.x)
-        self._y_float = float(self.rect.y)
-        self.ativo = True
-
-    def update(self, velocidade_jogo, jogador=None):
-        if not self.ativo:
-            return
-        if jogador and jogador.tempo_ima > 0 and not jogador.morrendo:
-            dx = jogador.rect.centerx - self.rect.centerx
-            dy = jogador.rect.centery - self.rect.centery
-            distancia_quadrada = dx * dx + dy * dy
-            if 0 < distancia_quadrada < (220 * 220):
-                distancia = math.sqrt(distancia_quadrada)
-                self._x_float += (dx / distancia) * 12.0
-                self._y_float += (dy / distancia) * 12.0
-        self._x_float -= float(velocidade_jogo)
-        self.rect.x = int(round(self._x_float))
-        self.rect.y = int(round(self._y_float))
-        if self.rect.right < -50:
-            self.ativo = False
-            self.kill()
-
-
-class PoolManager:
-    def __init__(self):
-        self.particulas_pool = [Particula() for _ in range(250)]
-        self.particulas_disponiveis = list(self.particulas_pool)
-        for p in self.particulas_pool:
-            p.pool_manager = self
-            p.ativo = False
-            p._pool_livre = True
-
-        self.moedas_pool = [Moeda() for _ in range(120)]
-        self.moedas_disponiveis = list(self.moedas_pool)
-        for m in self.moedas_pool:
-            m.pool_manager = self
-            m.ativo = False
-            m._pool_livre = True
-
-    def obter_particula(self, x, y, cor, vx=None, vy=None, vida=25, tamanho=5):
-        if self.particulas_disponiveis:
-            p = self.particulas_disponiveis.pop()
-            p._pool_livre = False
-            p.reset(x, y, cor, vx, vy, vida, tamanho)
-        else:
-            p = Particula(x, y, cor, vx, vy, vida, tamanho)
-            p.pool_manager = self
-            p._pool_livre = False
-            self.particulas_pool.append(p)
-        return p
-
-    def obter_moeda(self, x_pos, y_pos):
-        if self.moedas_disponiveis:
-            m = self.moedas_disponiveis.pop()
-            m._pool_livre = False
-            m.reset(x_pos, y_pos)
-        else:
-            m = Moeda(x_pos, y_pos)
-            m.pool_manager = self
-            m._pool_livre = False
-            self.moedas_pool.append(m)
-        return m
-
+from src.pixelrush.entities import collectibles as _collectibles
+_collectibles.CHAVE_TRANSPARENCIA_SPRITES = CHAVE_TRANSPARENCIA_SPRITES
+_collectibles.AMARELO_MOEDA = AMARELO_MOEDA
+_collectibles.PRETO = PRETO
+from src.pixelrush.entities.collectibles import Moeda, PoolManager
 
 def criar_explosao_particulas(x, y, cor, quantidade, grupo_sprites, pool_manager):
     # Em dispositivos lentos a acao ocorre igual, mas somente a decoracao e reduzida.

@@ -1,11 +1,13 @@
 # PIXEL RUSH — jogo 2D em Python / pygame-ce
 
-**Linha de desenvolvimento:** v3.277.91-QA (branch de reorganizacao isolada).
+**Linha de desenvolvimento:** v3.277.92-QA (branch de reorganizacao isolada).
 **Base funcional:** v3.277.87-QA. Nao publicar nem compilar AAB a partir desta
 branch sem novos testes de hardware. O Android real usa CPython 3.12, SDL2,
 pygame-ce e Buildozer.
 
 Novidade QA791: classes de fontes localizadas em `src/pixelrush/ui/i18n_fonts.py` e classe de partículas em `src/pixelrush/entities/particles.py`. Demais sistemas e caminhos legados mantidos.
+
+QA792: classes Moeda, PoolManager e MonitorQualidadeVisual separadas sem mudar seus metodos; seis modulos historicos migrados byte a byte para src com aliases em raiz. Consulte docs/arquitetura/INVENTARIO_R22_v327792.md.
 
 ## Entradas — nao confundir
 

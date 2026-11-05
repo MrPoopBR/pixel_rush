@@ -1,0 +1,64 @@
+{
+  "schema": "pixelrush.qa.r22.classes.modules.v327792",
+  "base_commit": "aafbb354b78fc7be50013176cd9847f6ff4729bc",
+  "base_branch": "qa/r21-auditoria-classes-motor-v3.277.91",
+  "classes": [
+    {
+      "name": "MonitorQualidadeVisual",
+      "path": "src/pixelrush/performance/quality_monitor.py",
+      "ast_equivalente": true
+    },
+    {
+      "name": "Moeda",
+      "path": "src/pixelrush/entities/collectibles.py",
+      "ast_equivalente": true
+    },
+    {
+      "name": "PoolManager",
+      "path": "src/pixelrush/entities/collectibles.py",
+      "ast_equivalente": true
+    }
+  ],
+  "modules": [
+    {
+      "old": "pixelrush_touch_v3229.py",
+      "canonical": "src/pixelrush/systems/touch_v3229.py",
+      "identical_bytes": true,
+      "legacy_alias": true
+    },
+    {
+      "old": "pixelrush_aprendizado_v3208.py",
+      "canonical": "src/pixelrush/systems/contextual_learning_v3208.py",
+      "identical_bytes": true,
+      "legacy_alias": true
+    },
+    {
+      "old": "pixelrush_feedback_v3190.py",
+      "canonical": "src/pixelrush/ui/feedback_v3190.py",
+      "identical_bytes": true,
+      "legacy_alias": true
+    },
+    {
+      "old": "pixelrush_percursos_v3191.py",
+      "canonical": "src/pixelrush/systems/route_variety_v3191.py",
+      "identical_bytes": true,
+      "legacy_alias": true
+    },
+    {
+      "old": "pixelrush_rotas_v3225.py",
+      "canonical": "src/pixelrush/systems/biome_routes_v3225.py",
+      "identical_bytes": true,
+      "legacy_alias": true
+    },
+    {
+      "old": "pixelrush_hidrante_cidade_v3276.py",
+      "canonical": "src/pixelrush/entities/enemies/city_hydrant_v3276.py",
+      "identical_bytes": true,
+      "legacy_alias": true
+    }
+  ],
+  "python_root_before": 341,
+  "python_root_after": 341,
+  "apk_build": false,
+  "android_hardware_approved": false
+}
