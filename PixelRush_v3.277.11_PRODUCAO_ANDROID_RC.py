@@ -216,7 +216,7 @@ init_audio()
 VERSAO = "v3.277.93-QA-ANDROID-RC"
 PRODUCAO_APENAS = True
 SKINS_ATIVAS_PROD = frozenset(("AZUL", "VERDE", "ROSA"))
-BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto")
+BIOMAS_ATIVOS_PROD = ("cidade", "cidade_futurista", "neve", "deserto", "vulcao", "floresta", "ilhas_celestes")
 LASERS_JETPACK_ATIVOS_PROD = False
 OBSTACULOS_QUE_AVANCAM_ATIVOS_PROD = False
 API_ONLINE_ATIVA_PROD = False
@@ -303,42 +303,7 @@ COR_NOITE = [18, 24, 50]
 from src.pixelrush.world.day_night_math import _suavizar_intervalo
 
 
-def calcular_ciclo_ceu(metros):
-    """Retorna fase, cor do ceu, peso da noite e indicador noturno.
-
-    O ciclo foi refinado para destacar melhor amanhecer, manhã clara, tarde
-    dourada, por do sol, noite profunda e a volta da alvorada em pixel-art.
-    """
-    fase = (max(0, int(metros)) % 5600) / 5600.0
-    paleta = (
-        (0.00, (108, 126, 182)),  # madrugada fria
-        (0.08, (146, 118, 176)),  # pre-amanhecer violeta
-        (0.14, (246, 152, 105)),  # amanhecer quente
-        (0.20, (255, 204, 138)),  # sol nascendo
-        (0.28, (147, 204, 236)),  # manha viva
-        (0.40, (112, 188, 234)),  # meio da manha
-        (0.56, (103, 176, 226)),  # tarde clara
-        (0.66, (245, 189, 130)),  # tarde dourada
-        (0.74, (255, 142, 89)),   # por do sol
-        (0.80, (163, 104, 145)),  # crepusculo rosa/violeta
-        (0.87, (65, 77, 131)),    # inicio da noite
-        (0.94, (24, 31, 66)),     # noite profunda
-        (1.00, (108, 126, 182)),  # retorno para a madrugada
-    )
-    cor = paleta[0][1]
-    for idx in range(len(paleta) - 1):
-        p0, c0 = paleta[idx]
-        p1, c1 = paleta[idx + 1]
-        if p0 <= fase <= p1:
-            t = _suavizar_intervalo(p0, p1, fase)
-            cor = tuple(int(c0[ch] + (c1[ch] - c0[ch]) * t) for ch in range(3))
-            break
-
-    entrada_noite = _suavizar_intervalo(0.80, 0.91, fase)
-    saida_noite = 1.0 - _suavizar_intervalo(0.97, 1.00, fase)
-    madrugada = _suavizar_intervalo(0.00, 0.04, fase) * (1.0 - _suavizar_intervalo(0.16, 0.22, fase))
-    intensidade_noite = max(0.0, min(1.0, max(entrada_noite * saida_noite, madrugada)))
-    return fase, cor, intensidade_noite, intensidade_noite >= 0.5
+from src.pixelrush.world.daynight_v327793 import calcular_ciclo_ceu, posicao_astro
 
 
 def desenhar_nuvem_pixel_art(superficie, x, y, escala, cor_preenchimento, cor_sombra, cor_luz):
@@ -5848,10 +5813,10 @@ class ParallaxBackground:
                 self._arte_externa_meio = None
         return self._arte_externa
 
-    def update(self, velocidade_jogo=1.0, metros_atuais=None):
+    def update(self, velocidade_jogo=1.0, metros_atuais=None, ticks_ciclo=None):
         self.tempo_animacao += 1
         if metros_atuais is not None:
-            self.fase_ciclo, _cor_alvo, self.peso_noite, _noite = calcular_ciclo_ceu(metros_atuais)
+            self.fase_ciclo, _cor_alvo, self.peso_noite, _noite = calcular_ciclo_ceu(metros_atuais, self.tempo_animacao if ticks_ciclo is None else ticks_ciclo)
         self.camada_longe -= velocidade_jogo * 0.08
         if self.camada_longe <= -LARGURA_VIRTUAL:
             self.camada_longe += LARGURA_VIRTUAL
@@ -6913,23 +6878,14 @@ class ParallaxBackground:
                 cor_faixa = misturar_cores(cor_ceu, cor_secundaria, peso_crepusculo * fator)
                 pygame.draw.rect(superficie, cor_faixa, (0, y, LARGURA_VIRTUAL, altura))
 
-        # Sol percorre o ceu durante o dia completo, com amanhecer e por do sol destacados.
-        if 0.10 <= fase <= 0.82:
-            u = max(0.0, min(1.0, (fase - 0.10) / 0.72))
-            sun_x = -24 + (LARGURA_VIRTUAL + 48) * u
-            sun_y = 314 - math.sin(math.pi * u) * 178
-            self._desenhar_sol(superficie, sun_x, sun_y, self._cor_ceu_na_altura(cor_ceu, sun_y))
-
-        # Lua cruza o ceu do fim da tarde ate a madrugada.
-        if fase >= 0.78 or fase <= 0.18:
-            if fase >= 0.78:
-                u = (fase - 0.78) / 0.22
-            else:
-                u = 1.0 + (fase / 0.18)
-                u /= 2.0
-            moon_x = -34 + (LARGURA_VIRTUAL + 68) * u
-            moon_y = 172 - math.sin(math.pi * u) * 68
-            self._desenhar_lua(superficie, moon_x, moon_y, self._cor_ceu_na_altura(cor_ceu, moon_y), max(0.26, peso_noite))
+        pos_sol = posicao_astro(fase, "sol", LARGURA_VIRTUAL)
+        if pos_sol is not None:
+            x, y = pos_sol
+            self._desenhar_sol(superficie, x, y, self._cor_ceu_na_altura(cor_ceu, y))
+        pos_lua = posicao_astro(fase, "lua", LARGURA_VIRTUAL)
+        if pos_lua is not None:
+            x, y = pos_lua
+            self._desenhar_lua(superficie, x, y, self._cor_ceu_na_altura(cor_ceu, y), max(.25, peso_noite))
 
         # Estrelas com brilho graduado e twinkle de pixel; aparecem ao anoitecer.
         if peso_noite > 0.015:
@@ -10454,6 +10410,7 @@ def main():
     clima_tipo_anterior = clima.tipo
     eventos_vulcao_rodada = 0
     cenario_atual = "cidade"
+    inicio_ciclo_frame = 0
     cenario_tempo_restante = random.randint(80, 140) * 60
     transicao_cenario_timer = 0
     cenario_transicao_nome = "CIDADE"
@@ -10848,6 +10805,7 @@ def main():
         nonlocal pet_estado_animado_desde, pet_estado_animado_travado_ate, pet_anim_memoria
         nonlocal desafio_laser_ativo, desafio_laser_timer, desafio_laser_cooldown, desafio_laser_spawn
         nonlocal desafio_laser_y, desafio_laser_vy, desafio_laser_faixas, desafio_laser_etapa
+        nonlocal inicio_ciclo_frame
         # Um corredor iniciado na corrida anterior nao pode continuar em outra.
         desafio_laser_ativo = False
         desafio_laser_timer = 0
@@ -10949,7 +10907,8 @@ def main():
         diretor_sequencias.reiniciar()
         diretor_perseguidores.reiniciar(random.getstate())
         diretor_eventos_raros.reiniciar(random.getstate())
-        cor_atual_ceu = list(COR_DIA)
+        cor_atual_ceu = list(calcular_ciclo_ceu(0,0)[1])
+        inicio_ciclo_frame = frame_count
         cenario_atual = "cidade"
         cenario_tempo_restante = random.randint(80, 140) * 60
         bg_parallax.set_cenario(cenario_atual)
@@ -11679,7 +11638,7 @@ def main():
         if transicao_cenario_timer > 0:
             transicao_cenario_timer -= 1
         e_slow = (jogador.tempo_slow > 0) if jogador else False
-        fase_ciclo, cor_objetivo_ceu, peso_noite, e_noite = calcular_ciclo_ceu(metros_atuais)
+        fase_ciclo, cor_objetivo_ceu, peso_noite, e_noite = calcular_ciclo_ceu(metros_atuais, frame_count-inicio_ciclo_frame)
         alvo_ceu = list(cor_objetivo_ceu)
         for i in range(3):
             if cor_atual_ceu[i] < alvo_ceu[i]:
@@ -11765,7 +11724,7 @@ def main():
                     gerenciador_sons.tocar_som("chamas", e_slow, dados["vol_sfx"])
 
             _pro_sub_inicio("qa_sim_parallax")
-            bg_parallax.update(vel_jogo, metros_atuais)
+            bg_parallax.update(vel_jogo, metros_atuais, frame_count-inicio_ciclo_frame)
             _pro_sub_fim()
             for buraco in list(buracos):
                 buraco.update(vel_jogo)
@@ -12999,7 +12958,7 @@ def main():
                 tempo_spawn_atual = novo_tempo_spawn
                 pygame.time.set_timer(EVENTO_GERAR, tempo_spawn_atual)
 
-        fase_ciclo, cor_objetivo_ceu, peso_noite, e_noite = calcular_ciclo_ceu(metros_atuais)
+        fase_ciclo, cor_objetivo_ceu, peso_noite, e_noite = calcular_ciclo_ceu(metros_atuais, frame_count-inicio_ciclo_frame)
         alvo_ceu = list(cor_objetivo_ceu)
         bg_parallax.fase_ciclo = fase_ciclo
         bg_parallax.peso_noite = peso_noite
