@@ -113,3 +113,5 @@ Outros módulos e documentos da raiz são verificados por hash em preflights ant
 Foram extraídas dez funções independentes do motor para módulos em `src/pixelrush/entities/`, `src/pixelrush/systems/`, `src/pixelrush/world/` e `src/pixelrush/rendering/`, preservando o código e os imports no ponto original. Oito módulos de HUD, tutorial, controles, desafios e skins também foram migrados, mantendo adaptadores antigos. Oito arquivos históricos não ativos saíram da raiz para `archive/prototipos_tutorial/` com integridade Git comprovável.
 
 Os demais módulos `pixelrush_qa_*.py` da raiz ainda são protegidos por scripts antigos de preflight ou por compatibilidade: consulte [inventário QA](docs/arquitetura/INVENTARIO_QA_v327790.md). A classe Jogador, inimigos completos, física e tutorial obrigatório seguem no motor original nesta etapa. Não houve reescrita desses subsistemas nem compilação Android.
+
+R23 atualização: 36 módulos históricos canônicos em src com aliases e teste byte-a-byte; benchmark pós-sprites 240×2 quadros com relatório offline. Consulte notas v3.277.93.
