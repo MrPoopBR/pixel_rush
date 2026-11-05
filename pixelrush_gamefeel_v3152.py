@@ -11,13 +11,43 @@ from pixelrush_gamefeel_v3132 import GameFeel as Anterior, criar_variantes_pitch
 class GameFeel(Anterior):
     def __init__(self):
         super().__init__()
+        # Seguimento de câmera abaixo de 5px, sem warp de textura.
+        self._qa_camera_x = 0.0
+        self._qa_camera_y = 0.0
         self._coleta_pos = None
         self._coleta_ttl = 0
 
     def reiniciar(self):
         super().reiniciar()
+        self._qa_camera_x = 0.0
+        self._qa_camera_y = 0.0
         self._coleta_pos = None
         self._coleta_ttl = 0
+
+    def seguir_jogador(self, jogador, segurando_pulo=False, reduzir_efeitos=False):
+        """Foco vertical amortecido, inclinação sugerida por drift lateral.
+
+        Alteração exclusivamente de câmera; não altera rect/colisão, cria
+        Surface, shaders nem zoom. Mantém acessibilidade com fallback 0.
+        """
+        if reduzir_efeitos or jogador is None or getattr(jogador,"morrendo",False):
+            alvo_x = alvo_y = 0.0
+        elif getattr(jogador,"descida_rapida",False) and not jogador.no_chao:
+            alvo_x, alvo_y = -1.0, 4.0
+        elif not jogador.no_chao and getattr(jogador,"jetpack_fase",None) is None:
+            chao_y=float(getattr(jogador,"chao_y",730))
+            altura=max(0.,min(1.0,(chao_y-jogador.rect.bottom)/125.))
+            alvo_x = 2.4 if segurando_pulo else 1.0
+            alvo_y = -4.0*altura
+        else:
+            alvo_x = alvo_y = 0.0
+        self._qa_camera_x += (alvo_x-self._qa_camera_x)*.18
+        self._qa_camera_y += (alvo_y-self._qa_camera_y)*.16
+
+    def deslocamento(self):
+        x,y=super().deslocamento()
+        return (x+int(round(self._qa_camera_x)),
+                y+int(round(self._qa_camera_y)))
 
     def registrar_coleta(self, x, y):
         # O efeito complementa as partículas de coleta já existentes,

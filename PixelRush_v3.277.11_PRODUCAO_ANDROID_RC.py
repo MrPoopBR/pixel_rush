@@ -6867,8 +6867,8 @@ class ParallaxBackground:
                              self.cenario, self.world.lightweight)
 
         # Faixas quentes e frias no horizonte durante transicoes, do amanhecer ao anoitecer.
-        peso_por_sol = max(0.0, 1.0 - abs(fase - 0.74) / 0.11)
-        peso_amanhecer = max(0.0, 1.0 - abs(fase - 0.16) / 0.09)
+        peso_por_sol = max(0.0, 1.0 - abs(fase - 0.47) / 0.11)
+        peso_amanhecer = max(0.0, 1.0 - min(fase, 1.0-fase) / 0.09)
         peso_crepusculo = max(peso_por_sol, peso_amanhecer)
         if peso_crepusculo > 0.01:
             cor_horizonte = (255, 138, 84)
@@ -11832,6 +11832,8 @@ def main():
             _pro_sub_inicio("fisica_jogador")
             jogador.update(vel_jogo, frame_count, segurando_pulo, segurando_baixo, particulas, pool_manager,
                            gerenciador_sons, dados["vol_sfx"], pode_pousar=pode_pousar)
+            gamefeel.seguir_jogador(jogador, segurando_pulo,
+                                   dados.get("acess_reduzir_efeitos", False))
             _pro_sub_fim()
             # SFX pré-gerado; a cada ~0,25 s, somente ao pisar no chão.
             if (jogador.no_chao and not jogador.agachado and

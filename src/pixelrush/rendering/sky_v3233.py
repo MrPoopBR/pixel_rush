@@ -27,16 +27,17 @@ def _mix(a, b, peso):
     return tuple(max(0, min(255, int(a[k]*(1-p)+b[k]*p))) for k in range(3))
 
 def _preparar(cor, fase, noite, bioma):
-    chave = (tuple((int(c)//4)*4 for c in cor), int(max(0.,min(1.,fase))*16),
-             int(max(0.,min(1.,noite))*8), bioma)
+    chave = (tuple((int(c)//4)*4 for c in cor), int(max(0.,min(1.,fase))*64),
+             int(max(0.,min(1.,noite))*32), bioma)
     pronto = _CACHE.get(chave)
     if pronto is not None:
         _CACHE.move_to_end(chave)
         return pronto
     quant, fr, nr, b = chave
-    f = fr/16.; n = nr/8.
-    amanhecer = max(0., 1. - abs(f-.15)/.14)
-    poente = max(0., 1. - abs(f-.745)/.13)
+    f = fr/64.; n = nr/32.
+    # Sol nasce no inicio/fim da volta; poente perto da metade.
+    amanhecer = max(0., 1. - min(f, 1.0-f)/.11)
+    poente = max(0., 1. - abs(f-.47)/.11)
     crepusculo = max(amanhecer, poente)
     tema = TONS.get(b, TONS['cidade'])
     surface = pygame.Surface((W,ALTURA_CEU)).convert()
