@@ -39,7 +39,7 @@ class Camera771(unittest.TestCase):
         j=s.index('    rodando = True\n    while rodando:',i)
         self.assertLess(i,j)
         self.assertIn('PIXELRUSH_QA_ANDROID',s[i-510:i])
-        self.assertIn('v3.277.89-QA-ANDROID-RC',s)
+        self.assertIn('v3.277.90-QA-ANDROID-RC',s)
         original=(BASE/'pixelrush_cinema_v3172.py').read_text('utf8')
         self.assertIn('pygame.transform.smoothscale(imagem,tamanho,self._cache_zoom_expandido)',original)
 if __name__=='__main__':unittest.main(verbosity=2)

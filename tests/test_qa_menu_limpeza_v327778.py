@@ -42,10 +42,10 @@ class TestMenuQA778(unittest.TestCase):
 
     def test_python_compila_e_versao(self):
         compile(CODE, str(GAME), "exec")
-        self.assertIn('VERSAO = "v3.277.89-QA-ANDROID-RC"', CODE)
+        self.assertIn('VERSAO = "v3.277.90-QA-ANDROID-RC"', CODE)
         spec = (ROOT / "buildozer.spec").read_text("utf-8")
-        self.assertIn("version = 3.277.89", spec)
-        self.assertIn("android.numeric_version = 327789", spec)
+        self.assertIn("version = 3.277.90", spec)
+        self.assertIn("android.numeric_version = 327790", spec)
 
     def test_perfil_unico_e_migracao(self):
         fn = funcao_isolada("modo_grafico_leve")
