@@ -19,3 +19,7 @@ antiga do repositório, utilize o histórico Git: os blobs são iguais.
 **Não usar estes documentos para declarar uma melhoria implementada ou
 homologação no Galaxy A54.** A versão ativa é indicada em
 `VERSAO_ATUAL.txt`.
+
+### Documentos adicionais QA789
+
+Três documentos originais foram realocados para docs/android e docs/historico/qa/auditorias. A relação com seus SHAs encontra-se em docs/arquitetura/MANIFESTO_DOCUMENTOS_v327789.json. Os documentos antigos com referências diretas no CI permanecem intocados.

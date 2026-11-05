@@ -18,3 +18,7 @@
 **Não remover em massa:** arquivos Python por parecerem antigos, notas citadas
 pelos gates antigos, receitas `p4a-recipes`, world art, bibliotecas C, saves ou
 workflows. Uma chamada de limpeza indiscriminada pode corromper APK/AAB.
+
+### Segunda etapa QA789
+
+25 módulos reais de Cidade/biomas/mundo/render foram movidos e as importações legadas preservadas. O motor de 16 mil linhas, módulos Python com hashes de preflight, entidades, pets, física, save e câmera ainda dependem de testes adicionais antes da migração completa. Três documentos foram arquivados com blobs iguais e as notas exigidas por CI foram retidas.

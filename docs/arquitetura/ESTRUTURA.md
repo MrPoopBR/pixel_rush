@@ -1,4 +1,4 @@
-# Arquitetura proposta e situacao real (QA v3.277.88)
+# Arquitetura proposta e situacao real (QA v3.277.89)
 
 ## Estrutura modular por etapas
 
@@ -56,3 +56,9 @@ nenhuma varredura de diretórios durante a corrida. Os adaptadores são
 resolvidos uma vez, no import inicial, sem custo por quadro. Todo teste
 futuro precisa preservar RGBA, fisica, arquivo de save, Android launcher,
 DEV, AAB e os gates QA785/786/787.
+
+## Segunda etapa QA789 — módulos do jogo realmente migrados
+
+Além dos três aceleradores QA785/786/787, foram transferidos 25 arquivos Python (15 world, 10 rendering) preservando blobs Git originais. A raiz conserva adaptadores com a MESMA instância de módulo via sys.modules. Para conferir todos os nomes, consulte MANIFESTO_MODULOS_v327789.json.
+
+Os módulos com SHA fixado em preflights históricos continuam intactos; detalhes em QA_RAIZ_PROTEGIDA_v327789.md. Isto inclui City v3118, City v3122, cenários v398, shader GLES e render QA. A física, o loop principal, os saves e o empacotamento não foram reescritos. Documentos Android independentes estão em docs/android/.

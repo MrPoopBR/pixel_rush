@@ -1,6 +1,6 @@
 # PIXEL RUSH — jogo 2D em Python / pygame-ce
 
-**Linha de desenvolvimento:** v3.277.88-QA (branch de reorganizacao isolada).
+**Linha de desenvolvimento:** v3.277.89-QA (branch de reorganizacao isolada).
 **Base funcional:** v3.277.87-QA. Nao publicar nem compilar AAB a partir desta
 branch sem novos testes de hardware. O Android real usa CPython 3.12, SDL2,
 pygame-ce e Buildozer.
@@ -24,8 +24,8 @@ pixel_rush/
 │       ├── game.py                   # Fachada de entrada (transicao)
 │       ├── settings.py               # Apenas caminhos; nenhuma fisica duplicada
 │       ├── entities/                 # Etapas futuras: player, obstaculos, pets
-│       ├── world/                    # Etapas futuras: biomas/camera/chunks
-│       ├── rendering/                # Etapas futuras: compositor/GLES
+│       ├── world/                    # Cidade, biomas e runtime reais em migracao
+│       ├── rendering/                # Efeitos, ceu e iluminacao reais migrados
 │       ├── systems/                  # Etapas futuras: audio, input, saves
 │       ├── ui/                       # Etapas futuras: HUD, tutorial, menus
 │       ├── utils/
@@ -91,3 +91,9 @@ CI offline Linux; Galaxy A54 ainda requer homologacao real. Este commit
 de organizacao nao deve ser interpretado como melhoria de FPS.
 
 Arquivo historico de instrucoes AAB: `docs/historico/README_ANDROID_AAB_ORIGINAL.md`.
+
+## Segunda etapa de organização (QA789)
+
+Foram migrados 25 módulos de código reais, sem modificar os bytes: 15 de mundo e Cidade para src/pixelrush/world/ e 10 de efeitos e renderização para src/pixelrush/rendering/. O manifesto dos SHAs e caminhos está em docs/arquitetura/MANIFESTO_MODULOS_v327789.json. Os nomes antigos permanecem como adaptadores, para não quebrar imports ou duplicar estados.
+
+Outros módulos e documentos da raiz são verificados por hash em preflights antigos e permaneceram em seus caminhos originais. Consulte docs/arquitetura/QA_RAIZ_PROTEGIDA_v327789.md. Os três documentos Android independentes foram organizados em docs/android/ e docs/historico/ com manifesto específico. Nenhuma funcionalidade foi removida, nenhum APK compilado e o Galaxy A54 ainda não homologou esta estrutura.
