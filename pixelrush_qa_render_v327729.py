@@ -46,6 +46,8 @@ def preparar_perfil_qa_android():
             ('PIXELRUSH_QA_GPU_ZOOM','1'),
             ('PIXELRUSH_QA_GLES3_CONTEXT','1'),
             ('PIXELRUSH_QA_GLES_PBO','1'),
+            ('PIXELRUSH_QA_GLES_FULLSCREEN_PROBE','1'),
+            ('PIXELRUSH_QA_CITY_RLE_FASTPATH','1'),
             ('PIXELRUSH_QA_CAMERA_AUTOTUNE','1'),
             ('PIXELRUSH_QA_NATIVE_AUTO','1'),
             ('PIXELRUSH_QA_CITY_INCREMENTAL','1'),
