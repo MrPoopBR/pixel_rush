@@ -1,0 +1,157 @@
+name: PIXEL RUSH QA v3.277.92 R22 - classes e historicos SEM APK
+
+on:
+  push:
+    branches:
+      - qa/r22-classes-historicos-v3.277.92
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-qa-v327792-r22-offline
+  cancel-in-progress: true
+
+jobs:
+  qa-r22-classes-e-modulos:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r22-classes-historicos-v3.277.92'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout full history e base QA791
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Python 3.13 e pygame-ce
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Instalar pygame-ce e conferir sintaxe/versionamento
+        run: |
+          set -euo pipefail
+          python -m pip install pygame-ce==2.5.8 numpy==2.3.0
+          python -m compileall -q src tests/test_qa_r22_classes_historicos_v327792.py
+          python -m py_compile PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py main.py JOGAR.py
+          grep -q '^version = 3.277.92$' buildozer.spec
+          grep -q '^android.numeric_version = 327792$' buildozer.spec
+          grep -q 'VERSAO = "v3.277.92-QA-ANDROID-RC"' PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py
+      - name: AST integral, RNG, pool e RGBA pygame, imports historicos
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r22_classes_historicos_v327792.py
+          python tests/test_qa_r20_motor_modulos_v327790.py
+          python tests/test_qa_r19_modulos_migrados_v327789.py
+          python tests/test_qa_r18_estrutura_v327788.py
+          python tools/auditar_estrutura_v327788.py --check
+      - name: QA791 original em worktree isolada para preservar gate AST historico
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/qa791" aafbb354b78fc7be50013176cd9847f6ff4729bc
+          ( cd "$RUNNER_TEMP/qa791" && PYTHONPATH=. python tests/test_qa_r21_classes_v327791.py )
+      - name: Guard de escopo e integridade dos seis modulos
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import pathlib,subprocess,json
+          root=pathlib.Path('.');base="aafbb354b78fc7be50013176cd9847f6ff4729bc"
+          m=json.loads((root/"docs/arquitetura/MANIFESTO_R22_v327792.json").read_text("utf8"))
+          assert len(m["classes"])==3 and len(m["modules"])==6
+          expected={
+              "PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py","buildozer.spec",
+              "VERSAO_ATUAL.txt","README.md",
+              "src/pixelrush/performance/quality_monitor.py",
+              "src/pixelrush/entities/collectibles.py",
+              "docs/arquitetura/MANIFESTO_R22_v327792.json",
+              "docs/arquitetura/INVENTARIO_R22_v327792.md",
+              "docs/versoes/NOTAS_v3.277.92_QA.md",
+              "tests/test_qa_r22_classes_historicos_v327792.py",
+              ".github/workflows/qa-r22-classes-historicos-v327792.yml",
+          }
+          def old(p):return subprocess.check_output(["git","show",base+":"+p])
+          for mod in m["modules"]:
+              a,b=mod["old"],mod["canonical"]
+              expected.update((a,b))
+              assert old(a)==(root/b).read_bytes(),a
+          diff=set(subprocess.check_output(["git","diff","--name-only",base,"HEAD"],text=True).splitlines())
+          assert diff==expected,("unexpected",sorted(diff-expected),"missing",sorted(expected-diff))
+          for p in ("main.py","JOGAR.py",".gitignore","requirements.txt"):
+              assert old(p)==(root/p).read_bytes(),p
+          before=old("buildozer.spec")
+          after=before.replace(b"version = 3.277.91",b"version = 3.277.92").replace(
+                  b"android.numeric_version = 327791",b"android.numeric_version = 327792")
+          assert after==(root/"buildozer.spec").read_bytes()
+          print("QA792: scope, six blobs byte-identical, Android/main/DEV assets and AAB protected")
+          PY
+      - name: Comparacao RGBA da Cidade QA791 versus QA792, dois perfis
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: |
+          set -euo pipefail
+          export BASE_QA791="$RUNNER_TEMP/qa791"
+          export CURRENT_QA792="$GITHUB_WORKSPACE"
+          python - <<'PY'
+          import json,os,pathlib,subprocess,sys,tempfile
+          old=pathlib.Path(os.environ["BASE_QA791"])
+          new=pathlib.Path(os.environ["CURRENT_QA792"])
+          script="qa_a54/benchmark_city_technical_v327787.py"
+          with tempfile.TemporaryDirectory() as temp:
+              for light in (0,1):
+                  out={}
+                  for label,root in (("qa791",old),("qa792",new)):
+                      dest=pathlib.Path(temp)/f"{light}_{label}.json"
+                      env=os.environ.copy();env["PYTHONPATH"]=str(root)
+                      subprocess.run([sys.executable,str(root/script),
+                          "--limit","20","--light",str(light),
+                          "--opaque","1","--tech","1","--output",str(dest)],
+                          cwd=root,env=env,check=True,timeout=120,stdout=subprocess.DEVNULL)
+                      out[label]=json.loads(dest.read_text("utf8"))
+                  a,b=out["qa791"],out["qa792"]
+                  assert a["quadros_rgba"]==b["quadros_rgba"]==260
+                  assert a["hashes_rgba"]==b["hashes_rgba"]
+                  assert a["periodo_redesenho_preservado"]==b["periodo_redesenho_preservado"]==5
+                  assert a["cache_maximo_observado"]==b["cache_maximo_observado"]
+                  print(f"QA792 perfil {light}: 260 buffers RGBA identicos; 5o quadro preservado")
+          PY
+      - name: Regressoes da Cidade e viewport com literal de versao efemero
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          python tests/test_qa_r17_city_technical_v327787.py
+          python tests/test_qa_r16_city_opaque_v327786.py
+          python tests/test_qa_r15_city_fifth_budget_v327785.py
+          python - <<'PY'
+          import pathlib,subprocess,sys
+          source=pathlib.Path("tests/test_qa_r12_a54_viewport_v327782.py")
+          text=source.read_text("utf8")
+          old="self.assertIn('v3.277.90-QA-ANDROID-RC',e)"
+          assert text.count(old)==1
+          temp=source.with_name("_qa792_viewport_efemero.py")
+          try:
+              temp.write_text(text.replace(old,"self.assertIn('v3.277.92-QA-ANDROID-RC',e)"),"utf8")
+              subprocess.run([sys.executable,str(temp)],check=True)
+          finally:
+              temp.unlink(missing_ok=True)
+          PY
+      - name: Guardar evidencias offline sem compilar APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixelrush-v327792-r22-evidencias
+          path: |
+            docs/versoes/NOTAS_v3.277.92_QA.md
+            docs/arquitetura/INVENTARIO_R22_v327792.md
+            docs/arquitetura/MANIFESTO_R22_v327792.json
+          retention-days: 14
