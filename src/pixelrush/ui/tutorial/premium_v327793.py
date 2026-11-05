@@ -38,6 +38,8 @@ class TutorialCorrida(_Anterior):
         self._extra_objs = []
         self._extra_reward = 0
         self._swipe_etapa = 0
+        self._touch_y_tutorial = None
+        self._swipe_inicio_segunda = None
         self.demo_febre = False
         self._ultimo_frame = 0
         self._instante_ui = 0
@@ -55,9 +57,11 @@ class TutorialCorrida(_Anterior):
         res = super()._preparar(todos, letras, palavra)
         if self.etapa == "swipe_down":
             self._swipe_etapa = 0
+            self._touch_y_tutorial = None
+            self._swipe_inicio_segunda = None
             if self.objetos:
                 # Segundo pombo: treino em dois tempos, usando o sprite real.
-                pos = self.objetos[0].rect.left + 130
+                pos = self.objetos[0].rect.left + 190
                 obj = self._somente_objeto_original(lambda: self.classe_cidade(pos, "C2"))
                 obj.rect.y = self.objetos[0].rect.y
                 if hasattr(obj, "_base_y"):
@@ -86,6 +90,26 @@ class TutorialCorrida(_Anterior):
         if hasattr(jogador, "_visual_dirty"):
             jogador._visual_dirty = True
 
+    def _altura_do_toque(self, evento, converter):
+        if evento.type in (pygame.FINGERDOWN, pygame.FINGERMOTION, pygame.FINGERUP):
+            return float(evento.y) * self.altura
+        if hasattr(evento,"pos"):
+            pos=converter(evento.pos) if converter else evento.pos
+            return float(pos[1])
+        return None
+
+    def _completar_descida_tutorial(self, som, volume):
+        if self.jogador.no_chao:
+            return
+        self.jogador.iniciar_descida_rapida(som,volume)
+        if self.jogador.descida_rapida:
+            self.swipe_feito=True
+            self.segurar_pulo=False
+            self._comando_liberado=True
+            self._pausa_comando=False
+            self._swipe_etapa=3
+            self._swipe_inicio_segunda=None
+
     def processar_evento(self, evento, converter=None, som=None, volume=1.0):
         if self._intro_restante > 0:
             return True
@@ -93,21 +117,63 @@ class TutorialCorrida(_Anterior):
             if self._extra_popup and evento.type in (
                     pygame.KEYDOWN, pygame.FINGERUP, pygame.MOUSEBUTTONUP,
                     pygame.JOYBUTTONDOWN):
-                # Ignorar a soltura residual do dedo anterior: só aceitar
-                # um novo gesto após o popup estar visível e legível.
+                # Dedo solto da etapa anterior não pode pular a explicação.
                 if (evento.type in (pygame.FINGERUP, pygame.MOUSEBUTTONUP) and
                         pygame.time.get_ticks() - self._popup_desde_ms < 220):
                     return True
                 if evento.type == pygame.MOUSEBUTTONUP and getattr(evento,"button",1) != 1:
                     return True
-                self._extra_popup = False
-                self._extra_preparada = False
+                self._extra_popup=False
+                self._extra_preparada=False
             return True
-        if self.etapa == "swipe_down" and self._pausa_comando:
-            if evento.type in (pygame.KEYDOWN,pygame.FINGERDOWN,pygame.MOUSEBUTTONDOWN):
-                if (evento.type != pygame.KEYDOWN or getattr(evento,"key",None)
-                    in (pygame.K_SPACE,pygame.K_UP,pygame.K_w)):
-                    self._swipe_etapa = 1
+
+        if self.etapa == "swipe_down" and self.fase_recuperacao is None:
+            tipo=evento.type
+            y=self._altura_do_toque(evento,converter)
+            if self._pausa_comando and self._swipe_etapa == 0:
+                # PARTE 1: o jogador inicia o pulo longo na pausa didática.
+                certo=((tipo==pygame.KEYDOWN and getattr(evento,"key",None)
+                        in (pygame.K_SPACE,pygame.K_UP,pygame.K_w))
+                       or (tipo==pygame.JOYBUTTONDOWN and getattr(evento,"button",None) in (0,2))
+                       or tipo==pygame.FINGERDOWN
+                       or (tipo==pygame.MOUSEBUTTONDOWN and getattr(evento,"button",1)==1))
+                if certo and self.jogador.no_chao:
+                    self.jogador.pular(som,volume)
+                    self.segurar_pulo=True
+                    self._salto_automatico=True
+                    self._comando_liberado=True
+                    self._pausa_comando=False
+                    self._swipe_etapa=1
+                    self._touch_y_tutorial=y
+                return True
+
+            if self._pausa_comando and self._swipe_etapa == 2:
+                # PARTE 2: aceita também deslizar no MESMO contato, sem
+                # exigir soltar o dedo depois do pulo longo.
+                if tipo==pygame.KEYDOWN and getattr(evento,"key",None) in (pygame.K_DOWN,pygame.K_s):
+                    self._completar_descida_tutorial(som,volume)
+                    return True
+                if tipo==pygame.JOYBUTTONDOWN and getattr(evento,"button",None) in (1,3):
+                    self._completar_descida_tutorial(som,volume)
+                    return True
+                if tipo in (pygame.FINGERDOWN,pygame.MOUSEBUTTONDOWN):
+                    if tipo!=pygame.MOUSEBUTTONDOWN or getattr(evento,"button",1)==1:
+                        self._swipe_inicio_segunda=y
+                    return True
+                if tipo in (pygame.FINGERMOTION,pygame.MOUSEMOTION,pygame.FINGERUP,pygame.MOUSEBUTTONUP) and y is not None:
+                    if self._swipe_inicio_segunda is None:
+                        self._swipe_inicio_segunda=y
+                    if y-self._swipe_inicio_segunda>=55:
+                        self._completar_descida_tutorial(som,volume)
+                    return True
+                return True
+
+            if self._swipe_etapa == 1 and tipo in (pygame.FINGERMOTION,pygame.MOUSEMOTION) and y is not None:
+                self._touch_y_tutorial=y
+            if self._swipe_etapa == 1 and tipo in (pygame.FINGERUP,pygame.MOUSEBUTTONUP,pygame.KEYUP,pygame.JOYBUTTONUP):
+                self.segurar_pulo=False
+                self._touch_y_tutorial=None
+            return True
         return super().processar_evento(evento,converter,som,volume)
 
     def _iniciar_extra(self, todos):
@@ -168,6 +234,25 @@ class TutorialCorrida(_Anterior):
             self._reset_visual_jogador()
             return 0,False
         if self._extra_indice < 0:
+            if self.etapa=="swipe_down" and self.fase_recuperacao is None:
+                if not self._etapa_preparada:
+                    self._preparar(todos,letras,palavra)
+                if self.objetos and self._swipe_etapa==0 and not self._pausa_comando:
+                    distancia=self.objetos[0].rect.left-jogador.rect.right
+                    if distancia <= 122:
+                        self._pausa_comando=True
+                        return 0,False
+                if len(self.objetos)>1 and self._swipe_etapa==1 and not self._pausa_comando:
+                    distancia=self.objetos[1].rect.left-jogador.rect.right
+                    if distancia <= 168:
+                        if jogador.no_chao:
+                            # A lição impede pouso fatal antes da segunda manobra.
+                            jogador.pular(som,volume)
+                        self._pausa_comando=True
+                        self._comando_liberado=False
+                        self._swipe_etapa=2
+                        self._swipe_inicio_segunda=self._touch_y_tutorial
+                        return 0,False
             recuperando = self.fase_recuperacao is not None
             resultado = super().atualizar(
                 jogador,fundo,todos,letras,palavra,particulas,pool,som,volume,frame)
