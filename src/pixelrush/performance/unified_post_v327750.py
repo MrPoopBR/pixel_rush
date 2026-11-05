@@ -15,6 +15,8 @@ _STATUS={'quadros':0,'camera':0,'camera_ignorada':0,'escala':0,
          'sem_escala':0,'blits_finais':0,'blits_redundantes_pulados':0,
          'fallbacks':0,'modo':'qa_cpu_igual'}
 _HABILITADO=os.environ.get('PIXELRUSH_QA_POST_PIPELINE','1')=='1'
+# QA795: caminho escalado direto para framebuffer RGB opaco, opt-out seguro.
+_R25_SCALE_DIRECT=os.environ.get('PIXELRUSH_QA_R25_DIRECT_PRESENT','1')=='1'
 
 
 def habilitado():
@@ -48,32 +50,64 @@ def finalizar_quadro(imagem, tela, tamanho_final, pos_final, superficies_escala,
     else:
         _STATUS['camera_ignorada']+=1
     marcar('apresentacao')
+    direto=False
     if tamanho_final==imagem.get_size():
         superficie_final=imagem
         _STATUS['sem_escala']+=1
     else:
         inicio_sub('apresentacao_escala_final')
         try:
-            superficie_final=superficies_escala.get(tamanho_final)
-            if superficie_final is None:
+            # Versao antiga: scale em Surface intermediaria + blit de tela inteira.
+            # Para RGB32 com formato identico, scale escreve exatamente os
+            # mesmos bytes no retangulo de destino (regressao RGBA R25).
+            # Excluir SRCALPHA/colorkey, formatos e bounds inesperados.
+            w,h=tamanho_final
+            x,y=pos_final
+            pode=(
+                _R25_SCALE_DIRECT and
+                imagem is not tela and
+                w>0 and h>0 and x>=0 and y>=0 and
+                x+w<=tela.get_width() and y+h<=tela.get_height() and
+                imagem.get_bitsize()==tela.get_bitsize()==32 and
+                imagem.get_masks()==tela.get_masks() and
+                not (imagem.get_flags() & pygame.SRCALPHA) and
+                not (tela.get_flags() & pygame.SRCALPHA) and
+                imagem.get_colorkey() is None and tela.get_colorkey() is None and
+                imagem.get_alpha() in (None,255) and
+                tela.get_alpha() in (None,255))
+            if pode:
                 try:
-                    superficie_final=pygame.Surface(tamanho_final).convert()
-                except Exception:
-                    superficie_final=pygame.Surface(tamanho_final)
-                superficies_escala[tamanho_final]=superficie_final
-                if len(superficies_escala)>3:
-                    superficies_escala.popitem(last=False)
-            else:
-                superficies_escala.move_to_end(tamanho_final)
-            pygame.transform.scale(imagem,tamanho_final,superficie_final)
-            _STATUS['escala']+=1
+                    area=tela.subsurface((x,y,w,h))
+                    pygame.transform.scale(imagem,tamanho_final,area)
+                except (pygame.error,ValueError,TypeError):
+                    _STATUS['escala_direta_fallback']+=1
+                else:
+                    direto=True
+                    superficie_final=tela
+                    _STATUS['escala_direta']+=1
+            if not direto:
+                superficie_final=superficies_escala.get(tamanho_final)
+                if superficie_final is None:
+                    try:
+                        superficie_final=pygame.Surface(tamanho_final).convert()
+                    except Exception:
+                        superficie_final=pygame.Surface(tamanho_final)
+                    superficies_escala[tamanho_final]=superficie_final
+                    if len(superficies_escala)>3:
+                        superficies_escala.popitem(last=False)
+                else:
+                    superficies_escala.move_to_end(tamanho_final)
+                pygame.transform.scale(imagem,tamanho_final,superficie_final)
+                _STATUS['escala']+=1
         finally:
             fim_sub()
     inicio_sub('apresentacao_blit_final')
     try:
         # Mesmo objeto Surface, mesma dimensao e (0,0): blit sobre si mesma
         # era trabalho redundante. Nunca supor igualdade a partir de pixels.
-        if (superficie_final is tela and pos_final==(0,0) and
+        if direto:
+            _STATUS['blits_redundantes_pulados']+=1
+        elif (superficie_final is tela and pos_final==(0,0) and
                 superficie_final.get_size()==tela.get_size() and
                 not (tela.get_flags() & pygame.SRCALPHA) and
                 tela.get_colorkey() is None and
