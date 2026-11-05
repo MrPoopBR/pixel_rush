@@ -24,7 +24,8 @@ _STATUS={'instalado':False,'gpu_ativo':False,'falhas_gpu':0,
          'shader_pixel_exato_solicitado':False,
          'contexto_gles3_solicitado':False,
          'homologado_android':False,'preflight_gpu':None,
-         'selecionador_gpu':None}
+         'selecionador_gpu':None,'falha_modulo':None,
+         'falha_detalhe':None,'fullscreen_experimental':False}
 _SIZE=(450,800)
 
 
@@ -34,6 +35,7 @@ class _Ponte:
         self.presenter=None
         self.cpu_window=None
         self.size=None
+        self._requested_flags=0
         self.modo='nativo'
         self.zoom=0.0
         self.foco_y=0.0
@@ -42,7 +44,7 @@ class _Ponte:
         self.presenter=None
         # Preserva a referencia do jogo a staging: o que muda eh somente
         # a superficie SDL final de apresentacao.
-        self.cpu_window=_ORIGINALS['set_mode'](self.size)
+        self.cpu_window=_ORIGINALS['set_mode'](self.size,self._requested_flags)
         self.modo='fallback'
         _STATUS['gpu_ativo']=False
 
@@ -54,13 +56,20 @@ class _Ponte:
         # o jogo minúsculo no canto superior esquerdo. Nao converter
         # fullscreen/SCALED em janela GPU experimental sem prova no Mali:
         # SDL preserva a Surface logica e amplia na tela fisica.
-        if requested!=_SIZE or (flags & (pygame.OPENGL|pygame.FULLSCREEN|pygame.SCALED)):
+        fullscreen_qa=bool(flags & pygame.FULLSCREEN and
+            os.environ.get('PIXELRUSH_QA_GLES_FULLSCREEN_PROBE','0')=='1')
+        if requested!=_SIZE or (flags & pygame.OPENGL) or (
+                flags & (pygame.FULLSCREEN|pygame.SCALED) and not fullscreen_qa):
+            if flags & pygame.FULLSCREEN:
+                _STATUS['fallback']='sdl_fullscreen_sem_gpu'
             self.modo='nativo'
             self.staging=None
             self.presenter=None
             self.cpu_window=None
             return _ORIGINALS['set_mode'](size,flags,depth,display,vsync)
         self.size=requested
+        self._requested_flags=flags
+        _STATUS['fullscreen_experimental']=fullscreen_qa
         try:
             import pixelrush_qa_gles_present_v327735 as present_module
             from pixelrush_qa_gles_present_v327735 import GLES2DirectPresenterQA
@@ -91,7 +100,8 @@ class _Ponte:
                 if exacto:
                     present_module.VERT=vshader
                     present_module.FRAG=fshader
-                self.presenter=GLES2DirectPresenterQA(*requested)
+                self.presenter=GLES2DirectPresenterQA(
+                    *requested,**({'fullscreen':True} if fullscreen_qa else {}))
                 if gles3 and not self.presenter.version.startswith('OpenGL ES 3'):
                     raise RuntimeError('Contexto GLES3 solicitado nao entregue')
             finally:
@@ -149,6 +159,8 @@ class _Ponte:
         except (ImportError,AttributeError,OSError,RuntimeError,ValueError,pygame.error,MemoryError) as exc:
             _STATUS['falhas_gpu']+=1
             _STATUS['fallback']='criacao_'+type(exc).__name__
+            _STATUS['falha_modulo']=getattr(exc,'name',None)
+            _STATUS['falha_detalhe']=(type(exc).__name__+': '+str(exc))[:180]
             self.presenter=None
             self.staging=pygame.Surface(requested)
             try:
