@@ -71,6 +71,10 @@ class GLES2DirectPresenterQA:
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_PROFILE_MASK,
                                         pygame.GL_CONTEXT_PROFILE_ES)
         pygame.display.gl_set_attribute(pygame.GL_DOUBLEBUFFER,1)
+        # QA784: sem canal alpha fisico nao ha paridade RGBA no A54.
+        # Solicitar 8 bits somente em fullscreen QA experimental.
+        if self.qa_fullscreen:
+            pygame.display.gl_set_attribute(pygame.GL_ALPHA_SIZE,8)
         # Janela OPENGL NOVA, nao compartilha SDL_GetWindowSurface do jogo.
         pygame.display.set_mode(
             (0,0) if self.qa_fullscreen else (self.width,self.height),
