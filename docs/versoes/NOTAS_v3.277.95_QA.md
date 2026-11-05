@@ -41,3 +41,6 @@ O módulo canônico unified_post_v327750.py foi migrado como byte-idêntico na Q
 
 ### CI — contador de diagnóstico da escala direta
 O primeiro CI R25 identificou KeyError de escala_direta no benchmark por ausência da chave inicial e do reset. Corrigidos exclusivamente os contadores estatísticos, sem alteração do algoritmo RGB. SHA canônico de auditoria atualizado para cee6487af8cde079b825dac701c4976d71326ae5.
+
+### CI e correção final do profiler
+GitHub Actions #42081558998: SUCCESS, escala RGB direta 60 hashes RGBA iguais, p50 900x1600 -52,0% e 1080x1920 -44,3%; cache/replay/módulos/arte também passaram. Quinto quadro City p50 Linux 3,21186ms; sem prova no A54. Ajustada apenas a posição do argumento map_kind em _draw_sprite para indexar corretamente as métricas de image/fxmask/geometry/material, sem tocar no código do jogo.
