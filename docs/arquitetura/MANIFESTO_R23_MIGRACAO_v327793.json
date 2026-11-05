@@ -1,0 +1,138 @@
+{
+  "schema": "pixelrush.qa.r23.modules.moved.v327793",
+  "base_branch": "qa/r22-classes-historicos-v3.277.92",
+  "base_commit": "d8f97adf246bc593da3bb049bef2f3a5c31dd698",
+  "version": "3.277.93-QA",
+  "migrated": [
+    {
+      "legacy": "pixelrush_aereo_v3224.py",
+      "canonical": "src/pixelrush/systems/aerial_v3224.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_cenas_v3213.py",
+      "canonical": "src/pixelrush/rendering/scenes_v3213.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_cinema_v3189.py",
+      "canonical": "src/pixelrush/rendering/cinema_v3189.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_cinema_v3192.py",
+      "canonical": "src/pixelrush/rendering/cinema_v3192.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_corredores_v3217.py",
+      "canonical": "src/pixelrush/systems/corridors_v3217.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_corredores_v3245.py",
+      "canonical": "src/pixelrush/systems/corridors_v3245.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_mixagem_v3209.py",
+      "canonical": "src/pixelrush/systems/mixing_v3209.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_moedas_v3216.py",
+      "canonical": "src/pixelrush/systems/coin_patterns_v3216.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_moedas_v3245.py",
+      "canonical": "src/pixelrush/systems/coin_patterns_v3245.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_pisos_v3194.py",
+      "canonical": "src/pixelrush/world/floors_v3194.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_sequencias_v3206.py",
+      "canonical": "src/pixelrush/systems/sequences_v3206.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_fisica_audio_v3109.py",
+      "canonical": "src/pixelrush/systems/physics_audio_v3109.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_identidade_v3200.py",
+      "canonical": "src/pixelrush/ui/identity_v3200.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_i18n_v3246.py",
+      "canonical": "src/pixelrush/ui/i18n_v3246.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_geometria_v3197.py",
+      "canonical": "src/pixelrush/utils/geometry_v3197.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_geometria_v3219.py",
+      "canonical": "src/pixelrush/utils/geometry_v3219.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_geometria_v3220.py",
+      "canonical": "src/pixelrush/utils/geometry_v3220.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_pista_v3193.py",
+      "canonical": "src/pixelrush/rendering/track_v3193.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_reflexos_v3223.py",
+      "canonical": "src/pixelrush/systems/reflexes_v3223.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_pista_v3170.py",
+      "canonical": "src/pixelrush/rendering/track_v3170.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    },
+    {
+      "legacy": "pixelrush_sombras_v3234.py",
+      "canonical": "src/pixelrush/rendering/shadows_v3234.py",
+      "byte_identical": true,
+      "sys_modules_alias": true
+    }
+  ],
+  "files_count": 21,
+  "root_python_files_removed": 0,
+  "apk_compiled": false,
+  "android_real_verified": false
+}
