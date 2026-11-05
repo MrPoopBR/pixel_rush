@@ -21,7 +21,7 @@ sys.path.insert(0,str(ROOT))
 os.environ.setdefault("SDL_VIDEODRIVER","dummy")
 os.environ.setdefault("SDL_AUDIODRIVER","dummy")
 p=argparse.ArgumentParser()
-p.add_argument("--candidato",type=int,choices=(0,1),required=True)
+p.add_argument("--candidato",type=int,choices=(0,1,2),required=True)
 p.add_argument("--output",type=Path,required=True)
 args=p.parse_args()
 import pygame
@@ -34,9 +34,11 @@ def superficie(self,kind="image",foreground_only=False):
     if surf is None:
         surf=pygame.Surface((WIDTH,GROUND-TOP),pygame.SRCALPHA)
         self._city_surfaces[key]=surf
-    # Candidato: SOMENTE o mapa normal modular, regravado por scale(...,target).
+    # 0=controle com fill, 1=normal integrado QA793, 2=LAB todos os passes.
+    # render_scene modular usa scale(low,(450,500),target), regravando todo destino.
     # Os demais mapas conservam seus fills para evitar regressao em outros passes.
-    clear=(not args.candidato or self.biome not in MODULAR_BIOMES or foreground_only or kind!='normal')
+    clear=(not args.candidato or self.biome not in MODULAR_BIOMES or foreground_only
+           or (args.candidato==1 and kind!='normal'))
     if clear:
         if kind=="normal":surf.fill((128,128,255))
         elif kind=="flow":surf.fill((128,128,0))

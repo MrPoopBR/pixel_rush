@@ -85,3 +85,8 @@ Foram migrados **21 módulos históricos** adicionais, com conteúdo byte-idênt
 - Polimento artístico da Cidade: juntas e brilho estáticos discretos no concreto (imagem e material), prebaked no atlas near, sem alocação por quadro nem alteração de colisões. Canais normal/geometry/flow/fxmask byte-idênticos aos do gerador anterior em teste isolado.
 - Migrados mais dois módulos QA de import seguro, sem uso de __file__: composição Cidade RGB16 e vinheta. Seus conteúdos canônicos são idênticos à QA792, wrappers sys.modules ficam na raiz, manifesto passa para 38 módulos e CI confere integridade.
 - Preservados main.py, JOGAR.py, DEV, pets, saves, assets, física e workflows APK/AAB. Nenhum APK/AAB compilado; versão mantida v3.277.93-QA. Polimento integral e testes Android continuam pendentes.
+
+
+## R23 — laboratório A/B de preclear modular ampliado (desligado no jogo)
+- Adicionado terceiro modo ao benchmark modular: comparação do candidato 1 (normal otimizado já integrado) contra candidato 2 (sem fill prévio no World para imagem, fxmask, normal, geometry, material e flow dos biomas modulares). Gate bloqueante com 160 RGBA determinísticos, p50 por bioma/passe, memória e qualidade completa. A segurança decorre do scale(low,(450,500),target) sobrescrever o destino inteiro; não integrar caso RGBA divergir.
+- Nesta etapa nenhum passe adicional foi otimizado no jogo; aguarda resultado quantitativo do CI. Retidos todos os gráficos e testados sete biomas pelo workflow anterior. Sem APK/AAB.

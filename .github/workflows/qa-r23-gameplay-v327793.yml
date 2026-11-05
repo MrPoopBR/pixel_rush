@@ -233,6 +233,26 @@ jobs:
               print('QA793 train',name,'p50 old/new',x,y,'delta %',round(100*(y/x-1),2) if x else 'N/A')
           print('QA793 260 hashes RGBA iguais e fallback sem QA786 confirmado')
           PY
+      - name: LAB R23 modular todos mapas preclear x normal integrado, 160 RGBA
+        run: |
+          set -euo pipefail
+          python qa_a54/benchmark_modular_preclear_v327793.py --candidato 1 --output qa_a54/qa793_modular_all_before.json
+          python qa_a54/benchmark_modular_preclear_v327793.py --candidato 2 --output qa_a54/qa793_modular_all_after.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path("qa_a54/qa793_modular_all_before.json").read_text())
+          b=json.loads(Path("qa_a54/qa793_modular_all_after.json").read_text())
+          assert len(a["rgba_hashes"])==len(b["rgba_hashes"])==160
+          assert a["rgba_hashes"]==b["rgba_hashes"], "RGBA divergente: candidato modular rejeitado"
+          assert a["quality"]==b["quality"]=="completo"
+          for name in a["per_pass"]:
+              aa=a["per_pass"][name]["p50_ms"]
+              bb=b["per_pass"][name]["p50_ms"]
+              print("QA793 MOD ALL",name,"p50 antes",aa,"depois",bb,"delta %",
+                    round(100*(bb/aa-1),2) if aa else "N/A")
+          print("QA793 modular todos os passes: 160 RGBA exatos, candidato ainda nao integrado")
+          PY
       - name: Maratona R23 de 140 quadros em 7 biomas, sem reduzir graficos
         run: |
           set -euo pipefail
@@ -300,6 +320,8 @@ jobs:
             qa_a54/qa793_modular_baseline.json
             qa_a54/qa793_modular_candidate.json
             qa_a54/qa793_modular_diagnostico.json
+            qa_a54/qa793_modular_all_before.json
+            qa_a54/qa793_modular_all_after.json
             qa_a54/qa793_seven_biomes.json
             qa_a54/qa793_fabrik_baseline.json
             qa_a54/qa793_fabrik_candidate.json
