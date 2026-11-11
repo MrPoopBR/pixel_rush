@@ -2,6 +2,12 @@
 
 Este ramo é **isolado**. Ele não altera `main`, não publica AAB e não utiliza a chave da Play Store.
 
+## Alternativa mais simples: envio automático pelo Windows
+
+No ChatGPT, baixe **PIXELRUSH_R154_ENVIAR_GITHUB_UM_CLIQUE.zip**, extraia-o e dê dois cliques em **ENVIAR_E_COMPILAR_R154.bat**. O script verifica SHA-256 de todas as partes, usa Git for Windows e envia somente os quatro arquivos para esta branch. Se necessário, a autenticação do GitHub abre no navegador.
+
+**O ChatGPT não consegue transferir diretamente os 38 MB de binários pelo conector conectado. O workflow ainda depende desse envio.** Nenhum APK existe antes da compilação concluída.
+
 ## Para iniciar a compilação
 
 1. Baixe `PIXELRUSH_R154_PARTES_UPLOAD_GITHUB.zip` no ChatGPT e extraia no seu computador.
