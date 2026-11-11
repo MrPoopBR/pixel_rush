@@ -180,6 +180,28 @@ jobs:
           PY
           sha256sum "$APK" | tee "$GITHUB_WORKSPACE/R154_APK_SHA256.txt"
 
+      - name: Audit native DT_NEEDED dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,pathlib,re,subprocess,tempfile,zipfile
+          root=pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          apk=root/'PIXELRUSH_V327906_R154_DEBUG_ARM64.apk'
+          lines=[]
+          with zipfile.ZipFile(apk) as archive, tempfile.TemporaryDirectory() as tempdir:
+              for name in sorted(n for n in archive.namelist() if n.startswith('lib/arm64-v8a/') and n.endswith('.so')):
+                  tmp=pathlib.Path(tempdir)/pathlib.PurePosixPath(name).name
+                  tmp.write_bytes(archive.read(name))
+                  proc=subprocess.run(['readelf','-dW',str(tmp)],capture_output=True,text=True)
+                  if proc.returncode: raise SystemExit('readelf falhou: '+name)
+                  needed=re.findall(r'\\(NEEDED\\).*?\\[([^]]+)\\]',proc.stdout)
+                  lines.append(name+' -> '+(', '.join(needed) if needed else '(sem DT_NEEDED)'))
+          (root/'R154_DT_NEEDED.txt').write_text('\\n'.join(lines)+'\\n',encoding='utf-8')
+          print('DT_NEEDED auditados:',len(lines),'bibliotecas ARM64.')
+          print('Obs.: modulos stdlib CPython empaquetados fora de lib/ nao sao cobertos por esta listagem.')
+          PY
+
       - name: Upload verified APK DEBUG
         if: success()
         uses: actions/upload-artifact@v4
@@ -188,6 +210,15 @@ jobs:
           path: PIXELRUSH_V327906_R154_DEBUG_ARM64.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Preserve APK if post-build validation fails (NOT HOMOLOGATED)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R154_APK_DEBUG_NAO_HOMOLOGADO
+          path: PIXELRUSH_V327906_R154_DEBUG_ARM64.apk
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload build diagnostics even on error
         if: always()
@@ -200,5 +231,6 @@ jobs:
             R154_SIGNATURE.txt
             R154_ZIPALIGN.txt
             R154_APK_SHA256.txt
+            R154_DT_NEEDED.txt
           if-no-files-found: ignore
           retention-days: 14
