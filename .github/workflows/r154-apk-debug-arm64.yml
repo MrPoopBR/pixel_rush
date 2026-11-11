@@ -6,7 +6,6 @@ on:
       - build/r154-debug-327906
     paths:
       - "r154-source/r154-source.part*"
-      - ".github/workflows/r154-apk-debug-arm64.yml"
   workflow_dispatch:
 
 permissions:
@@ -152,34 +151,8 @@ jobs:
           grep -q "versionCode='327906'" "$GITHUB_WORKSPACE/R154_PACKAGE.txt"
           "$APKSIGNER" verify --verbose "$APK" | tee "$GITHUB_WORKSPACE/R154_SIGNATURE.txt"
           "$ZIPALIGN" -c -P 16 -v 4 "$APK" | tee "$GITHUB_WORKSPACE/R154_ZIPALIGN.txt"
-          python3 - <<'PY'
-          import os,struct,zipfile
-          path=os.environ['GITHUB_WORKSPACE']+'/PIXELRUSH_V327906_R154_DEBUG_ARM64.apk'
-          count=0; bad=[]
-          with zipfile.ZipFile(path) as z:
-              libs=[n for n in z.namelist() if n.startswith('lib/') and n.endswith('.so')]
-              if not libs: raise SystemExit('Nenhuma biblioteca nativa encontrada.')
-              for n in libs:
-                  if not n.startswith('lib/arm64-v8a/'):
-                      bad.append('ABI inesperada: '+n);continue
-                  b=z.read(n)
-                  if b[:5]!=b'\x7fELF\x02' or b[5]!=1 or struct.unpack_from('<H',b,18)[0]!=183:
-                      bad.append('ELF ARM64 invalido: '+n);continue
-                  po=struct.unpack_from('<Q',b,32)[0]
-                  es=struct.unpack_from('<H',b,54)[0]
-                  en=struct.unpack_from('<H',b,56)[0]
-                  for i in range(en):
-                      off=po+i*es
-                      if struct.unpack_from('<I',b,off)[0] != 1: continue
-                      align=struct.unpack_from('<Q',b,off+48)[0]
-                      fileoff=struct.unpack_from('<Q',b,off+8)[0]
-                      vaddr=struct.unpack_from('<Q',b,off+16)[0]
-                      if align<16384 or (fileoff-vaddr)%16384 !=0:
-                          bad.append(f'16KiB ELF NAO APROVADO: {n} align={align}')
-                  count+=1
-          if bad: raise SystemExit('\n'.join(bad[:30]))
-          print(f'ARM64 e ELF 16KiB aprovados: {count} bibliotecas')
-          PY
+          python3 "$GITHUB_WORKSPACE/.github/scripts/r154_static_apk_audit.py" "$APK"
+          cp R154_AUDITORIA_APK.json "$GITHUB_WORKSPACE/R154_AUDITORIA_APK.json"
           sha256sum "$APK" | tee "$GITHUB_WORKSPACE/R154_APK_SHA256.txt"
 
       - name: Audit native DT_NEEDED dependencies
@@ -234,5 +207,6 @@ jobs:
             R154_ZIPALIGN.txt
             R154_APK_SHA256.txt
             R154_DT_NEEDED.txt
+            R154_AUDITORIA_APK.json
           if-no-files-found: ignore
           retention-days: 14
