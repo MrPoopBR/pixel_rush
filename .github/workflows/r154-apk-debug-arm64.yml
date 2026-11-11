@@ -6,6 +6,7 @@ on:
       - build/r154-debug-327906
     paths:
       - "r154-source/r154-source.part*"
+      - ".github/workflows/r154-apk-debug-arm64.yml"
   workflow_dispatch:
 
 permissions:
@@ -113,7 +114,8 @@ jobs:
         run: |
           set -euo pipefail
           VENV="$RUNNER_TEMP/r154-build-venv"
-          python3 -m venv "$VENV"
+          python3 -m venv --system-site-packages "$VENV"
+          "$VENV/bin/python" -c "import site; assert site.ENABLE_USER_SITE, 'pip --user bloqueado neste venv'"
           "$VENV/bin/python" -m pip install -U pip wheel 'setuptools<81' 'Cython==0.29.36' legacy-cgi buildozer 'patchelf>=0.18.0.0'
           echo "$VENV/bin" >> "$GITHUB_PATH"
           if ! "$VENV/bin/patchelf" --help 2>&1 | grep -q -- '--page-size'; then
