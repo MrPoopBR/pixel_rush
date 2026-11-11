@@ -195,9 +195,9 @@ jobs:
                   tmp.write_bytes(archive.read(name))
                   proc=subprocess.run(['readelf','-dW',str(tmp)],capture_output=True,text=True)
                   if proc.returncode: raise SystemExit('readelf falhou: '+name)
-                  needed=re.findall(r'\\(NEEDED\\).*?\\[([^]]+)\\]',proc.stdout)
+                  needed=re.findall(r'\(NEEDED\).*?\[([^]]+)\]',proc.stdout)
                   lines.append(name+' -> '+(', '.join(needed) if needed else '(sem DT_NEEDED)'))
-          (root/'R154_DT_NEEDED.txt').write_text('\\n'.join(lines)+'\\n',encoding='utf-8')
+          (root/'R154_DT_NEEDED.txt').write_text('\n'.join(lines)+'\n',encoding='utf-8')
           print('DT_NEEDED auditados:',len(lines),'bibliotecas ARM64.')
           print('Obs.: modulos stdlib CPython empaquetados fora de lib/ nao sao cobertos por esta listagem.')
           PY
