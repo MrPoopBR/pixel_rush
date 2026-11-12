@@ -171,7 +171,7 @@ jobs:
           "$APKSIGNER" verify --verbose "$APK" | tee "$GITHUB_WORKSPACE/R155_SIGNATURE.txt"
           "$ZIPALIGN" -c -P 16 -v 4 "$APK" | tee "$GITHUB_WORKSPACE/R155_ZIPALIGN.txt"
           python3 "$GITHUB_WORKSPACE/.github/scripts/r155_static_apk_audit.py" "$APK"
-          cp R155_AUDITORIA_APK.json "$GITHUB_WORKSPACE/R155_AUDITORIA_APK.json"
+          test -s "$GITHUB_WORKSPACE/R155_AUDITORIA_APK.json"
           sha256sum "$APK" | tee "$GITHUB_WORKSPACE/R155_APK_SHA256.txt"
 
       - name: Upload verified APK DEBUG
