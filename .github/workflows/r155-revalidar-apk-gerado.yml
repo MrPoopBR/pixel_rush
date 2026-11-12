@@ -1,0 +1,116 @@
+name: "PIXEL RUSH R155 - Revalidar APK existente (sem recompilar)"
+
+on:
+  push:
+    branches:
+      - build/r154-debug-327907
+    paths:
+      - ".github/workflows/r154-revalidar-apk-gerado.yml"
+      - ".github/scripts/r155_static_apk_audit.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: pixelrush-r154-revalidacao-apk
+  cancel-in-progress: false
+
+jobs:
+  revalidar-apk-existente:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/build/r154-debug-327907'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout verificador independente
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Baixar APK ja construido no run 43127660933
+        uses: actions/download-artifact@v4
+        with:
+          name: PIXELRUSH_R155_APK_DEBUG_NAO_HOMOLOGADO
+          repository: MrPoopBR/pixel_rush
+          run-id: 43127660933
+          github-token: ${{ github.token }}
+          path: apk-original
+
+      - name: Verificar APK original SHA256, manifesto, assinatura e zipalign
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$GITHUB_WORKSPACE/apk-original/PIXELRUSH_V327907_R155_DEBUG_ARM64.apk"
+          test -f "$APK"
+          EXPECTED='7a79c14526366e541ade96203ca01635869e45dca533f36db1182f28026f64ff'
+          echo "$EXPECTED  $APK" | sha256sum -c -
+          SDKROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          AAPT="$(find "$SDKROOT/build-tools" -type f -name aapt | sort -V | tail -1)"
+          SIGNER="$(find "$SDKROOT/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          ALIGN="$(find "$SDKROOT/build-tools" -type f -name zipalign | sort -V | tail -1)"
+          test -x "$AAPT" && test -x "$SIGNER" && test -x "$ALIGN"
+          "$AAPT" dump badging "$APK" | grep '^package:' | tee R155_PACKAGE.txt
+          grep -q "name='com.bigheadmobile_pixelrush'" R155_PACKAGE.txt
+          grep -q "versionCode='327907'" R155_PACKAGE.txt
+          "$SIGNER" verify --verbose "$APK" | tee R155_SIGNATURE.txt
+          grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' R155_SIGNATURE.txt
+          "$ALIGN" -c -P 16 -v 4 "$APK" > R155_ZIPALIGN.txt
+          grep -q 'Verification successful' R155_ZIPALIGN.txt
+
+      - name: Auditar 129 ELF ARM64 e tar.gz libpybundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile .github/scripts/r155_static_apk_audit.py
+          python3 .github/scripts/r155_static_apk_audit.py apk-original/PIXELRUSH_V327907_R155_DEBUG_ARM64.apk
+          sha256sum apk-original/PIXELRUSH_V327907_R155_DEBUG_ARM64.apk > R155_APK_SHA256.txt
+
+      - name: Confirmar boot R155 e bibliotecas essenciais no APK instalado
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import gzip,io,tarfile,zipfile
+          archive="apk-original/PIXELRUSH_V327907_R155_DEBUG_ARM64.apk"
+          with zipfile.ZipFile(archive) as z:
+              with tarfile.open(fileobj=io.BytesIO(z.read("assets/private.tar")),mode="r:*") as t:
+                  found=set(t.getnames())
+                  required={"main.pyc","PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.pyc",
+                            "src/pixelrush/platform/legacy_imports_v327797.pyc",
+                            "src/pixelrush/platform/_legacy/pixelrush_android_abertura_v327712.pyc"}
+                  missing=required-found
+                  if missing: raise SystemExit(f"ARQUIVOS DE BOOT R155 AUSENTES: {missing}")
+              packed=z.read("lib/arm64-v8a/libpybundle.so")
+              with tarfile.open(fileobj=io.BytesIO(gzip.decompress(packed)),mode="r:") as t:
+                  names=set(t.getnames())
+                  required={"_python_bundle/site-packages/jnius/__init__.pyc",
+                            "_python_bundle/site-packages/jnius/jnius.so",
+                            "_python_bundle/site-packages/pygame/__init__.pyc"}
+                  missing=required-names
+                  if missing: raise SystemExit(f"DEPENDENCIAS ANDROID AUSENTES: {missing}")
+          print("BOOT R155 empacotado, PyJNIus e pygame-ce encontrados; execução real Android pendente")
+          PY
+
+      - name: Entregar APK original com auditoria estatica APROVADA
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R155_APK_DEBUG_VALIDADO_ESTATICAMENTE
+          path: apk-original/PIXELRUSH_V327907_R155_DEBUG_ARM64.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Entregar laudo da auditoria
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R155_AUDITORIA_ESTÁTICA
+          path: |
+            R155_AUDITORIA_APK.json
+            R155_PACKAGE.txt
+            R155_SIGNATURE.txt
+            R155_ZIPALIGN.txt
+            R155_APK_SHA256.txt
+          if-no-files-found: ignore
+          retention-days: 14
