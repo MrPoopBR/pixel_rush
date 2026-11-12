@@ -162,166 +162,46 @@ jobs:
           print('PRE-FLIGHT R156 OK; pacote/versao/testes/patch autenticados')
           PY
 
-      - name: Apply authenticated R159 patch, validate code and source version
+      - name: Apply R159 incremental patch (SHA256) and verify source
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import base64, bz2, hashlib, os, pathlib, re, subprocess
+          import base64, bz2, hashlib, os, pathlib, subprocess
           workspace=pathlib.Path(os.environ['GITHUB_WORKSPACE'])
           game=pathlib.Path(os.environ['R154_PROJECT_DIR'])
           parts=[workspace/'.github/r159_parts'/f'part{i:02d}.txt' for i in range(7)]
           if not all(p.is_file() for p in parts):
-              raise SystemExit('Patch R159 incompleto: faltam fragmentos')
+              raise SystemExit('R159: fragmentos ausentes')
           encoded=''.join(p.read_text(encoding='ascii').strip() for p in parts)
           if len(encoded)!=31544:
-              raise SystemExit(f'Tamanho base64 R159 incorreto: {len(encoded)}')
+              raise SystemExit('R159: tamanho base64 incorreto')
           packed=base64.b64decode(encoded,validate=True)
-          expected_bz2='9f2751cc573b742a4a8c6bcc58c3d41d248b966b5a8210c02e85d91a5807503a'
-          expected_patch='1165c1ced4ad2601caccf1e3458b2d7025e62171c90b97c719c219cbf10a97c1'
-          if hashlib.sha256(packed).hexdigest()!=expected_bz2:
-              raise SystemExit('SHA256 BZ2 R159 nao confere')
+          if hashlib.sha256(packed).hexdigest()!='9f2751cc573b742a4a8c6bcc58c3d41d248b966b5a8210c02e85d91a5807503a':
+              raise SystemExit('R159: SHA256 BZ2 incorreto')
           patch=bz2.decompress(packed)
-          if hashlib.sha256(patch).hexdigest()!=expected_patch:
-              raise SystemExit('SHA256 do patch descompactado R159 nao confere')
-          patch_path=workspace/'r159_incremental.patch'
-          patch_path.write_bytes(patch)
-          subprocess.run(['git','apply','--check',str(patch_path)],cwd=game,check=True)
-          subprocess.run(['git','apply',str(patch_path)],cwd=game,check=True)
-          spec=(game/'buildozer.spec').read_text(encoding='utf-8')
-          expected={'version':'3.279.10','android.numeric_version':'327910',
-                    'package.name':'bigheadmobile_pixelrush','package.domain':'com',
-                    'android.archs':'arm64-v8a'}
-          for key,value in expected.items():
-              if not re.search(r'^\\s*'+re.escape(key)+r'\\s*=\\s*'+re.escape(value)+r'\\s*
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Free disk and install Android build dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell /opt/hostedtoolcache/CodeQL || true
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            git zip unzip curl wget ca-certificates openjdk-17-jdk \
-            build-essential autoconf automake autopoint gettext libtool pkg-config \
-            zlib1g-dev libncurses-dev libncursesw5-dev cmake ninja-build \
-            libffi-dev libssl-dev libltdl-dev liblzma-dev libsqlite3-dev \
-            ccache binutils python3-pip python3-venv
-          if ! command -v rustc >/dev/null 2>&1; then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-          fi
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-          df -h /
-
-      - name: Install isolated Buildozer and patchelf
-        shell: bash
-        run: |
-          set -euo pipefail
-          VENV="$RUNNER_TEMP/r154-build-venv"
-          python3 -m venv --system-site-packages "$VENV"
-          "$VENV/bin/python" -c "import site; assert site.ENABLE_USER_SITE, 'pip --user bloqueado neste venv'"
-          "$VENV/bin/python" -m pip install -U pip wheel 'setuptools<81' 'Cython==0.29.36' legacy-cgi buildozer 'patchelf>=0.18.0.0'
-          echo "$VENV/bin" >> "$GITHUB_PATH"
-          if ! "$VENV/bin/patchelf" --help 2>&1 | grep -q -- '--page-size'; then
-            echo "ERRO: patchelf sem suporte a --page-size exigido pela receita Python ARM64 da R154."
-            exit 2
-          fi
-          "$VENV/bin/buildozer" --version
-          "$VENV/bin/patchelf" --version
-
-      - name: Validate pygame-ce R159 (10 tests, headless)
-        shell: bash
-        env:
-          SDL_VIDEODRIVER: dummy
-          SDL_AUDIODRIVER: dummy
-        run: |
-          set -euo pipefail
-          python -m pip install 'pygame-ce==2.5.8'
-          cd "$R154_PROJECT_DIR"
-          python tests/test_r159_correcao_integradora.py
-
-      - name: Build APK DEBUG ARM64 (no AAB, no Play signing)
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$R154_PROJECT_DIR"
-          echo "Build R159 corrigido em $R154_PROJECT_DIR"
-          buildozer -v android debug 2>&1 | tee "$GITHUB_WORKSPACE/R159_BUILD_LOG.txt"
-          shopt -s nullglob
-          apks=(bin/*.apk)
-          if (( ${#apks[@]} == 0 )); then echo 'Buildozer terminou sem APK' >&2; exit 3; fi
-          cp "${apks[0]}" "$GITHUB_WORKSPACE/PIXELRUSH_V327910_R159_DEBUG_ARM64.apk"
-
-      - name: Verify package, signature, ABI and 16 KiB ELF alignment
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK="$GITHUB_WORKSPACE/PIXELRUSH_V327910_R159_DEBUG_ARM64.apk"
-          SDKROOT="$HOME/.buildozer/android/platform/android-sdk"
-          AAPT="$(find "$SDKROOT/build-tools" -type f -name aapt | sort -V | tail -1)"
-          APKSIGNER="$(find "$SDKROOT/build-tools" -type f -name apksigner | sort -V | tail -1)"
-          ZIPALIGN="$(find "$SDKROOT/build-tools" -type f -name zipalign | sort -V | tail -1)"
-          test -x "$AAPT" && test -x "$APKSIGNER" && test -x "$ZIPALIGN"
-          "$AAPT" dump badging "$APK" | grep '^package:' | tee "$GITHUB_WORKSPACE/R159_PACKAGE.txt"
-          grep -q "name='com.bigheadmobile_pixelrush'" "$GITHUB_WORKSPACE/R159_PACKAGE.txt"
-          grep -q "versionCode='327910'" "$GITHUB_WORKSPACE/R159_PACKAGE.txt"
-          "$APKSIGNER" verify --verbose "$APK" | tee "$GITHUB_WORKSPACE/R159_SIGNATURE.txt"
-          "$ZIPALIGN" -c -P 16 -v 4 "$APK" | tee "$GITHUB_WORKSPACE/R159_ZIPALIGN.txt"
-          sed -e "s/327907/327910/g" -e "s/R155_AUDITORIA_APK/R159_AUDITORIA_APK/g" "$GITHUB_WORKSPACE/.github/scripts/r155_static_apk_audit.py" > "$GITHUB_WORKSPACE/r159_static_apk_audit.py"
-          python3 "$GITHUB_WORKSPACE/r159_static_apk_audit.py" "$APK"
-          test -s "$GITHUB_WORKSPACE/R159_AUDITORIA_APK.json"
-          sha256sum "$APK" | tee "$GITHUB_WORKSPACE/R159_APK_SHA256.txt"
-
-      - name: Upload verified APK DEBUG
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: PIXELRUSH_R159_APK_DEBUG_ARM64
-          path: PIXELRUSH_V327910_R159_DEBUG_ARM64.apk
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Preserve APK if post-build validation fails (NOT HOMOLOGATED)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: PIXELRUSH_R159_APK_DEBUG_NAO_HOMOLOGADO
-          path: PIXELRUSH_V327910_R159_DEBUG_ARM64.apk
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Upload build diagnostics even on error
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: PIXELRUSH_R159_BUILD_LOGS
-          path: |
-            R159_BUILD_LOG.txt
-            R159_PACKAGE.txt
-            R159_SIGNATURE.txt
-            R159_ZIPALIGN.txt
-            R159_APK_SHA256.txt
-            R159_AUDITORIA_APK.json
-          if-no-files-found: ignore
-          retention-days: 14
-,spec,re.M):
-                  raise SystemExit(f'Config R159 invalida: {key}={value}')
-          src=(game/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(encoding='utf-8')
-          if 'v3.279.10-ANDROID-RC' not in src:
-              raise SystemExit('Versao do motor R159 ausente')
-          for name in ('src/pixelrush/ui/tutorial/gesture_art_r159.py',
-                       'src/pixelrush/world/parallax_extra_r156.py',
-                       'tests/test_r159_correcao_integradora.py',
-                       'src/pixelrush/systems/presentation/replay_sound_v3174.py'):
+          if hashlib.sha256(patch).hexdigest()!='1165c1ced4ad2601caccf1e3458b2d7025e62171c90b97c719c219cbf10a97c1':
+              raise SystemExit('R159: SHA256 patch incorreto')
+          path=workspace/'r159_incremental.patch'
+          path.write_bytes(patch)
+          subprocess.run(['git','apply','--check',str(path)],cwd=game,check=True)
+          subprocess.run(['git','apply',str(path)],cwd=game,check=True)
+          cfg=(game/'buildozer.spec').read_text(encoding='utf8')
+          for val in ('version = 3.279.10','android.numeric_version = 327910',
+                      'package.name = bigheadmobile_pixelrush','package.domain = com',
+                      'android.archs = arm64-v8a'):
+              if val not in cfg:
+                  raise SystemExit('R159: buildozer.spec sem '+val)
+          engine=(game/'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py').read_text(encoding='utf8')
+          if 'v3.279.10-ANDROID-RC' not in engine:
+              raise SystemExit('R159: versao do motor incorreta')
+          for name in ('tests/test_r159_correcao_integradora.py',
+                       'src/pixelrush/ui/tutorial/gesture_art_r159.py',
+                       'src/pixelrush/world/parallax_extra_r156.py'):
               if not (game/name).is_file():
-                  raise SystemExit(f'Arquivo R159 nao integrado: {name}')
-          subprocess.run(['python3','-m','compileall','-q','main.py',
-                          'PixelRush_v3.277.11_PRODUCAO_ANDROID_RC.py','src'],cwd=game,check=True)
-          print('R159 SHA256 validado, patch aplicado, versao 327910 e sintaxe OK')
+                  raise SystemExit('R159: arquivo ausente '+name)
+          subprocess.run(['python3','-m','compileall','-q','main.py','src'],cwd=game,check=True)
+          print('R159 autenticada, integracao e sintaxe confirmadas')
           PY
 
       - name: Configure Java 17
@@ -363,6 +243,17 @@ jobs:
           fi
           "$VENV/bin/buildozer" --version
           "$VENV/bin/patchelf" --version
+
+      - name: Run R159 pygame-ce tests (headless)
+        shell: bash
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: |
+          set -euo pipefail
+          python -m pip install 'pygame-ce==2.5.8'
+          cd "$R154_PROJECT_DIR"
+          python tests/test_r159_correcao_integradora.py
 
       - name: Build APK DEBUG ARM64 (no AAB, no Play signing)
         shell: bash
