@@ -3,9 +3,9 @@ name: "PIXEL RUSH R155 - Revalidar APK existente (sem recompilar)"
 on:
   push:
     branches:
-      - build/r154-debug-327907
+      - build/r154-debug-327906
     paths:
-      - ".github/workflows/r154-revalidar-apk-gerado.yml"
+      - ".github/workflows/r155-revalidar-apk-gerado.yml"
       - ".github/scripts/r155_static_apk_audit.py"
   workflow_dispatch:
 
@@ -14,12 +14,12 @@ permissions:
   actions: read
 
 concurrency:
-  group: pixelrush-r154-revalidacao-apk
+  group: pixelrush-r155-revalidacao-apk
   cancel-in-progress: false
 
 jobs:
   revalidar-apk-existente:
-    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/build/r154-debug-327907'
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/build/r154-debug-327906'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
