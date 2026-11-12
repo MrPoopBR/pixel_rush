@@ -114,6 +114,17 @@ jobs:
           if not path.is_file():
               raise SystemExit('Patch R156 nao foi enviado ao ramo isolado')
           lines=path.read_text(encoding='ascii').splitlines()
+          if lines == ['R156_PARTS_V1']:
+              parts=[workspace/'.github/r156_parts'/f'part{i}.txt' for i in range(4)]
+              if not all(p.is_file() for p in parts):
+                  raise SystemExit('Fragmentos autenticados R156 incompletos')
+              data=''.join(p.read_text(encoding='ascii').strip() for p in parts)
+              if len(data)!=23592:
+                  raise SystemExit('Tamanho do patch R156 divergente')
+              lines=['PIXELRUSH_R156_PATCH_BZ2_BASE64',
+                     'SHA256_BZ2=3bd300e2eef754723a65a2cbf0b2489c49389bed1cd56748e606fff35d0e5bd0',
+                     'SHA256_PATCH=1f7e2792e76dffa2e6c81e4970a7c4f266abcf9886f8e505e9a7a212439105b3',
+                     data]
           if lines[0]!='PIXELRUSH_R156_PATCH_BZ2_BASE64':
               raise SystemExit('Cabecalho de patch R156 incorreto')
           declared=dict(line.split('=',1) for line in lines[1:3])
