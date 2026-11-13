@@ -253,7 +253,11 @@ jobs:
           python3 -m venv --system-site-packages "$VENV"
           "$VENV/bin/python" -m pip install -U pip wheel 'setuptools<81' 'Cython==0.29.36' legacy-cgi buildozer 'patchelf>=0.18.0.0'
           echo "$VENV/bin" >> "$GITHUB_PATH"
-          "$VENV/bin/patchelf" --help | grep -q -- '--page-size'
+          PATCHELF_HELP="$("$VENV/bin/patchelf" --help 2>&1 || true)"
+          case "$PATCHELF_HELP" in
+            *--page-size*) echo "patchelf oferece --page-size" ;;
+            *) echo "ERRO: patchelf sem suporte a --page-size" >&2; exit 2 ;;
+          esac
           "$VENV/bin/buildozer" --version
 
       - name: Compilar APK DEBUG ARM64 QA (sem AAB e sem chave de producao)
