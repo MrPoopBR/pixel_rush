@@ -140,7 +140,7 @@ jobs:
           (dest/'PIXELRUSH_V327912_R162_QA_OVERHEAD').symlink_to(pathlib.Path(__import__('os').environ['R162_PROJECT_DIR']),target_is_directory=True)
           with pathlib.Path(__import__('os').environ['GITHUB_ENV']).open('a') as f:f.write('R162_LAB_DIR='+str(dest/'R162_LAB_TESTES')+'\n')
           PY
-          "$RUNNER_TEMP/pygame_ce_r162/bin/python" -m unittest discover -s "$R162_LAB_DIR" -p 'test_*.py' -v 2>&1 | tee R162_TELEMETRIA_TESTES.log
+          "$RUNNER_TEMP/pygame_ce_r162/bin/python" -m unittest discover -s "$RUNNER_TEMP/r162_labs/R162_LAB_TESTES" -p 'test_*.py' -v 2>&1 | tee R162_TELEMETRIA_TESTES.log
 
       - name: Empacotar e publicar a fonte R162 exatamente validada
         shell: bash
