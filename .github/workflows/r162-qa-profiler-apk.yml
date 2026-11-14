@@ -1,0 +1,324 @@
+name: "PIXEL RUSH R162 QA - Fonte exata e APK DEBUG ARM64"
+
+on:
+  push:
+    branches:
+      - qa/r162-profiler-327912
+    paths:
+      - .github/workflows/r162-qa-profiler-apk.yml
+      - qa_r162/r162_changes.patch.xz.b64
+      - qa_r162/r162_telemetry_tests.zip.b64
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pixelrush-r162-qa-profiler
+  cancel-in-progress: false
+
+jobs:
+  validar-fonte-e-testes:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r162-profiler-327912'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout somente da branch QA isolada
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Reconstruir fonte oficial R154 byte-exata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, os, pathlib, zipfile
+          root=pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          parts=[root/'r154-source'/('r154-source.part%02d'%i) for i in range(1,5)]
+          assert all(p.is_file() for p in parts), 'Partes R154 ausentes'
+          assert [p.stat().st_size for p in parts] == [10000000,10000000,10000000,8155030]
+          target=pathlib.Path(os.environ['RUNNER_TEMP'])/'R154_SOURCE.zip'
+          digest=hashlib.sha256()
+          with target.open('wb') as dst:
+            for p in parts:
+              with p.open('rb') as src:
+                for buf in iter(lambda:src.read(1048576),b''):
+                  dst.write(buf);digest.update(buf)
+          assert digest.hexdigest()=='2a27e23a55142b8ce1f707794be302f8470015f10591449c9a031f84396e47e9','SHA R154 incorreto'
+          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'R162_RECONSTRUCTION';dest.mkdir()
+          with zipfile.ZipFile(target) as z:
+            assert z.testzip() is None,'CRC origem'
+            for info in z.infolist():
+              rel=pathlib.PurePosixPath(info.filename)
+              assert not rel.is_absolute() and '..' not in rel.parts
+            z.extractall(dest)
+          project=dest/'PIXELRUSH_V327906_LIMPA'
+          assert (project/'buildozer.spec').exists(), 'Estrutura R154 inesperada'
+          with pathlib.Path(os.environ['GITHUB_ENV']).open('a') as f:
+            f.write('R162_PROJECT_DIR='+str(project)+'\n')
+          print('R154 sha256',digest.hexdigest())
+          PY
+
+      - name: Reconstituir as correcoes oficiais R155 e R156
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/r155_apply_bytecode_fix.py "$R162_PROJECT_DIR"
+          python3 qa_r156/aplicar_r156_qa.py "$R162_PROJECT_DIR"
+          python3 - <<'PY'
+          import hashlib,os,pathlib
+          root=pathlib.Path(os.environ['R162_PROJECT_DIR'])
+          h=hashlib.sha256();n=0
+          for p in sorted((p for p in root.rglob('*') if p.is_file()),key=lambda p:p.relative_to(root).as_posix()):
+            rel=p.relative_to(root).as_posix()
+            h.update(rel.encode()+b'\0'+hashlib.sha256(p.read_bytes()).hexdigest().encode()+b'\n')
+            n+=1
+          assert n==1110,(n,'Quantidade de arquivos R156 divergente')
+          assert h.hexdigest()=='edbd1045632b5bdd449ec561b11250506215b9f73674e24b009cfc95bfd9cb7d', 'Fonte R156 nao e identica a base oficial'
+          print('R156 TREE_SHA256',h.hexdigest())
+          PY
+
+      - name: Aplicar exclusivamente o delta do ZIP completo R162 e validar 1125 arquivos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64,hashlib,lzma,pathlib,os,subprocess
+          encoded=pathlib.Path('qa_r162/r162_changes.patch.xz.b64').read_bytes()
+          assert hashlib.sha256(encoded).hexdigest()=='33f45b390ca4e0bc79d8b1ff8f1d09a9acca9d4433c93c9fb0ff85062577a863'
+          patch=lzma.decompress(base64.b64decode(encoded,validate=True))
+          result=subprocess.run(['patch','-p1','--batch','--forward'],input=patch,cwd=os.environ['R162_PROJECT_DIR'],capture_output=True)
+          print(result.stdout.decode(errors='replace')[-7000:])
+          assert result.returncode==0,result.stderr.decode(errors='replace')
+          root=pathlib.Path(os.environ['R162_PROJECT_DIR'])
+          h=hashlib.sha256();count=0;py=0
+          for p in sorted((p for p in root.rglob('*') if p.is_file()),key=lambda p:p.relative_to(root).as_posix()):
+            rel=p.relative_to(root).as_posix()
+            h.update(rel.encode()+b'\0'+hashlib.sha256(p.read_bytes()).hexdigest().encode()+b'\n')
+            count+=1
+            if p.suffix=='.py':
+              compile(p.read_bytes(),str(p),'exec');py+=1
+          assert count==1125,(count,'R162 file count')
+          assert h.hexdigest()=='9d5bf0f40577d609285ef9d8d596035b60d625fc2e631150e2f5b678a1825101',(h.hexdigest(),'R162 TREE_SHA256 invalido')
+          spec=(root/'buildozer.spec').read_text()
+          for entry in ('package.name = bigheadmobile_pixelrush_qa_r162','version = 3.279.12','android.numeric_version = 327912','android.archs = arm64-v8a'):
+            assert entry in spec, entry
+          assert 'r162_metrics.jsonl' in (root/'pixelrush_qa_internal.py').read_text()
+          pathlib.Path('R162_FONTE_VALIDADA.json').write_text(__import__('json').dumps({'status':'FONTE_R162_EXATA','project_files':count,'python_files':py,'tree_sha256':h.hexdigest(),'source_zip_sha256':'a9f8a2aeeb17b32dd6cc7efec3470b8c7296e5f6a22d15174ff2f064f722cef9','homologado_android':False},indent=2))
+          print('R162 validated:',count,'files /',py,'Python / SHA256',h.hexdigest())
+          PY
+
+      - name: Testar telemetria R162 com pygame-ce 2.5.8
+        shell: bash
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/pygame_ce_r162"
+          "$RUNNER_TEMP/pygame_ce_r162/bin/python" -m pip install --disable-pip-version-check pygame-ce==2.5.8
+          "$RUNNER_TEMP/pygame_ce_r162/bin/python" - <<'PY'
+          import pygame
+          pygame.init()
+          surface=pygame.Surface((64,64),pygame.SRCALPHA);surface.fill((7,8,9,255))
+          assert surface.get_at((0,0)) == pygame.Color(7,8,9,255)
+          print('pygame-ce',pygame.version.ver)
+          pygame.quit()
+          PY
+          python3 - <<'PY'
+          import base64,hashlib,pathlib,zipfile,io
+          e=pathlib.Path('qa_r162/r162_telemetry_tests.zip.b64').read_bytes()
+          assert hashlib.sha256(e).hexdigest()=='986dc00da552083e7921665ae5656857259c011fbcecb1529c82b470420371f4'
+          dest=pathlib.Path(__import__('os').environ['RUNNER_TEMP'])/'r162_labs';dest.mkdir()
+          with zipfile.ZipFile(io.BytesIO(base64.b64decode(e,validate=True))) as z:
+            assert z.testzip() is None
+            for x in z.infolist():
+              path=pathlib.PurePosixPath(x.filename)
+              assert not path.is_absolute() and '..' not in path.parts
+            z.extractall(dest)
+          (dest/'PIXELRUSH_V327912_R162_QA_OVERHEAD').symlink_to(pathlib.Path(__import__('os').environ['R162_PROJECT_DIR']),target_is_directory=True)
+          with pathlib.Path(__import__('os').environ['GITHUB_ENV']).open('a') as f:f.write('R162_LAB_DIR='+str(dest/'R162_LAB_TESTES')+'\n')
+          PY
+          "$RUNNER_TEMP/pygame_ce_r162/bin/python" -m unittest discover -s "$R162_LAB_DIR" -p 'test_*.py' -v 2>&1 | tee R162_TELEMETRIA_TESTES.log
+
+      - name: Empacotar e publicar a fonte R162 exatamente validada
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$(dirname "$R162_PROJECT_DIR")"
+          mv "$(basename "$R162_PROJECT_DIR")" PIXELRUSH_V327912_R162_QA_OVERHEAD
+          zip -q -r "$GITHUB_WORKSPACE/PIXELRUSH_V327912_R162_QA_FONTE_VALIDADA.zip" PIXELRUSH_V327912_R162_QA_OVERHEAD -x '*/__pycache__/*' '*.pyc'
+          sha256sum "$GITHUB_WORKSPACE/PIXELRUSH_V327912_R162_QA_FONTE_VALIDADA.zip" | tee "$GITHUB_WORKSPACE/R162_FONTE_ZIP_SHA256.txt"
+
+      - name: Publicar fonte QA R162
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R162_FONTE_QA_VERIFICADA
+          path: PIXELRUSH_V327912_R162_QA_FONTE_VALIDADA.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar logs de testes e SHA da fonte
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R162_VERIFICACAO_FONTE
+          path: |
+            R162_FONTE_VALIDADA.json
+            R162_TELEMETRIA_TESTES.log
+            R162_FONTE_ZIP_SHA256.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+  compilar-apk-debug-arm64:
+    needs: validar-fonte-e-testes
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r162-profiler-327912'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    env:
+      PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: '0'
+      MAKEFLAGS: '-j4'
+      CMAKE_BUILD_PARALLEL_LEVEL: '4'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+    steps:
+      - name: Receber somente a fonte R162 autenticada
+        uses: actions/download-artifact@v4
+        with:
+          name: PIXELRUSH_R162_FONTE_QA_VERIFICADA
+          path: .
+
+      - name: Extrair e reverificar fonte exata antes do build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,pathlib,zipfile,hashlib
+          archive=pathlib.Path('PIXELRUSH_V327912_R162_QA_FONTE_VALIDADA.zip')
+          assert archive.is_file(),'Fonte autenticada ausente'
+          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'r162_for_build';dest.mkdir()
+          with zipfile.ZipFile(archive) as z:
+            assert z.testzip() is None
+            for info in z.infolist():
+              rel=pathlib.PurePosixPath(info.filename)
+              assert not rel.is_absolute() and '..' not in rel.parts
+            z.extractall(dest)
+          root=dest/'PIXELRUSH_V327912_R162_QA_OVERHEAD'
+          h=hashlib.sha256();count=0
+          for p in sorted((x for x in root.rglob('*') if x.is_file()),key=lambda x:x.relative_to(root).as_posix()):
+            rel=p.relative_to(root).as_posix()
+            h.update(rel.encode()+b'\0'+hashlib.sha256(p.read_bytes()).hexdigest().encode()+b'\n');count+=1
+          assert count==1125,(count,'numero de arquivos')
+          assert h.hexdigest()=='9d5bf0f40577d609285ef9d8d596035b60d625fc2e631150e2f5b678a1825101','integridade antes do build'
+          spec=(root/'buildozer.spec').read_text()
+          for x in ('package.name = bigheadmobile_pixelrush_qa_r162','version = 3.279.12','android.numeric_version = 327912','android.archs = arm64-v8a'):
+            assert x in spec,x
+          with pathlib.Path(os.environ['GITHUB_ENV']).open('a') as f:f.write('R162_BUILD_DIR='+str(root)+'\n')
+          print('Fonte R162 verificada antes da compilacao',h.hexdigest())
+          PY
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Dependencias Ubuntu 24.04 e espaco para Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell /opt/hostedtoolcache/CodeQL || true
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git zip unzip curl wget ca-certificates openjdk-17-jdk \
+            build-essential autoconf automake autopoint gettext libtool pkg-config \
+            zlib1g-dev libncurses-dev libncursesw5-dev cmake ninja-build \
+            libffi-dev libssl-dev libltdl-dev liblzma-dev libsqlite3-dev \
+            ccache binutils python3-pip python3-venv
+          if ! command -v rustc >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          df -h /
+
+      - name: Instalar Buildozer isolado e patchelf 16KiB
+        shell: bash
+        run: |
+          set -euo pipefail
+          VENV="$RUNNER_TEMP/r162_build_venv"
+          python3 -m venv --system-site-packages "$VENV"
+          "$VENV/bin/python" -m pip install -U pip wheel 'setuptools<81' 'Cython==0.29.36' legacy-cgi buildozer 'patchelf>=0.18.0.0'
+          echo "$VENV/bin" >> "$GITHUB_PATH"
+          "$VENV/bin/patchelf" --help 2>&1 | grep -q -- '--page-size'
+          "$VENV/bin/buildozer" --version
+
+      - name: Compilar APK DEBUG ARM64 R162 isolado
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$R162_BUILD_DIR"
+          buildozer -v android debug 2>&1 | tee "$GITHUB_WORKSPACE/R162_BUILD_LOG.txt"
+          python3 - <<'PY'
+          import glob,os,shutil
+          paths=glob.glob('bin/*.apk')
+          assert len(paths)==1,('Quantidade de APKs inesperada:',paths)
+          shutil.copyfile(paths[0],os.environ['GITHUB_WORKSPACE']+'/PIXELRUSH_R162_QA_DEBUG_ARM64.apk')
+          PY
+
+      - name: Verificar package, versionCode, assinatura, ABI, alinhamento e cProfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$GITHUB_WORKSPACE/PIXELRUSH_R162_QA_DEBUG_ARM64.apk"
+          SDKROOT="$HOME/.buildozer/android/platform/android-sdk"
+          AAPT="$(find "$SDKROOT/build-tools" -type f -name aapt | sort -V | tail -1)"
+          SIGNER="$(find "$SDKROOT/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          ZIPALIGN="$(find "$SDKROOT/build-tools" -type f -name zipalign | sort -V | tail -1)"
+          test -x "$AAPT" && test -x "$SIGNER" && test -x "$ZIPALIGN"
+          "$AAPT" dump badging "$APK" | grep '^package:' | tee "$GITHUB_WORKSPACE/R162_PACKAGE.txt"
+          grep -q "name='com.bigheadmobile_pixelrush_qa_r162'" "$GITHUB_WORKSPACE/R162_PACKAGE.txt"
+          grep -q "versionCode='327912'" "$GITHUB_WORKSPACE/R162_PACKAGE.txt"
+          "$SIGNER" verify --verbose "$APK" | tee "$GITHUB_WORKSPACE/R162_SIGNATURE.txt"
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK" | tee "$GITHUB_WORKSPACE/R162_ZIPALIGN.txt"
+          python3 - <<'PY'
+          import hashlib,io,json,os,tarfile,zipfile
+          p=os.environ['GITHUB_WORKSPACE']+'/PIXELRUSH_R162_QA_DEBUG_ARM64.apk'
+          with zipfile.ZipFile(p) as z:
+            assert z.testzip() is None,'CRC APK falhou'
+            libs=[x for x in z.namelist() if x.startswith('lib/') and x.endswith('.so')]
+            assert libs and all(x.startswith('lib/arm64-v8a/') for x in libs),'ABI inesperada'
+            with tarfile.open(fileobj=io.BytesIO(z.read('assets/private.tar')),mode='r:*') as t:
+              names=t.getnames()
+              assert any(x.endswith('/pixelrush_qa_internal.py') or x=='pixelrush_qa_internal.py' for x in names),'Profiler R162 ausente'
+              assert any(x.endswith('/main.py') or x=='main.py' or x.endswith('/main.pyc') for x in names),'main ausente'
+          result={'status':'VALIDACAO_ESTATICA_APK_R162','package':'com.bigheadmobile_pixelrush_qa_r162',
+                  'versionCode':327912,'abi':'arm64-v8a','sha256':hashlib.sha256(open(p,'rb').read()).hexdigest(),
+                  'homologacao_A54':False}
+          with open('R162_APK_RELATORIO.json','w') as f:json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          PY
+          sha256sum "$APK" | tee "$GITHUB_WORKSPACE/R162_APK_SHA256.txt"
+
+      - name: Entregar APK R162 validado estaticamente
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R162_APK_QA_DEBUG_ARM64
+          path: PIXELRUSH_R162_QA_DEBUG_ARM64.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preservar logs para diagnostico de build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R162_QA_BUILD_LOGS
+          path: |
+            R162_BUILD_LOG.txt
+            R162_PACKAGE.txt
+            R162_SIGNATURE.txt
+            R162_ZIPALIGN.txt
+            R162_APK_RELATORIO.json
+            R162_APK_SHA256.txt
+          if-no-files-found: ignore
+          retention-days: 30
