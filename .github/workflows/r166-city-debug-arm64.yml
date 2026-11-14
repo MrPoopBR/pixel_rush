@@ -174,6 +174,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 - <<'PYR166CLEAN'
+          import os,pathlib,hashlib
+          root=pathlib.Path(os.environ['R166_PROJECT_DIR'])
+          generated=root/'pixelrush_qa_internal'/'r162_metrics.jsonl'
+          if generated.is_file(): generated.unlink()
+          files=sorted((x for x in root.rglob('*') if x.is_file() and
+                 '__pycache__' not in x.parts and x.suffix!='.pyc'),
+                 key=lambda x:x.relative_to(root).as_posix())
+          h=hashlib.sha256()
+          for x in files:
+            rel=x.relative_to(root).as_posix()
+            h.update(rel.encode()+b'\0'+hashlib.sha256(x.read_bytes()).hexdigest().encode()+b'\n')
+          assert len(files)==1147,(len(files),'unexpected file after tests')
+          assert h.hexdigest()=='eda65aa9d2fd81160d067bb3e0ff44ec5be5cadd9c9cef98c65e3de8dc2bf24f'
+          print('Fonte R166 intacta; JSONL da execucao de testes descartado')
+          PYR166CLEAN
           cd "$(dirname "$R166_PROJECT_DIR")"
           mv "$(basename "$R166_PROJECT_DIR")" PIXELRUSH_V327916_R166_QA_CIDADE_FLUIDA
           zip -q -r "$GITHUB_WORKSPACE/PIXELRUSH_V327916_R166_QA_FONTE_VALIDADA.zip" PIXELRUSH_V327916_R166_QA_CIDADE_FLUIDA -x '*/__pycache__/*' '*.pyc'
