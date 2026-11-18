@@ -1,0 +1,238 @@
+name: PIXEL RUSH R174 QA auto-pacing DEBUG ARM64
+
+on:
+  push:
+    branches:
+      - qa/r174-auto-arm64-327924
+    paths:
+      - '.github/workflows/r174-auto-debug-arm64.yml'
+      - 'qa_r174_build/r174_code_delta.tar.xz.b64'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: pixelrush-r174-auto-qa
+  cancel-in-progress: false
+
+jobs:
+  compilar-r174-arm64:
+    if: github.repository == 'MrPoopBR/pixel_rush' && github.ref == 'refs/heads/qa/r174-auto-arm64-327924'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    env:
+      PYTHONFORANDROID_PREREQUISITES_INSTALL_INTERACTIVE: '0'
+      MAKEFLAGS: '-j4'
+      CMAKE_BUILD_PARALLEL_LEVEL: '4'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+    steps:
+      - name: Checkout SHA conhecido
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Receber artefato da fonte autenticada R166 (run 43658082121)
+        uses: actions/download-artifact@v4
+        with:
+          name: PIXELRUSH_R166_FONTE_QA_VERIFICADA
+          repository: MrPoopBR/pixel_rush
+          run-id: 43658082121
+          github-token: ${{ github.token }}
+          path: r166_source_artifact
+
+      - name: Reconstruir somente arquivos runtime R174 e validar integridade byte-exata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY_RECONSTRUCT'
+          import array, base64, hashlib, io, json, lzma, math, os, pathlib, subprocess, tarfile, zipfile
+          
+          source_zip = pathlib.Path('r166_source_artifact/PIXELRUSH_V327916_R166_QA_FONTE_VALIDADA.zip')
+          assert source_zip.is_file(), 'Artefato R166 verificado nao localizado'
+          assert hashlib.file_digest(source_zip.open('rb'),'sha256').hexdigest() == '06f6a8b0de7b18306b8ddc27a68c5bd48cc72dbfd7cf01b75ba38412090768fe'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'r174_src'
+          root.mkdir(parents=True)
+          with zipfile.ZipFile(source_zip) as z:
+              assert z.testzip() is None
+              for info in z.infolist():
+                  rel=pathlib.PurePosixPath(info.filename)
+                  assert not rel.is_absolute() and '..' not in rel.parts
+              z.extractall(root)
+          project=root/'PIXELRUSH_V327916_R166_QA_CIDADE_FLUIDA'
+          assert (project/'buildozer.spec').is_file()
+          
+          delta_b64 = pathlib.Path('qa_r174_build/r174_code_delta.tar.xz.b64').read_text().strip()
+          delta=base64.b64decode(delta_b64,validate=True)
+          assert hashlib.sha256(delta).hexdigest() == 'b7126e492a1032600de614a9d84e2324543d0ace42623c747d0df9f071322ba9'
+          with tarfile.open(fileobj=io.BytesIO(delta), mode='r:xz') as archive:
+              members=archive.getmembers()
+              for item in members:
+                  rel=pathlib.PurePosixPath(item.name)
+                  assert item.isfile() and not rel.is_absolute() and '..' not in rel.parts
+              patch=archive.extractfile('reconstruction.patch').read()
+              codefiles=[(i.name[4:],archive.extractfile(i).read()) for i in members if i.name.startswith('add/')]
+          res=subprocess.run(['patch','-p1','--batch','--forward'],input=patch,cwd=project,capture_output=True)
+          print(res.stdout.decode(errors='replace'))
+          assert res.returncode == 0,res.stderr.decode(errors='replace')
+          for name,blob in codefiles:
+              target=project/name
+              assert not target.exists(),('Esperado arquivo novo',name)
+              target.parent.mkdir(parents=True,exist_ok=True)
+              target.write_bytes(blob)
+          
+          # Reproduzir PCM da R173 pelo mesmo algoritmo usado na fonte oficial.
+          locks={
+           (22050,1):'9efd0eb87bd726f66aa5d808f80a6811e4ff7a19a98549c3d56691998334ffcf',
+           (22050,2):'ccac3071422b6ca0ace890bd1a4caaaac32affd76b674becc4b93a26d5b3ddf7',
+           (44100,1):'6d203e78e6fd1653dffcff65042f2bae92ee996cb9307647bb9c17477e51c8b8',
+           (44100,2):'f1dd0a6ed9d2afd78f795d2e133578468b98b4a04c436156764fb20e2bba546e',
+           (48000,1):'711f79d6a33e2238887037d66a9ec94386ff736dd90d5a6c47bb202fe62a7055',
+           (48000,2):'4999028086c7e6a2c32d839690722469df547f5f3e06f36560605a2d9ae126c3',
+          }
+          for (freq,channels), expected in locks.items():
+              out=array.array('h')
+              for i in range(freq*2):
+                  t=i/float(freq); pos=t%0.5
+                  envelope=max(0.,1.0-pos/0.075)**4
+                  kick=math.sin(2*math.pi*(95-50*min(pos/0.08,1.0))*pos)*envelope
+                  hat_p=t%0.25;hat_env=max(0.,1.0-hat_p/0.025)**3
+                  noise=(((i*1103515245+12345)>>12)&1023)/512.-1.
+                  v=int(max(-32700,min(32700,kick*3900+noise*hat_env*750)))
+                  for _ in range(channels):out.append(v)
+              raw=out.tobytes()
+              assert hashlib.sha256(raw).hexdigest()==expected,('PCM R174 diferente',freq,channels)
+              target=project/f'assets/audio/prebaked_r154/camada_ritmo_{freq}_{channels}ch.pcm'
+              target.parent.mkdir(parents=True,exist_ok=True)
+              target.write_bytes(raw)
+          
+          # Contrato de integridade do conjunto destinado ao APK; documentos QA historicos nao entram.
+          spec=(project/'buildozer.spec').read_text()
+          for x in ('package.name = bigheadmobile_pixelrush_launch_qa_r169','version = 3.279.24',
+                    'android.numeric_version = 327924','android.archs = arm64-v8a',
+                    'android.allow_backup = False','p4a.local_recipes = p4a-recipes'):
+              assert x in spec,x
+          assert (project/'qa_r174_auto_telemetry.py').exists()
+          include=set('py,json,png,ttf,txt,atlas,pbuf,tiles,rgbaz,pcmz,pcm'.split(','))
+          excluded=set('.git,.buildozer,bin,p4a-recipes,__pycache__,ferramentas,QA_BUILD_LOCAL,archive,tests,docs,tools,qa_a54,qa_launch,qa_native,qa_r167,qa_r168,qa_r169,qa_r170,qa_r171,qa_r172,qa_r173,qa_r174,pixelrush_qa,pixelrush_qa_internal,.github'.split(','))
+          files=sorted(p for p in project.rglob('*') if p.is_file() and p.suffix.lstrip('.') in include
+                       and not set(p.relative_to(project).parts)&excluded
+                       and not p.relative_to(project).as_posix().startswith(('MANIFESTO_INTEGRIDADE_R','PROMPT_RETOMADA_PIXELRUSH_R')))
+          h=hashlib.sha256()
+          for p in files:
+              relative=p.relative_to(project).as_posix()
+              h.update(relative.encode()+b'\0'+hashlib.sha256(p.read_bytes()).hexdigest().encode()+b'\n')
+          assert len(files)==1070,(len(files),'count de recursos runtime')
+          assert h.hexdigest()=='a3439e4d3de5abccc6019d100107abd63642e271abb28c7cf5be98de6e645fa8', ('R174 runtime TREE_SHA256 divergente',h.hexdigest())
+          print('R174: 1070 arquivos de runtime IDENTICOS a fonte oficial; SHA256',h.hexdigest())
+          with pathlib.Path(os.environ['GITHUB_ENV']).open('a') as f:f.write('QA_SOURCE_DIR='+str(project)+'\n')
+          with open('R174_SOURCE_RECONSTRUCTION.json','w') as f:json.dump({'status':'R174_RUNTIME_BYTES_EXACT', 'runtime_file_count':len(files), 'runtime_tree_sha256':h.hexdigest(), 'r166_source_sha256':hashlib.file_digest(source_zip.open('rb'),'sha256').hexdigest(),'r174_full_zip_sha256':'89effb4887f1ea9ffbcd578903c686bdf2dd757505237fda988c9201eaf79bda','note':'documentos históricos e benchmarks excluidos; runtime verificado byte a byte'},f,indent=2)
+          PY_RECONSTRUCT
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar dependencias Ubuntu/Buildozer
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell /opt/hostedtoolcache/CodeQL || true
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git zip unzip curl wget ca-certificates openjdk-17-jdk \
+            build-essential autoconf automake autopoint gettext libtool pkg-config \
+            zlib1g-dev libncurses-dev libncursesw5-dev cmake ninja-build \
+            libffi-dev libssl-dev libltdl-dev liblzma-dev libsqlite3-dev \
+            ccache binutils python3-pip python3-venv
+          if ! command -v rustc >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          VENV="$RUNNER_TEMP/r174_venv"
+          python3 -m venv --system-site-packages "$VENV"
+          "$VENV/bin/python" -m pip install -U 'pip==26.3' 'wheel==0.48.0' 'setuptools==80.10.2' \
+             'Cython==0.29.36' 'legacy-cgi==2.6.4' 'buildozer==1.6.0' 'patchelf==0.19.3.0'
+          echo "$VENV/bin" >> "$GITHUB_PATH"
+          "$VENV/bin/patchelf" --help 2>&1 | grep -q -- '--page-size'
+          "$VENV/bin/buildozer" --version
+          df -h /
+
+      - name: Compilar DEBUG ARM64 QA R174 (nao release)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$QA_SOURCE_DIR"
+          buildozer -v android debug 2>&1 | tee "$GITHUB_WORKSPACE/R174_BUILD_LOG.txt"
+          python3 - <<'PY_APK'
+          import glob,os,shutil
+          result=glob.glob('bin/*.apk')
+          assert len(result)==1,result
+          shutil.copy2(result[0],os.environ['GITHUB_WORKSPACE']+'/PIXELRUSH_R174_QA_DEBUG_ARM64.apk')
+          PY_APK
+          P4A="$HOME/.buildozer/android/platform/python-for-android"
+          if test -d "$P4A/.git"; then git -C "$P4A" rev-parse HEAD | tee "$GITHUB_WORKSPACE/R174_P4A_HEAD.txt"; fi
+
+      - name: Verificar assinatura DEBUG, package, ABI, versionCode e integridade
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$GITHUB_WORKSPACE/PIXELRUSH_R174_QA_DEBUG_ARM64.apk"
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+          AAPT="$(find "$SDK/build-tools" -type f -name aapt | sort -V | tail -1)"
+          SIGN="$(find "$SDK/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          ALIGN="$(find "$SDK/build-tools" -type f -name zipalign | sort -V | tail -1)"
+          test -x "$AAPT" && test -x "$SIGN" && test -x "$ALIGN"
+          "$AAPT" dump badging "$APK" | grep '^package:' | tee R174_PACKAGE.txt
+          grep -q "name='com.bigheadmobile_pixelrush_launch_qa_r169'" R174_PACKAGE.txt
+          grep -q "versionCode='327924'" R174_PACKAGE.txt
+          "$SIGN" verify --verbose "$APK" | tee R174_SIGNATURE.txt
+          "$ALIGN" -c -P 16 -v 4 "$APK" | tee R174_ZIPALIGN.txt
+          python3 - <<'PY_VALIDATE'
+          import hashlib,io,json,tarfile,zipfile,os
+          p=os.environ['GITHUB_WORKSPACE']+'/PIXELRUSH_R174_QA_DEBUG_ARM64.apk'
+          with zipfile.ZipFile(p) as z:
+            assert z.testzip() is None
+            libs=[x for x in z.namelist() if x.startswith('lib/') and x.endswith('.so')]
+            assert libs and all(x.startswith('lib/arm64-v8a/') for x in libs),libs[:12]
+            with tarfile.open(fileobj=io.BytesIO(z.read('assets/private.tar')),mode='r:*') as tar:
+              names=tar.getnames()
+              for mod in ('main','qa_r174_auto_telemetry','pixelrush_qa_internal'):
+                assert any(x.rsplit('/',1)[-1] in (mod+'.py',mod+'.pyc') for x in names),mod
+          result={'package':'com.bigheadmobile_pixelrush_launch_qa_r169','versionCode':327924,
+                  'sha256':hashlib.file_digest(open(p,'rb'),'sha256').hexdigest(),
+                  'abi':'arm64-v8a','static_apk_validated':True,'android_fps_homologated':False,
+                  'r155_untouched':True}
+          with open('R174_APK_VALIDATION.json','w') as f:json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          PY_VALIDATE
+          sha256sum "$APK" | tee R174_APK_SHA256.txt
+
+      - name: Publicar APK QA DEBUG
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R174_QA_DEBUG_ARM64
+          path: PIXELRUSH_R174_QA_DEBUG_ARM64.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preservar diagnosticos mesmo em falha
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PIXELRUSH_R174_BUILD_LOGS
+          path: |
+            R174_SOURCE_RECONSTRUCTION.json
+            R174_BUILD_LOG.txt
+            R174_PACKAGE.txt
+            R174_SIGNATURE.txt
+            R174_ZIPALIGN.txt
+            R174_P4A_HEAD.txt
+            R174_APK_VALIDATION.json
+            R174_APK_SHA256.txt
+          if-no-files-found: ignore
+          retention-days: 30
